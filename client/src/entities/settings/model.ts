@@ -5,8 +5,8 @@ import {
   sample,
   combine,
 } from "effector";
-import { getSettings, updateSettings } from "../../shared/api/settings";
-import type { Settings } from "../../shared/types/settings";
+import { getSettings, updateSettings } from "@/shared/api/settings";
+import type { Settings } from "@/shared/types/settings";
 
 // Effects
 export const loadSettingsFx = createEffect<void, Settings, Error>(async () => {

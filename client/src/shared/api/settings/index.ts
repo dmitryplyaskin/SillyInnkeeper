@@ -1,4 +1,4 @@
-import type { Settings } from '../../types/settings'
+import type { Settings } from '@/shared/types/settings'
 
 export async function getSettings(): Promise<Settings> {
   const response = await fetch('/api/settings')

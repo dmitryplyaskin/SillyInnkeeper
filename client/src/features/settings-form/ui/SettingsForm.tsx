@@ -1,8 +1,8 @@
 import { TextInput, Button, Text, Stack, Alert, Paper } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useUnit } from "effector-react";
-import { saveSettingsFx, $error, $isLoading } from "../../../entities/settings";
-import type { Settings } from "../../../shared/types/settings";
+import { saveSettingsFx, $error, $isLoading } from "@/entities/settings";
+import type { Settings } from "@/shared/types/settings";
 
 export function SettingsForm() {
   const [error, isLoading, saveSettingsFn] = useUnit([

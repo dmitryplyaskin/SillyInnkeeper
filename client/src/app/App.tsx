@@ -8,15 +8,15 @@ import {
 } from "@mantine/core";
 import { useEffect } from "react";
 import { useUnit } from "effector-react";
-import { theme } from "../theme";
+import { theme } from "@/theme";
 import {
   $settings,
   $isLoading,
   $error,
   loadSettingsFx,
-} from "../entities/settings";
-import { SettingsForm } from "../features/settings-form";
-import { HomePage } from "../pages/home";
+} from "@/entities/settings";
+import { SettingsForm } from "@/features/settings-form";
+import { HomePage } from "@/pages/home";
 
 export default function App() {
   const [settings, isLoading, error] = useUnit([$settings, $isLoading, $error]);
