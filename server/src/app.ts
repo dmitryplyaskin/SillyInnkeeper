@@ -1,39 +1,36 @@
 import "dotenv/config";
-import { join } from "node:path";
-import AutoLoad, { AutoloadPluginOptions } from "@fastify/autoload";
-import { FastifyPluginAsync, FastifyServerOptions } from "fastify";
+import express, { Express } from "express";
+import Database from "better-sqlite3";
+import { initializeDatabase } from "./plugins/database";
+import rootRoutes from "./routes/root";
+import apiRoutes from "./routes/api";
 
-export interface AppOptions
-  extends FastifyServerOptions,
-    Partial<AutoloadPluginOptions> {}
-// Pass --options via CLI arguments in command to enable these options.
-const options: AppOptions = {};
+export interface AppOptions {
+  dbPath?: string;
+}
 
-const app: FastifyPluginAsync<AppOptions> = async (
-  fastify,
-  opts
-): Promise<void> => {
-  // Place here your custom code!
+/**
+ * Создает и настраивает Express приложение
+ * @param opts Опции для инициализации приложения
+ * @returns Настроенное Express приложение и экземпляр базы данных
+ */
+export async function createApp(
+  opts?: AppOptions
+): Promise<{ app: Express; db: Database.Database }> {
+  const app = express();
 
-  // Do not touch the following lines
+  // Middleware для парсинга JSON
+  app.use(express.json());
 
-  // This loads all plugins defined in plugins
-  // those should be support plugins that are reused
-  // through your application
-  // eslint-disable-next-line no-void
-  void fastify.register(AutoLoad, {
-    dir: join(__dirname, "plugins"),
-    options: opts,
-  });
+  // Инициализация базы данных
+  const db = await initializeDatabase({ dbPath: opts?.dbPath });
+  app.locals.db = db;
 
-  // This loads all plugins defined in routes
-  // define your routes in one of these
-  // eslint-disable-next-line no-void
-  void fastify.register(AutoLoad, {
-    dir: join(__dirname, "routes"),
-    options: opts,
-  });
-};
+  // Подключение маршрутов
+  app.use("/", rootRoutes);
+  app.use("/api", apiRoutes);
 
-export default app;
-export { app, options };
+  return { app, db };
+}
+
+export default createApp;

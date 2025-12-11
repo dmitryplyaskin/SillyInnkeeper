@@ -1,31 +1,23 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "This project was bootstrapped with Fastify-CLI.",
-  "main": "app.ts",
-  "directories": {
-    "test": "test"
-  },
+  "description": "Express server for SillyInnkeeper",
+  "main": "dist/server.js",
   "scripts": {
-    "test": "npm run build:ts && tsc -p test/tsconfig.json && c8 node --test -r ts-node/register \"test/**/*.ts\"",
-    "start": "npm run build:ts && fastify start -l info dist/app.js",
-    "build:ts": "tsc",
-    "watch:ts": "tsc -w",
-    "dev": "npm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
-    "dev:start": "fastify start --ignore-watch=\"(.ts$|data)\" -w -l info -P dist/app.js"
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "dev": "nodemon --watch src --exec ts-node src/server.ts",
+    "clean": "rimraf dist",
+    "type-check": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@fastify/autoload": "^6.0.0",
-    "@fastify/sensible": "^6.0.0",
     "better-sqlite3": "^12.5.0",
     "chokidar": "^5.0.0",
     "dotenv": "^16.0.0",
-    "fastify": "^5.0.0",
-    "fastify-cli": "^7.4.1",
-    "fastify-plugin": "^5.0.0",
+    "express": "^4.18.2",
     "fs-extra": "^11.3.2",
     "p-limit": "^5.0.0",
     "pngjs": "^7.0.0",
@@ -33,11 +25,11 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^4.17.21",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^24.0.8",
-    "c8": "^10.1.2",
-    "concurrently": "^9.0.0",
-    "fastify-tsconfig": "^3.0.0",
+    "nodemon": "^3.0.0",
+    "rimraf": "^5.0.0",
     "ts-node": "^10.4.0",
     "typescript": "~5.9.2"
   }

@@ -1,42 +1,40 @@
-import fp from 'fastify-plugin'
-import Database from 'better-sqlite3'
-import { join } from 'node:path'
-import { ensureDir } from 'fs-extra'
+import Database from "better-sqlite3";
+import { join } from "node:path";
+import { ensureDir } from "fs-extra";
 
 export interface DatabasePluginOptions {
   // Опции для плагина базы данных
-  dbPath?: string
+  dbPath?: string;
 }
 
-// The use of fastify-plugin is required to be able
-// to export the decorators to the outer scope
-export default fp<DatabasePluginOptions>(async (fastify, opts) => {
+/**
+ * Инициализирует подключение к базе данных
+ * @param opts Опции для инициализации базы данных
+ * @returns Экземпляр Database
+ */
+export async function initializeDatabase(
+  opts?: DatabasePluginOptions
+): Promise<Database.Database> {
   // Путь к базе данных (по умолчанию в папке data)
-  const dbPath = opts.dbPath || join(process.cwd(), 'data', 'database.db')
-  
+  const dbPath = opts?.dbPath || join(process.cwd(), "data", "database.db");
+
   // Убеждаемся, что папка data существует
-  await ensureDir(join(process.cwd(), 'data'))
-  
+  await ensureDir(join(process.cwd(), "data"));
+
   // Создаем подключение к базе данных
-  const db = new Database(dbPath)
-  
+  const db = new Database(dbPath);
+
   // Включаем WAL режим для лучшей производительности
-  db.pragma('journal_mode = WAL')
-  
+  db.pragma("journal_mode = WAL");
+
   // Включаем foreign keys
-  db.pragma('foreign_keys = ON')
-  
+  db.pragma("foreign_keys = ON");
+
   // Инициализируем схему базы данных (если нужно)
-  initializeSchema(db)
-  
-  // Декорируем fastify экземпляром базы данных
-  fastify.decorate('db', db)
-  
-  // Закрываем подключение при завершении работы приложения
-  fastify.addHook('onClose', async () => {
-    db.close()
-  })
-})
+  initializeSchema(db);
+
+  return db;
+}
 
 /**
  * Инициализирует схему базы данных
@@ -81,13 +79,5 @@ function initializeSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_cards_name ON cards(name);
     CREATE INDEX IF NOT EXISTS idx_cards_created_at ON cards(created_at);
     CREATE INDEX IF NOT EXISTS idx_card_files_card_id ON card_files(card_id);
-  `)
+  `);
 }
-
-// When using .decorate you have to specify added properties for Typescript
-declare module 'fastify' {
-  export interface FastifyInstance {
-    db: Database.Database
-  }
-}
-

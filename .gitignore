@@ -140,3 +140,4 @@ vite.config.ts.timestamp-*
 
 # Data directory with settings
 data/
+.cursor

@@ -1,45 +1,40 @@
-import fp from "fastify-plugin";
+import Database from "better-sqlite3";
 import { existsSync } from "node:fs";
 import { getSettings } from "../services/settings";
 import { createScanService } from "../services/scan";
+import { logger } from "../utils/logger";
 
 /**
- * Плагин для автоматического запуска сканирования при старте сервера
- * Использует onReady хук для запуска после полной инициализации сервера
+ * Инициализирует автоматическое сканирование при старте сервера
+ * @param db Экземпляр базы данных
  */
-export default fp(async (fastify) => {
-  // Используем хук onReady для запуска после полной инициализации
-  fastify.addHook("onReady", async () => {
-    // Читаем настройки
-    try {
-      const settings = await getSettings();
+export async function initializeScanner(db: Database.Database): Promise<void> {
+  // Читаем настройки
+  try {
+    const settings = await getSettings();
 
-      // Если cardsFolderPath указан и папка существует, запускаем сканирование
-      if (
-        settings.cardsFolderPath !== null &&
-        existsSync(settings.cardsFolderPath)
-      ) {
-        fastify.log.info(
-          `Автозапуск сканирования папки: ${settings.cardsFolderPath}`
-        );
+    // Если cardsFolderPath указан и папка существует, запускаем сканирование
+    if (
+      settings.cardsFolderPath !== null &&
+      existsSync(settings.cardsFolderPath)
+    ) {
+      logger.info(`Автозапуск сканирования папки: ${settings.cardsFolderPath}`);
 
-        const scanService = createScanService(fastify.db);
+      const scanService = createScanService(db);
 
-        // Запускаем сканирование асинхронно, не блокируя старт сервера
-        scanService.scanFolder(settings.cardsFolderPath).catch((error) => {
-          fastify.log.error(error, "Ошибка при автозапуске сканирования");
-        });
-      } else {
-        fastify.log.info(
-          "cardsFolderPath не указан или папка не существует, сканирование не запущено"
-        );
-      }
-    } catch (error) {
-      fastify.log.error(
-        error,
-        "Ошибка при чтении настроек для автозапуска сканирования"
+      // Запускаем сканирование асинхронно, не блокируя старт сервера
+      scanService.scanFolder(settings.cardsFolderPath).catch((error) => {
+        logger.error(error, "Ошибка при автозапуске сканирования");
+      });
+    } else {
+      logger.info(
+        "cardsFolderPath не указан или папка не существует, сканирование не запущено"
       );
     }
-  });
-});
-
+  } catch (error) {
+    logger.error(
+      error,
+      "Ошибка при чтении настроек для автозапуска сканирования"
+    );
+  }
+}

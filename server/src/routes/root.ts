@@ -1,9 +1,9 @@
-import { FastifyPluginAsync } from 'fastify'
+import { Router, Request, Response } from "express";
 
-const root: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
-  fastify.get('/', async function (request, reply) {
-    return { root: true }
-  })
-}
+const router = Router();
 
-export default root
+router.get("/", async (req: Request, res: Response) => {
+  res.json({ root: true });
+});
+
+export default router;
