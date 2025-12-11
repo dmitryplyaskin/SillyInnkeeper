@@ -7,6 +7,8 @@ import {
   Loader,
   Alert,
   Container,
+  Image,
+  Group,
 } from "@mantine/core";
 import { getCards } from "@/shared/api/cards";
 import { getTags } from "@/shared/api/tags";
@@ -78,17 +80,34 @@ export function HomePage() {
             <List>
               {cards.map((card) => (
                 <List.Item key={card.id}>
-                  <Text fw={500}>{card.name || "Без названия"}</Text>
-                  {card.creator && (
-                    <Text size="sm" c="dimmed">
-                      Создатель: {card.creator}
-                    </Text>
-                  )}
-                  {card.tags && card.tags.length > 0 && (
-                    <Text size="sm" c="dimmed">
-                      Теги: {card.tags.join(", ")}
-                    </Text>
-                  )}
+                  <Group gap="md" align="flex-start">
+                    <Image
+                      src={card.avatar_url}
+                      alt={card.name || "Миниатюра карточки"}
+                      width={100}
+                      height={100}
+                      fit="cover"
+                      radius="md"
+                      onError={(e) => {
+                        // Обработка ошибки загрузки изображения
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                      }}
+                    />
+                    <Stack gap="xs">
+                      <Text fw={500}>{card.name || "Без названия"}</Text>
+                      {card.creator && (
+                        <Text size="sm" c="dimmed">
+                          Создатель: {card.creator}
+                        </Text>
+                      )}
+                      {card.tags && card.tags.length > 0 && (
+                        <Text size="sm" c="dimmed">
+                          Теги: {card.tags.join(", ")}
+                        </Text>
+                      )}
+                    </Stack>
+                  </Group>
                 </List.Item>
               ))}
             </List>
