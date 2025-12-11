@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { statSync, existsSync } from "node:fs";
-import { join, extname } from "node:path";
+import { join, extname, dirname } from "node:path";
 import { readdir as readdirAsync, writeFile, ensureDir } from "fs-extra";
 import pLimit from "p-limit";
 import { randomUUID } from "node:crypto";
@@ -143,17 +143,51 @@ export class ScanService {
       // Извлекаем поля из единообразного формата данных
       const name = extractedData.name || null;
       const description = extractedData.description || null;
+
+      // Нормализация тегов (trim, lower) для консистентности и точной фильтрации
+      const normalizedTags = (extractedData.tags || [])
+        .map((t) => (typeof t === "string" ? t.trim() : String(t).trim()))
+        .filter((t) => t.length > 0);
+      const tagRawNames = normalizedTags.map((t) => t.toLowerCase());
+
       const tags =
-        extractedData.tags.length > 0
-          ? JSON.stringify(extractedData.tags)
-          : null;
+        normalizedTags.length > 0 ? JSON.stringify(normalizedTags) : null;
       const creator = extractedData.creator || null;
       const specVersion = extractedData.spec_version;
 
+      // Поля для фильтров/поиска (денормализация из data_json)
+      const personality = extractedData.personality || null;
+      const scenario = extractedData.scenario || null;
+      const firstMes = extractedData.first_mes || null;
+      const mesExample = extractedData.mes_example || null;
+      const creatorNotes = extractedData.creator_notes || null;
+      const systemPrompt = extractedData.system_prompt || null;
+      const postHistoryInstructions =
+        extractedData.post_history_instructions || null;
+
+      // Флаги наличия (для фильтров "с/без")
+      const hasCreatorNotes = creatorNotes?.trim() ? 1 : 0;
+      const hasSystemPrompt = systemPrompt?.trim() ? 1 : 0;
+      const hasPostHistoryInstructions = postHistoryInstructions?.trim()
+        ? 1
+        : 0;
+      const hasPersonality = personality?.trim() ? 1 : 0;
+      const hasScenario = scenario?.trim() ? 1 : 0;
+      const hasMesExample = mesExample?.trim() ? 1 : 0;
+      const hasCharacterBook = extractedData.character_book ? 1 : 0;
+
+      const alternateGreetingsCount = Array.isArray(
+        extractedData.alternate_greetings
+      )
+        ? extractedData.alternate_greetings.filter(
+            (g) => (g ?? "").trim().length > 0
+          ).length
+        : 0;
+
       // Обеспечиваем существование тегов в таблице tags
-      if (extractedData.tags && extractedData.tags.length > 0) {
+      if (normalizedTags.length > 0) {
         const tagService = createTagService(this.dbService.getDatabase());
-        tagService.ensureTagsExist(extractedData.tags);
+        tagService.ensureTagsExist(normalizedTags);
       }
 
       // Сохраняем оригинальные данные для экспорта
@@ -175,7 +209,22 @@ export class ScanService {
               creator = ?, 
               spec_version = ?, 
               avatar_path = ?, 
-              data_json = ?
+              data_json = ?,
+              personality = ?,
+              scenario = ?,
+              first_mes = ?,
+              mes_example = ?,
+              creator_notes = ?,
+              system_prompt = ?,
+              post_history_instructions = ?,
+              alternate_greetings_count = ?,
+              has_creator_notes = ?,
+              has_system_prompt = ?,
+              has_post_history_instructions = ?,
+              has_personality = ?,
+              has_scenario = ?,
+              has_mes_example = ?,
+              has_character_book = ?
             WHERE id = ?`,
             [
               name,
@@ -185,6 +234,21 @@ export class ScanService {
               specVersion,
               avatarPath,
               dataJson,
+              personality,
+              scenario,
+              firstMes,
+              mesExample,
+              creatorNotes,
+              systemPrompt,
+              postHistoryInstructions,
+              alternateGreetingsCount,
+              hasCreatorNotes,
+              hasSystemPrompt,
+              hasPostHistoryInstructions,
+              hasPersonality,
+              hasScenario,
+              hasMesExample,
+              hasCharacterBook,
               existingFile.card_id,
             ]
           );
@@ -193,16 +257,40 @@ export class ScanService {
           dbService.execute(
             `UPDATE card_files SET 
               file_mtime = ?, 
-              file_size = ?
+              file_size = ?,
+              folder_path = ?
             WHERE file_path = ?`,
-            [fileMtime, fileSize, filePath]
+            [fileMtime, fileSize, dirname(filePath), filePath]
           );
         } else {
           // Создаем новую карточку
           dbService.execute(
             `INSERT INTO cards (
-              id, name, description, tags, creator, spec_version, avatar_path, created_at, data_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              id,
+              name,
+              description,
+              tags,
+              creator,
+              spec_version,
+              avatar_path,
+              created_at,
+              data_json,
+              personality,
+              scenario,
+              first_mes,
+              mes_example,
+              creator_notes,
+              system_prompt,
+              post_history_instructions,
+              alternate_greetings_count,
+              has_creator_notes,
+              has_system_prompt,
+              has_post_history_instructions,
+              has_personality,
+              has_scenario,
+              has_mes_example,
+              has_character_book
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               cardId,
               name,
@@ -213,15 +301,42 @@ export class ScanService {
               avatarPath,
               createdAt,
               dataJson,
+              personality,
+              scenario,
+              firstMes,
+              mesExample,
+              creatorNotes,
+              systemPrompt,
+              postHistoryInstructions,
+              alternateGreetingsCount,
+              hasCreatorNotes,
+              hasSystemPrompt,
+              hasPostHistoryInstructions,
+              hasPersonality,
+              hasScenario,
+              hasMesExample,
+              hasCharacterBook,
             ]
           );
 
           // Создаем запись о файле
           dbService.execute(
-            `INSERT INTO card_files (file_path, card_id, file_mtime, file_size)
-            VALUES (?, ?, ?, ?)`,
-            [filePath, cardId, fileMtime, fileSize]
+            `INSERT INTO card_files (file_path, card_id, file_mtime, file_size, folder_path)
+            VALUES (?, ?, ?, ?, ?)`,
+            [filePath, cardId, fileMtime, fileSize, dirname(filePath)]
           );
+        }
+
+        // Синхронизируем связи card_tags (точная фильтрация по тегам)
+        // Перезаписываем полностью при каждом обновлении карточки
+        dbService.execute(`DELETE FROM card_tags WHERE card_id = ?`, [cardId]);
+        if (tagRawNames.length > 0) {
+          for (const rawName of tagRawNames) {
+            dbService.execute(
+              `INSERT OR IGNORE INTO card_tags (card_id, tag_rawName) VALUES (?, ?)`,
+              [cardId, rawName]
+            );
+          }
         }
       });
 
@@ -233,14 +348,30 @@ export class ScanService {
         const jsonData = {
           db: {
             id: cardId,
+            cardId,
             name,
             description,
-            tags: extractedData.tags.length > 0 ? extractedData.tags : null,
+            tags,
             creator,
-            spec_version: specVersion,
-            avatar_path: avatarPath,
-            created_at: createdAt,
-            data_json: extractedData.original_data,
+            specVersion,
+            avatarPath,
+            createdAt,
+            dataJson: extractedData.original_data,
+            personality,
+            scenario,
+            firstMes,
+            mesExample,
+            creatorNotes,
+            systemPrompt,
+            postHistoryInstructions,
+            alternateGreetingsCount,
+            hasCreatorNotes,
+            hasSystemPrompt,
+            hasPostHistoryInstructions,
+            hasPersonality,
+            hasScenario,
+            hasMesExample,
+            hasCharacterBook,
           },
           raw: {
             data: extractedData.original_data,
