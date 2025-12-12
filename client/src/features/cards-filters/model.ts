@@ -13,7 +13,7 @@ import type {
   CardsSort,
   TriState,
 } from "@/shared/types/cards-query";
-import { loadCardsFx } from "@/entities/cards";
+import { loadCards } from "@/entities/cards";
 
 export interface CardsFiltersState {
   sort: CardsSort;
@@ -228,26 +228,26 @@ sample({
   clock: immediateApplyClock,
   source: $filters,
   fn: (state) => toQuery(state),
-  target: loadCardsFx,
+  target: loadCards,
 });
 
 sample({
   clock: nameDebounced,
   source: $filters,
   fn: (state) => toQuery(state),
-  target: loadCardsFx,
+  target: loadCards,
 });
 
 sample({
   clock: applyFilters,
   source: $filters,
   fn: (state) => toQuery(state),
-  target: loadCardsFx,
+  target: loadCards,
 });
 
 // Reset should deterministically apply defaults
 sample({
   clock: resetFilters,
   fn: () => toQuery(DEFAULT_FILTERS),
-  target: loadCardsFx,
+  target: loadCards,
 });

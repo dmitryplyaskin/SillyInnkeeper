@@ -19,7 +19,6 @@ import {
   $filtersData,
   $filtersError,
   $filtersLoading,
-  applyFilters,
   loadCardsFiltersFx,
   resetFilters,
   setAlternateGreetingsMin,
@@ -94,7 +93,6 @@ export function CardsFiltersPanel() {
     onSetHasAlternateGreetings,
     onSetAlternateGreetingsMin,
     onReset,
-    onApply,
   ] = useUnit([
     $filters,
     $filtersData,
@@ -118,23 +116,29 @@ export function CardsFiltersPanel() {
     setHasAlternateGreetings,
     setAlternateGreetingsMin,
     resetFilters,
-    applyFilters,
   ]);
 
-  const creatorOptions = filtersData.creators.map((c) => ({
-    value: c.value,
-    label: `${c.value} (${c.count})`,
-  }));
+  function mergeOptions(
+    selected: string[],
+    serverOptions: Array<{ value: string; count: number }>
+  ): Array<{ value: string; label: string }> {
+    const map = new Map<string, number>();
+    for (const opt of serverOptions) map.set(opt.value, opt.count);
+    for (const sel of selected) {
+      if (!map.has(sel)) map.set(sel, 0);
+    }
+    return Array.from(map.entries()).map(([value, count]) => ({
+      value,
+      label: `${value} (${count})`,
+    }));
+  }
 
-  const specVersionOptions = filtersData.spec_versions.map((v) => ({
-    value: v.value,
-    label: `${v.value} (${v.count})`,
-  }));
-
-  const tagOptions = filtersData.tags.map((t) => ({
-    value: t.value,
-    label: `${t.value} (${t.count})`,
-  }));
+  const creatorOptions = mergeOptions(filters.creator, filtersData.creators);
+  const specVersionOptions = mergeOptions(
+    filters.spec_version,
+    filtersData.spec_versions
+  );
+  const tagOptions = mergeOptions(filters.tags, filtersData.tags);
 
   return (
     <Stack gap="md">

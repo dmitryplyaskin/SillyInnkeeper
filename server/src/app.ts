@@ -4,6 +4,9 @@ import Database from "better-sqlite3";
 import { initializeDatabase } from "./plugins/database";
 import rootRoutes from "./routes/root";
 import apiRoutes from "./routes/api";
+import { SseHub } from "./services/sse-hub";
+import { CardsSyncOrchestrator } from "./services/cards-sync-orchestrator";
+import { FsWatcherService } from "./services/fs-watcher";
 
 export interface AppOptions {
   dbPath?: string;
@@ -25,6 +28,14 @@ export async function createApp(
   // Инициализация базы данных
   const db = await initializeDatabase({ dbPath: opts?.dbPath });
   app.locals.db = db;
+  const sseHub = new SseHub();
+  app.locals.sseHub = sseHub;
+
+  const cardsSyncOrchestrator = new CardsSyncOrchestrator(db, sseHub);
+  app.locals.cardsSyncOrchestrator = cardsSyncOrchestrator;
+
+  const fsWatcher = new FsWatcherService(cardsSyncOrchestrator);
+  app.locals.fsWatcher = fsWatcher;
 
   // Подключение маршрутов
   app.use("/", rootRoutes);

@@ -53,6 +53,7 @@ export class ScanService {
       console.log(`Сканирование завершено. Обработано файлов: ${files.length}`);
     } catch (error) {
       console.error(`Ошибка при сканировании папки ${folderPath}:`, error);
+      throw error;
     }
   }
 
@@ -414,7 +415,6 @@ export class ScanService {
       );
 
       // Удаляем файлы из БД
-      // CASCADE автоматически удалит карточки без файлов
       for (const file of filesToDelete) {
         // Получаем avatar_path перед удалением карточки
         const card = this.dbService.queryOne<{ avatar_path: string | null }>(
@@ -422,7 +422,8 @@ export class ScanService {
           [file.card_id]
         );
 
-        // Удаляем файл из БД (CASCADE удалит карточку если нет других файлов)
+        // Удаляем файл из БД.
+        // Важно: ON DELETE CASCADE работает от cards -> card_files, а не наоборот.
         this.dbService.execute("DELETE FROM card_files WHERE file_path = ?", [
           file.file_path,
         ]);
@@ -433,9 +434,44 @@ export class ScanService {
           [file.card_id]
         );
 
-        // Если файлов не осталось, удаляем миниатюру
-        if (remainingFiles && remainingFiles.count === 0 && card?.avatar_path) {
-          const uuid = card.avatar_path.split("/").pop()?.replace(".webp", "");
+        // Если файлов не осталось, удаляем карточку и миниатюру
+        if ((remainingFiles?.count ?? 0) === 0) {
+          this.dbService.execute("DELETE FROM cards WHERE id = ?", [
+            file.card_id,
+          ]);
+
+          if (card?.avatar_path) {
+            const uuid = card.avatar_path
+              .split("/")
+              .pop()
+              ?.replace(".webp", "");
+            if (uuid) {
+              await deleteThumbnail(uuid);
+            }
+          }
+        }
+      }
+
+      // Доп. зачистка: удаляем "сирот" (cards без card_files), которые могли остаться
+      // из-за старого поведения или ручных изменений БД.
+      const orphanCards = this.dbService.query<{
+        id: string;
+        avatar_path: string | null;
+      }>(`
+        SELECT c.id, c.avatar_path
+        FROM cards c
+        WHERE NOT EXISTS (
+          SELECT 1 FROM card_files cf WHERE cf.card_id = c.id
+        )
+      `);
+
+      for (const orphan of orphanCards) {
+        this.dbService.execute("DELETE FROM cards WHERE id = ?", [orphan.id]);
+        if (orphan.avatar_path) {
+          const uuid = orphan.avatar_path
+            .split("/")
+            .pop()
+            ?.replace(".webp", "");
           if (uuid) {
             await deleteThumbnail(uuid);
           }

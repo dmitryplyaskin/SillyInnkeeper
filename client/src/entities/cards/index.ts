@@ -1,1 +1,1 @@
-export { $cards, $isLoading, $error, loadCardsFx } from "./model";
+export { $cards, $isLoading, $error, loadCards, loadCardsFx } from "./model";

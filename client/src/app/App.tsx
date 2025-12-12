@@ -1,4 +1,5 @@
 import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
 import {
   MantineProvider,
   Loader,
@@ -6,6 +7,7 @@ import {
   Center,
   Alert,
 } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import { useEffect } from "react";
 import { useUnit } from "effector-react";
 import { theme } from "@/theme";
@@ -17,6 +19,7 @@ import {
 } from "@/entities/settings";
 import { SettingsForm } from "@/features/settings-form";
 import { HomePage } from "@/pages/home";
+import { startLiveSync, stopLiveSync } from "@/features/cards-live-sync";
 
 export default function App() {
   const [settings, isLoading, error] = useUnit([$settings, $isLoading, $error]);
@@ -25,10 +28,16 @@ export default function App() {
     loadSettingsFx();
   }, []);
 
+  useEffect(() => {
+    if (settings?.cardsFolderPath) startLiveSync();
+    return () => stopLiveSync();
+  }, [settings?.cardsFolderPath]);
+
   // Показываем прелоадер при первой загрузке
   if (isLoading && settings === null) {
     return (
       <MantineProvider theme={theme}>
+        <Notifications position="top-right" />
         <Center h="100vh">
           <Loader size="lg" />
         </Center>
@@ -40,6 +49,7 @@ export default function App() {
   if (error && settings === null) {
     return (
       <MantineProvider theme={theme}>
+        <Notifications position="top-right" />
         <Container size="md" py="xl">
           <Alert color="red" title="Ошибка загрузки настроек">
             {error}
@@ -53,6 +63,7 @@ export default function App() {
   if (settings?.cardsFolderPath === null) {
     return (
       <MantineProvider theme={theme}>
+        <Notifications position="top-right" />
         <Center h="100vh">
           <SettingsForm />
         </Center>
@@ -63,6 +74,7 @@ export default function App() {
   // Иначе показываем главную страницу
   return (
     <MantineProvider theme={theme}>
+      <Notifications position="top-right" />
       <HomePage />
     </MantineProvider>
   );

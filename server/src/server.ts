@@ -1,8 +1,13 @@
 import "dotenv/config";
 import { createApp } from "./app";
-import { initializeScanner } from "./plugins/scanner";
+import { initializeScannerWithOrchestrator } from "./plugins/scanner";
 import { logger } from "./utils/logger";
 import Database from "better-sqlite3";
+import { getSettings } from "./services/settings";
+import { existsSync } from "node:fs";
+import type { SseHub } from "./services/sse-hub";
+import type { FsWatcherService } from "./services/fs-watcher";
+import type { CardsSyncOrchestrator } from "./services/cards-sync-orchestrator";
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
@@ -10,15 +15,31 @@ async function startServer(): Promise<void> {
   try {
     // Создаем Express приложение и инициализируем базу данных
     const { app, db } = await createApp();
+    const sseHub = (app.locals as any).sseHub as SseHub;
+    const fsWatcher = (app.locals as any).fsWatcher as FsWatcherService;
+    const orchestrator = (app.locals as any)
+      .cardsSyncOrchestrator as CardsSyncOrchestrator;
 
     // Запускаем сервер
     const server = app.listen(PORT, () => {
       logger.info(`Сервер запущен на порту ${PORT}`);
 
       // Инициализируем сканер после запуска сервера
-      initializeScanner(db).catch((error) => {
+      initializeScannerWithOrchestrator(orchestrator).catch((error) => {
         logger.error(error, "Ошибка при инициализации сканера");
       });
+
+      // Запускаем FS watcher (если cardsFolderPath указан)
+      getSettings()
+        .then((settings) => {
+          const p = settings.cardsFolderPath;
+          if (p && existsSync(p)) {
+            fsWatcher.start(p);
+          }
+        })
+        .catch((error) => {
+          logger.error(error, "Ошибка при запуске FS watcher");
+        });
     });
 
     // Graceful shutdown
@@ -27,6 +48,14 @@ async function startServer(): Promise<void> {
 
       server.close(() => {
         logger.info("HTTP сервер закрыт");
+
+        // Закрываем SSE и watcher
+        try {
+          fsWatcher.stop();
+          sseHub.closeAll();
+        } catch (error) {
+          logger.error(error, "Ошибка при закрытии SSE/watcher");
+        }
 
         // Закрываем базу данных
         try {

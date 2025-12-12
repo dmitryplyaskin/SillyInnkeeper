@@ -1,14 +1,28 @@
 import { Router, Request, Response } from "express";
 import Database from "better-sqlite3";
 import { getSettings, updateSettings, Settings } from "../../services/settings";
-import { createScanService } from "../../services/scan";
 import { logger } from "../../utils/logger";
+import type { CardsSyncOrchestrator } from "../../services/cards-sync-orchestrator";
+import type { FsWatcherService } from "../../services/fs-watcher";
 
 const router = Router();
 
 // Middleware для получения базы данных из app.locals
 function getDb(req: Request): Database.Database {
   return req.app.locals.db as Database.Database;
+}
+
+function getOrchestrator(req: Request): CardsSyncOrchestrator {
+  const o = (req.app.locals as any)
+    .cardsSyncOrchestrator as CardsSyncOrchestrator | undefined;
+  if (!o) throw new Error("CardsSyncOrchestrator is not initialized");
+  return o;
+}
+
+function getFsWatcher(req: Request): FsWatcherService {
+  const w = (req.app.locals as any).fsWatcher as FsWatcherService | undefined;
+  if (!w) throw new Error("FsWatcherService is not initialized");
+  return w;
 }
 
 // GET /api/settings - получение текущих настроек
@@ -41,23 +55,30 @@ router.put("/settings", async (req: Request, res: Response) => {
       return;
     }
 
+    const prevSettings = await getSettings();
+
     // Полное обновление настроек (валидация путей происходит внутри updateSettings)
     const savedSettings = await updateSettings(newSettings);
 
-    // Если обновлен cardsFolderPath и путь валиден, запускаем сканирование
-    if (savedSettings.cardsFolderPath !== null) {
+    const prevPath = prevSettings.cardsFolderPath;
+    const nextPath = savedSettings.cardsFolderPath;
+
+    // Перезапускаем watcher, если путь изменился
+    if (prevPath !== nextPath) {
       try {
-        const db = getDb(req);
-        const scanService = createScanService(db);
-        // Запускаем сканирование асинхронно, не блокируя ответ
-        scanService.scanFolder(savedSettings.cardsFolderPath).catch((error) => {
-          logger.error(
-            error,
-            "Ошибка при сканировании после обновления настроек"
-          );
-        });
+        getFsWatcher(req).restart(nextPath);
       } catch (error) {
-        logger.error(error, "Ошибка при запуске сканирования");
+        logger.error(error, "Ошибка при перезапуске FS watcher");
+      }
+    }
+
+    // Запускаем scan через orchestrator (мгновенно, без debounce)
+    if (nextPath !== null) {
+      try {
+        void getDb(req);
+        getOrchestrator(req).requestScan("app", nextPath);
+      } catch (error) {
+        logger.error(error, "Ошибка при запуске синхронизации после settings");
       }
     }
 

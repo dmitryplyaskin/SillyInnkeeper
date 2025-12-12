@@ -13,6 +13,7 @@
     "@mantine/core": "8.3.10",
     "@mantine/form": "^8.3.10",
     "@mantine/hooks": "8.3.10",
+    "@mantine/notifications": "^8.3.10",
     "effector": "^23.4.4",
     "effector-react": "^23.3.0",
     "patronum": "^2.3.0",
