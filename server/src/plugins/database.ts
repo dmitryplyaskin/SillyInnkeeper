@@ -160,6 +160,11 @@ function initializeSchema(db: Database.Database): void {
     "has_character_book",
     "has_character_book INTEGER NOT NULL DEFAULT 0"
   );
+  addColumnIfMissing(
+    "cards",
+    "prompt_tokens_est",
+    "prompt_tokens_est INTEGER NOT NULL DEFAULT 0"
+  );
 
   // Индексы для часто используемых фильтров
   db.exec(`
@@ -173,6 +178,7 @@ function initializeSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_cards_has_mes_example ON cards(has_mes_example);
     CREATE INDEX IF NOT EXISTS idx_cards_has_character_book ON cards(has_character_book);
     CREATE INDEX IF NOT EXISTS idx_cards_alternate_greetings_count ON cards(alternate_greetings_count);
+    CREATE INDEX IF NOT EXISTS idx_cards_prompt_tokens_est ON cards(prompt_tokens_est);
   `);
 
   // card_files: folder_path для фильтрации/группировки по папкам

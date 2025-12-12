@@ -23,4 +23,6 @@ export interface CardsQuery {
   has_character_book?: TriState;
   has_alternate_greetings?: TriState;
   alternate_greetings_min?: number;
+  prompt_tokens_min?: number;
+  prompt_tokens_max?: number;
 }

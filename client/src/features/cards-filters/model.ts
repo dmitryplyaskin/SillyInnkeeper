@@ -23,6 +23,8 @@ export interface CardsFiltersState {
   tags: string[];
   created_from?: string; // YYYY-MM-DD
   created_to?: string; // YYYY-MM-DD
+  prompt_tokens_min: number;
+  prompt_tokens_max: number;
   has_creator_notes: TriState;
   has_system_prompt: TriState;
   has_post_history_instructions: TriState;
@@ -42,6 +44,8 @@ const DEFAULT_FILTERS: CardsFiltersState = {
   tags: [],
   created_from: undefined,
   created_to: undefined,
+  prompt_tokens_min: 0,
+  prompt_tokens_max: 0,
   has_creator_notes: "any",
   has_system_prompt: "any",
   has_post_history_instructions: "any",
@@ -90,6 +94,8 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     tags: state.tags,
     created_from_ms,
     created_to_ms,
+    prompt_tokens_min: state.prompt_tokens_min > 0 ? state.prompt_tokens_min : undefined,
+    prompt_tokens_max: state.prompt_tokens_max > 0 ? state.prompt_tokens_max : undefined,
     has_creator_notes: state.has_creator_notes,
     has_system_prompt: state.has_system_prompt,
     has_post_history_instructions: state.has_post_history_instructions,
@@ -132,6 +138,8 @@ export const setSpecVersions = createEvent<string[]>();
 export const setTags = createEvent<string[]>();
 export const setCreatedFrom = createEvent<string | undefined>();
 export const setCreatedTo = createEvent<string | undefined>();
+export const setPromptTokensMin = createEvent<number>();
+export const setPromptTokensMax = createEvent<number>();
 export const setHasCreatorNotes = createEvent<TriState>();
 export const setHasSystemPrompt = createEvent<TriState>();
 export const setHasPostHistoryInstructions = createEvent<TriState>();
@@ -152,6 +160,26 @@ $filters
   .on(setTags, (s, tags) => ({ ...s, tags }))
   .on(setCreatedFrom, (s, created_from) => ({ ...s, created_from }))
   .on(setCreatedTo, (s, created_to) => ({ ...s, created_to }))
+  .on(setPromptTokensMin, (s, prompt_tokens_min) => {
+    const min = Number.isFinite(prompt_tokens_min)
+      ? Math.max(0, Math.floor(prompt_tokens_min))
+      : 0;
+    const currentMax = Number.isFinite(s.prompt_tokens_max)
+      ? Math.max(0, Math.floor(s.prompt_tokens_max))
+      : 0;
+    const max = currentMax > 0 && currentMax < min ? min : currentMax;
+    return { ...s, prompt_tokens_min: min, prompt_tokens_max: max };
+  })
+  .on(setPromptTokensMax, (s, prompt_tokens_max) => {
+    const min = Number.isFinite(s.prompt_tokens_min)
+      ? Math.max(0, Math.floor(s.prompt_tokens_min))
+      : 0;
+    const max = Number.isFinite(prompt_tokens_max)
+      ? Math.max(0, Math.floor(prompt_tokens_max))
+      : 0;
+    const fixedMax = max > 0 && max < min ? min : max;
+    return { ...s, prompt_tokens_max: fixedMax };
+  })
   .on(setHasCreatorNotes, (s, has_creator_notes) => ({
     ...s,
     has_creator_notes,
@@ -213,6 +241,8 @@ const immediateApplyClock = [
   setTags,
   setCreatedFrom,
   setCreatedTo,
+  setPromptTokensMin,
+  setPromptTokensMax,
   setHasCreatorNotes,
   setHasSystemPrompt,
   setHasPostHistoryInstructions,

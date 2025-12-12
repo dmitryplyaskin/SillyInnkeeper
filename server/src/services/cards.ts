@@ -12,6 +12,7 @@ export interface CardListItem {
   created_at: number;
   alternate_greetings_count: number;
   has_character_book: boolean;
+  prompt_tokens_est: number;
 }
 
 export type TriState = "any" | "1" | "0";
@@ -39,6 +40,8 @@ export interface SearchCardsParams {
   has_character_book?: TriState;
   has_alternate_greetings?: TriState;
   alternate_greetings_min?: number;
+  prompt_tokens_min?: number;
+  prompt_tokens_max?: number;
 }
 
 /**
@@ -143,6 +146,31 @@ export class CardsService {
       sqlParams.push(params.alternate_greetings_min);
     }
 
+    // prompt_tokens_est range (0 => ignore)
+    const tokensMinRaw = params.prompt_tokens_min;
+    const tokensMaxRaw = params.prompt_tokens_max;
+    const tokensMin =
+      typeof tokensMinRaw === "number" && Number.isFinite(tokensMinRaw)
+        ? Math.max(0, Math.floor(tokensMinRaw))
+        : 0;
+    let tokensMax =
+      typeof tokensMaxRaw === "number" && Number.isFinite(tokensMaxRaw)
+        ? Math.max(0, Math.floor(tokensMaxRaw))
+        : 0;
+
+    if (tokensMin > 0 && tokensMax > 0 && tokensMax < tokensMin) {
+      tokensMax = tokensMin;
+    }
+
+    if (tokensMin > 0) {
+      where.push(`c.prompt_tokens_est >= ?`);
+      sqlParams.push(tokensMin);
+    }
+    if (tokensMax > 0) {
+      where.push(`c.prompt_tokens_est <= ?`);
+      sqlParams.push(tokensMax);
+    }
+
     const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
     const orderBy = (() => {
@@ -171,6 +199,7 @@ export class CardsService {
         c.created_at,
         c.alternate_greetings_count,
         c.has_character_book,
+        c.prompt_tokens_est,
         c.avatar_path,
         (
           SELECT cf.file_path 
@@ -192,6 +221,7 @@ export class CardsService {
       created_at: number;
       alternate_greetings_count: number;
       has_character_book: number;
+      prompt_tokens_est: number;
       avatar_path: string | null;
       file_path: string | null;
     }>(sql, sqlParams);
@@ -223,6 +253,9 @@ export class CardsService {
           ? row.alternate_greetings_count
           : 0,
         has_character_book: row.has_character_book === 1,
+        prompt_tokens_est: Number.isFinite(row.prompt_tokens_est)
+          ? row.prompt_tokens_est
+          : 0,
       };
     });
   }

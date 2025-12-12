@@ -109,8 +109,17 @@ export class ScanService {
         file_mtime: number;
         file_birthtime: number;
         file_size: number;
+        prompt_tokens_est?: number;
       }>(
-        "SELECT card_id, file_mtime, file_birthtime, file_size FROM card_files WHERE file_path = ?",
+        `SELECT 
+          cf.card_id,
+          cf.file_mtime,
+          cf.file_birthtime,
+          cf.file_size,
+          c.prompt_tokens_est as prompt_tokens_est
+        FROM card_files cf
+        LEFT JOIN cards c ON c.id = cf.card_id
+        WHERE cf.file_path = ?`,
         [filePath]
       );
 
@@ -119,7 +128,9 @@ export class ScanService {
         existingFile &&
         existingFile.file_mtime === fileMtime &&
         existingFile.file_birthtime === fileCreatedAt &&
-        existingFile.file_size === fileSize
+        existingFile.file_size === fileSize &&
+        // Если оценка токенов ещё не заполнена (0 по умолчанию после миграции), делаем перерасчёт.
+        (existingFile.prompt_tokens_est ?? 0) > 0
       ) {
         return;
       }
@@ -174,6 +185,32 @@ export class ScanService {
       const systemPrompt = extractedData.system_prompt || null;
       const postHistoryInstructions =
         extractedData.post_history_instructions || null;
+
+      // Оценка токенов для "чата" (приблизительно, без токенизатора)
+      // Считаем только поля, которые участвуют в prompt-ish части карточки.
+      // НЕ считаем: creator_notes/tags/creator/character_version/alternate_greetings/group_only_greetings/lorebook.
+      const promptTokensEst = (() => {
+        const parts: string[] = [];
+        const pushIf = (v: unknown) => {
+          if (typeof v !== "string") return;
+          const t = v.trim();
+          if (t.length > 0) parts.push(t);
+        };
+
+        pushIf(extractedData.name);
+        pushIf(extractedData.description);
+        pushIf(extractedData.personality);
+        pushIf(extractedData.scenario);
+        pushIf(extractedData.system_prompt);
+        pushIf(extractedData.post_history_instructions);
+        pushIf(extractedData.first_mes);
+        pushIf(extractedData.mes_example);
+
+        const text = parts.join("\n\n");
+        if (text.length === 0) return 0;
+        const bytes = Buffer.byteLength(text, "utf8");
+        return Math.ceil(bytes / 4);
+      })();
 
       // Флаги наличия (для фильтров "с/без")
       const hasCreatorNotes = creatorNotes?.trim() ? 1 : 0;
@@ -235,7 +272,8 @@ export class ScanService {
               has_personality = ?,
               has_scenario = ?,
               has_mes_example = ?,
-              has_character_book = ?
+              has_character_book = ?,
+              prompt_tokens_est = ?
             WHERE id = ?`,
             [
               name,
@@ -261,6 +299,7 @@ export class ScanService {
               hasScenario,
               hasMesExample,
               hasCharacterBook,
+              promptTokensEst,
               existingFile.card_id,
             ]
           );
@@ -302,8 +341,9 @@ export class ScanService {
               has_personality,
               has_scenario,
               has_mes_example,
-              has_character_book
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              has_character_book,
+              prompt_tokens_est
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               cardId,
               name,
@@ -329,6 +369,7 @@ export class ScanService {
               hasScenario,
               hasMesExample,
               hasCharacterBook,
+              promptTokensEst,
             ]
           );
 

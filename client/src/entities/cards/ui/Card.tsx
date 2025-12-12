@@ -19,6 +19,23 @@ interface CardProps {
   card: CardListItem;
 }
 
+function formatTokensEstimate(value: unknown): string {
+  const n = typeof value === "number" && Number.isFinite(value) ? value : 0;
+  if (n <= 0) return "≈ 0";
+
+  if (n < 1000) {
+    const rounded = Math.max(0, Math.round(n / 100) * 100);
+    return `≈ ${rounded}`;
+  }
+
+  const k = n / 1000;
+  const roundedK = Math.round(k * 10) / 10;
+  const label = Number.isInteger(roundedK)
+    ? String(roundedK)
+    : String(roundedK).replace(/\.0$/, "");
+  return `≈ ${label}k`;
+}
+
 export function Card({ card }: CardProps) {
   const [isCensored] = useUnit([$isCensored]);
   const [opened, setOpened] = useState(false);
@@ -36,7 +53,7 @@ export function Card({ card }: CardProps) {
 
   const greetingsCount = Number((card as any).alternate_greetings_count) || 0;
   const hasBook = Boolean((card as any).has_character_book);
-  const tokensEstimate = 1500;
+  const tokensEstimate = formatTokensEstimate((card as any).prompt_tokens_est);
 
   return (
     <>
@@ -133,7 +150,7 @@ export function Card({ card }: CardProps) {
                 </Badge>
               </Tooltip>
             )}
-            <Tooltip label="Оценка токенов (заглушка)" withArrow>
+            <Tooltip label="Оценка токенов (примерно)" withArrow>
               <Badge size="sm" color="gray" variant="light">
                 {tokensEstimate} tok
               </Badge>

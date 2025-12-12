@@ -114,6 +114,9 @@ router.get("/cards", async (req: Request, res: Response) => {
       (req.query as any).alternate_greetings_min
     );
 
+    const promptTokensMin = parseNumber((req.query as any).prompt_tokens_min);
+    const promptTokensMax = parseNumber((req.query as any).prompt_tokens_max);
+
     const params: SearchCardsParams = {
       sort,
       name,
@@ -137,6 +140,14 @@ router.get("/cards", async (req: Request, res: Response) => {
       alternate_greetings_min:
         typeof alternateGreetingsMin === "number" && alternateGreetingsMin >= 0
           ? alternateGreetingsMin
+          : undefined,
+      prompt_tokens_min:
+        typeof promptTokensMin === "number" && promptTokensMin >= 0
+          ? promptTokensMin
+          : undefined,
+      prompt_tokens_max:
+        typeof promptTokensMax === "number" && promptTokensMax >= 0
+          ? promptTokensMax
           : undefined,
     };
 

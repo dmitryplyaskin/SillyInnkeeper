@@ -55,6 +55,11 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
       String(query.alternate_greetings_min)
     );
 
+  if (typeof query?.prompt_tokens_min === "number" && query.prompt_tokens_min > 0)
+    params.set("prompt_tokens_min", String(query.prompt_tokens_min));
+  if (typeof query?.prompt_tokens_max === "number" && query.prompt_tokens_max > 0)
+    params.set("prompt_tokens_max", String(query.prompt_tokens_max));
+
   const url =
     params.toString().length > 0
       ? `/api/cards?${params.toString()}`

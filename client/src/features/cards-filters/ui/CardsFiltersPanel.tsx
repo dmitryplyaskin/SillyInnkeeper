@@ -34,6 +34,8 @@ import {
   setHasSystemPrompt,
   setHasAlternateGreetings,
   setName,
+  setPromptTokensMax,
+  setPromptTokensMin,
   setSort,
   setSpecVersions,
   setTags,
@@ -83,6 +85,8 @@ export function CardsFiltersPanel() {
     onSetTags,
     onSetCreatedFrom,
     onSetCreatedTo,
+    onSetPromptTokensMin,
+    onSetPromptTokensMax,
     onSetHasCreatorNotes,
     onSetHasSystemPrompt,
     onSetHasPostHistoryInstructions,
@@ -106,6 +110,8 @@ export function CardsFiltersPanel() {
     setTags,
     setCreatedFrom,
     setCreatedTo,
+    setPromptTokensMin,
+    setPromptTokensMax,
     setHasCreatorNotes,
     setHasSystemPrompt,
     setHasPostHistoryInstructions,
@@ -246,6 +252,20 @@ export function CardsFiltersPanel() {
           label="Создано: от"
           type="date"
           value={filters.created_from || ""}
+          rightSection={
+            filters.created_from ? (
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                aria-label="Очистить дату 'от'"
+                onClick={() => onSetCreatedFrom(undefined)}
+              >
+                ×
+              </ActionIcon>
+            ) : null
+          }
+          rightSectionPointerEvents="all"
           onChange={(e) =>
             onSetCreatedFrom(
               e.currentTarget.value.trim().length > 0
@@ -259,6 +279,20 @@ export function CardsFiltersPanel() {
           label="Создано: до"
           type="date"
           value={filters.created_to || ""}
+          rightSection={
+            filters.created_to ? (
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                aria-label="Очистить дату 'до'"
+                onClick={() => onSetCreatedTo(undefined)}
+              >
+                ×
+              </ActionIcon>
+            ) : null
+          }
+          rightSectionPointerEvents="all"
           onChange={(e) =>
             onSetCreatedTo(
               e.currentTarget.value.trim().length > 0
@@ -266,6 +300,33 @@ export function CardsFiltersPanel() {
                 : undefined
             )
           }
+        />
+      </SimpleGrid>
+
+      <Divider label="Токены (оценка)" />
+
+      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+        <NumberInput
+          label={(
+            <Group gap={6}>
+              <Text size="sm">Минимум</Text>
+              <InfoTip text="0 — не применять. Значения примерные (оценка)." />
+            </Group>
+          ) as any}
+          min={0}
+          value={filters.prompt_tokens_min}
+          onChange={(v) => onSetPromptTokensMin(Number(v) || 0)}
+        />
+        <NumberInput
+          label={(
+            <Group gap={6}>
+              <Text size="sm">Максимум</Text>
+              <InfoTip text="0 — не применять. Max не может быть меньше Min." />
+            </Group>
+          ) as any}
+          min={0}
+          value={filters.prompt_tokens_max}
+          onChange={(v) => onSetPromptTokensMax(Number(v) || 0)}
         />
       </SimpleGrid>
 
