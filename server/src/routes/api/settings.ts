@@ -1,6 +1,11 @@
 import { Router, Request, Response } from "express";
 import Database from "better-sqlite3";
-import { getSettings, updateSettings, Settings } from "../../services/settings";
+import {
+  getSettings,
+  updateSettings,
+  Settings,
+  validateLanguage,
+} from "../../services/settings";
 import { logger } from "../../utils/logger";
 import type { CardsSyncOrchestrator } from "../../services/cards-sync-orchestrator";
 import type { FsWatcherService } from "../../services/fs-watcher";
@@ -13,8 +18,9 @@ function getDb(req: Request): Database.Database {
 }
 
 function getOrchestrator(req: Request): CardsSyncOrchestrator {
-  const o = (req.app.locals as any)
-    .cardsSyncOrchestrator as CardsSyncOrchestrator | undefined;
+  const o = (req.app.locals as any).cardsSyncOrchestrator as
+    | CardsSyncOrchestrator
+    | undefined;
   if (!o) throw new Error("CardsSyncOrchestrator is not initialized");
   return o;
 }
@@ -39,7 +45,7 @@ router.get("/settings", async (req: Request, res: Response) => {
 // PUT /api/settings - обновление настроек (полное обновление)
 router.put("/settings", async (req: Request, res: Response) => {
   try {
-    const newSettings = req.body as Settings;
+    const newSettings = req.body as Partial<Settings>;
 
     // Валидация структуры данных
     if (
@@ -50,15 +56,30 @@ router.put("/settings", async (req: Request, res: Response) => {
     ) {
       res.status(400).json({
         error:
-          "Неверный формат данных. Ожидается объект с полями cardsFolderPath и sillytavenrPath",
+          "Неверный формат данных. Ожидается объект с полями cardsFolderPath, sillytavenrPath и (опционально) language",
       });
       return;
+    }
+
+    // language — опционально для обратной совместимости
+    if ("language" in newSettings && (newSettings as any).language != null) {
+      try {
+        validateLanguage((newSettings as any).language);
+      } catch (error) {
+        res.status(400).json({
+          error:
+            error instanceof Error
+              ? error.message
+              : "Неверное значение language",
+        });
+        return;
+      }
     }
 
     const prevSettings = await getSettings();
 
     // Полное обновление настроек (валидация путей происходит внутри updateSettings)
-    const savedSettings = await updateSettings(newSettings);
+    const savedSettings = await updateSettings(newSettings as Settings);
 
     const prevPath = prevSettings.cardsFolderPath;
     const nextPath = savedSettings.cardsFolderPath;

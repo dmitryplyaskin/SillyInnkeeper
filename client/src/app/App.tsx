@@ -18,8 +18,10 @@ import {
   loadSettingsFx,
 } from "@/entities/settings";
 
-const SettingsForm = lazy(() =>
-  import("@/features/settings-form").then((m) => ({ default: m.SettingsForm }))
+const PathsSetupScreen = lazy(() =>
+  import("@/features/paths-settings").then((m) => ({
+    default: m.PathsSetupScreen,
+  }))
 );
 const HomePage = lazy(() =>
   import("@/pages/home").then((m) => ({ default: m.HomePage }))
@@ -84,9 +86,7 @@ export default function App() {
       <MantineProvider theme={theme}>
         <Notifications position="top-right" />
         <Suspense fallback={<ChunkFallback />}>
-          <Center h="100vh">
-            <SettingsForm />
-          </Center>
+          <PathsSetupScreen />
         </Suspense>
       </MantineProvider>
     );

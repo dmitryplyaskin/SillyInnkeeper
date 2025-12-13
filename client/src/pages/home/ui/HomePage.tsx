@@ -14,6 +14,7 @@ import { useUnit } from "effector-react";
 import { loadFromApiFx } from "@/features/view-settings";
 import { ViewSettingsPanel } from "@/features/view-settings";
 import { CardsGrid } from "@/features/cards-grid";
+import { PathsSettingsModal } from "@/features/paths-settings";
 import {
   CardsFiltersPanel,
   applyFilters,
@@ -28,6 +29,7 @@ export function HomePage() {
     applyFilters,
   ]);
   const [filtersOpened, setFiltersOpened] = useState(false);
+  const [pathsOpened, setPathsOpened] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -62,6 +64,13 @@ export function HomePage() {
               <ViewSettingsPanel />
               <Button
                 variant="light"
+                onClick={() => setPathsOpened(true)}
+                style={{ whiteSpace: "nowrap" }}
+              >
+                Настройки
+              </Button>
+              <Button
+                variant="light"
                 onClick={() => setFiltersOpened(true)}
                 style={{ whiteSpace: "nowrap" }}
               >
@@ -87,6 +96,11 @@ export function HomePage() {
       >
         <CardsFiltersPanel />
       </Drawer>
+
+      <PathsSettingsModal
+        opened={pathsOpened}
+        onClose={() => setPathsOpened(false)}
+      />
 
       <CardDetailsDrawer />
     </AppShell>
