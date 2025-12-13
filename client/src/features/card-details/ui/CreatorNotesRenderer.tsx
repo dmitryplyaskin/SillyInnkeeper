@@ -7,6 +7,7 @@ import {
   Spoiler,
   Text,
 } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import DOMPurify from "dompurify";
@@ -51,6 +52,7 @@ export function CreatorNotesRenderer({
   value: string | null | undefined;
   defaultMaxHeight?: number;
 }) {
+  const { t } = useTranslation();
   const raw = (value ?? "").toString();
   const [mode, setMode] = useState<Mode>(() => guessMode(raw));
   const [expanded, setExpanded] = useState(false);
@@ -140,7 +142,7 @@ export function CreatorNotesRenderer({
     <Paper p="md" style={{ minHeight: 110 }}>
       <Group justify="space-between" align="center" mb={8} wrap="nowrap">
         <Text size="sm" fw={600}>
-          Creator notes
+          {t("creatorNotes.title")}
         </Text>
         <SegmentedControl
           size="xs"
@@ -150,20 +152,20 @@ export function CreatorNotesRenderer({
             setExpanded(false);
           }}
           data={[
-            { label: "Text", value: "text" },
-            { label: "MD", value: "markdown" },
-            { label: "HTML", value: "html" },
+            { label: t("creatorNotes.modeText"), value: "text" },
+            { label: t("creatorNotes.modeMd"), value: "markdown" },
+            { label: t("creatorNotes.modeHtml"), value: "html" },
           ]}
         />
       </Group>
 
       {isEmpty ? (
-        <Text c="dimmed">—</Text>
+        <Text c="dimmed">{t("empty.dash")}</Text>
       ) : mode === "text" ? (
         <Spoiler
           maxHeight={defaultMaxHeight}
-          showLabel="Показать"
-          hideLabel="Скрыть"
+          showLabel={t("actions.show")}
+          hideLabel={t("actions.hide")}
           expanded={expanded}
           onExpandedChange={setExpanded}
         >
@@ -172,8 +174,8 @@ export function CreatorNotesRenderer({
       ) : mode === "markdown" ? (
         <Spoiler
           maxHeight={defaultMaxHeight}
-          showLabel="Показать"
-          hideLabel="Скрыть"
+          showLabel={t("actions.show")}
+          hideLabel={t("actions.hide")}
           expanded={expanded}
           onExpandedChange={setExpanded}
         >
@@ -202,8 +204,8 @@ export function CreatorNotesRenderer({
       ) : (
         <Spoiler
           maxHeight={defaultMaxHeight}
-          showLabel="Показать"
-          hideLabel="Скрыть"
+          showLabel={t("actions.show")}
+          hideLabel={t("actions.hide")}
           expanded={expanded}
           onExpandedChange={setExpanded}
         >

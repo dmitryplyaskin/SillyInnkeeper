@@ -1,6 +1,7 @@
 import type { CardDetails, CardListItem } from "@/shared/types/cards";
 import type { CardsQuery } from "@/shared/types/cards-query";
 import type { CardsFiltersResponse } from "@/shared/types/cards-filters";
+import i18n from "@/shared/i18n/i18n";
 
 function appendMany(
   params: URLSearchParams,
@@ -55,9 +56,15 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
       String(query.alternate_greetings_min)
     );
 
-  if (typeof query?.prompt_tokens_min === "number" && query.prompt_tokens_min > 0)
+  if (
+    typeof query?.prompt_tokens_min === "number" &&
+    query.prompt_tokens_min > 0
+  )
     params.set("prompt_tokens_min", String(query.prompt_tokens_min));
-  if (typeof query?.prompt_tokens_max === "number" && query.prompt_tokens_max > 0)
+  if (
+    typeof query?.prompt_tokens_max === "number" &&
+    query.prompt_tokens_max > 0
+  )
     params.set("prompt_tokens_max", String(query.prompt_tokens_max));
 
   const url =
@@ -68,7 +75,9 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Ошибка загрузки карточек: ${response.statusText}`);
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(`${i18n.t("errors.loadCards")}: ${response.statusText}`);
   }
 
   return response.json();
@@ -78,7 +87,11 @@ export async function getCardsFilters(): Promise<CardsFiltersResponse> {
   const response = await fetch("/api/cards/filters");
 
   if (!response.ok) {
-    throw new Error(`Ошибка загрузки фильтров: ${response.statusText}`);
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(
+      `${i18n.t("errors.loadFiltersTitle")}: ${response.statusText}`
+    );
   }
 
   return response.json();
@@ -88,7 +101,9 @@ export async function getCardDetails(id: string): Promise<CardDetails> {
   const response = await fetch(`/api/cards/${encodeURIComponent(id)}`);
 
   if (!response.ok) {
-    throw new Error(`Ошибка загрузки карточки: ${response.statusText}`);
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(`${i18n.t("errors.loadCard")}: ${response.statusText}`);
   }
 
   return response.json();

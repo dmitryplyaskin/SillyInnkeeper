@@ -1,7 +1,10 @@
 import { Center } from "@mantine/core";
 import { useUnit } from "effector-react";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { $settings } from "@/entities/settings";
 import { SettingsForm } from "@/features/settings-form";
+import i18n from "@/shared/i18n/i18n";
 import type { Settings } from "@/shared/types/settings";
 
 function getBrowserLanguage(): "ru" | "en" {
@@ -20,6 +23,11 @@ function getBrowserLanguage(): "ru" | "en" {
 export function PathsSetupScreen() {
   const settings = useUnit($settings);
   const browserLanguage = getBrowserLanguage();
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    void i18n.changeLanguage(browserLanguage);
+  }, [browserLanguage]);
 
   const initialSettings: Settings = {
     cardsFolderPath: null,
@@ -31,8 +39,9 @@ export function PathsSetupScreen() {
     <Center h="100vh" p="md">
       <SettingsForm
         initialSettings={initialSettings}
-        title="Первый запуск"
-        description="Выберите язык и укажите пути, необходимые для работы приложения"
+        title={t("setup.firstRunTitle")}
+        description={t("setup.firstRunDescription")}
+        applyLanguageOnChange
       />
     </Center>
   );

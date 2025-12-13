@@ -1,11 +1,6 @@
-import {
-  Group,
-  SegmentedControl,
-  Switch,
-  Text,
-  Badge,
-} from "@mantine/core";
+import { Group, SegmentedControl, Switch, Text, Badge } from "@mantine/core";
 import { useUnit } from "effector-react";
+import { useTranslation } from "react-i18next";
 import {
   $columnsCount,
   $isCensored,
@@ -15,6 +10,7 @@ import {
 import { $cards } from "@/entities/cards";
 
 export function ViewSettingsPanel() {
+  const { t } = useTranslation();
   const [columnsCount, isCensored, setColumns, toggleCensor, cards] = useUnit([
     $columnsCount,
     $isCensored,
@@ -27,7 +23,7 @@ export function ViewSettingsPanel() {
     <Group gap="md" align="center" wrap="nowrap">
       <Group gap="xs" wrap="nowrap">
         <Text size="sm" fw={500}>
-          Колонки
+          {t("view.columns")}
         </Text>
         <SegmentedControl
           size="xs"
@@ -42,14 +38,14 @@ export function ViewSettingsPanel() {
       </Group>
 
       <Badge variant="light" color="gray" size="sm" style={{ flexShrink: 0 }}>
-        {cards.length} карточек
+        {t("view.cardsCount", { count: cards.length })}
       </Badge>
 
       <Switch
         size="sm"
         checked={isCensored}
         onChange={() => toggleCensor()}
-        label={isCensored ? "Цензура: вкл" : "Цензура: выкл"}
+        label={isCensored ? t("view.censorshipOn") : t("view.censorshipOff")}
         styles={{ label: { whiteSpace: "nowrap" } }}
       />
     </Group>

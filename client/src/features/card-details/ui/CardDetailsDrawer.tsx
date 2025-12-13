@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useUnit } from "effector-react";
+import { useTranslation } from "react-i18next";
 import {
   Accordion,
   Badge,
@@ -26,18 +27,19 @@ import type { CardDetails } from "@/shared/types/cards";
 import { $details, $error, $isLoading, $openedId, closeCard } from "../model";
 import { $isCensored } from "@/features/view-settings";
 import { CreatorNotesRenderer } from "./CreatorNotesRenderer";
+import i18n from "@/shared/i18n/i18n";
 
-function formatDateRu(ms: number | null | undefined): string {
+function formatDate(ms: number | null | undefined, locale: string): string {
   const t = typeof ms === "number" ? ms : Number(ms);
-  if (!Number.isFinite(t) || t <= 0) return "—";
-  return new Date(t).toLocaleString("ru-RU");
+  if (!Number.isFinite(t) || t <= 0) return i18n.t("empty.dash");
+  return new Date(t).toLocaleString(locale);
 }
 
 function CollapsibleFieldBlock({
   label,
   value,
   maxHeight = 160,
-  dimmedEmptyText = "—",
+  dimmedEmptyText = i18n.t("empty.dash"),
 }: {
   label: string;
   value: string | null | undefined;
@@ -51,7 +53,11 @@ function CollapsibleFieldBlock({
         {label}
       </Text>
       {has ? (
-        <Spoiler maxHeight={maxHeight} showLabel="Показать" hideLabel="Скрыть">
+        <Spoiler
+          maxHeight={maxHeight}
+          showLabel={i18n.t("actions.show")}
+          hideLabel={i18n.t("actions.hide")}
+        >
           <Text style={{ whiteSpace: "pre-wrap" }}>{value}</Text>
         </Spoiler>
       ) : (
@@ -75,18 +81,18 @@ function JsonBlock({ value }: { value: unknown | null }) {
     <Paper p="md">
       <Group justify="space-between" align="center" mb={8}>
         <Text size="sm" fw={600}>
-          Raw JSON
+          {i18n.t("cardDetails.rawJson")}
         </Text>
         <CopyButton value={pretty}>
           {({ copied, copy }) => (
             <Button variant="light" size="xs" onClick={copy}>
-              {copied ? "Скопировано" : "Копировать"}
+              {copied ? i18n.t("actions.copied") : i18n.t("actions.copy")}
             </Button>
           )}
         </CopyButton>
       </Group>
       <ScrollArea h={520} type="auto">
-        <Code block>{pretty || "—"}</Code>
+        <Code block>{pretty || i18n.t("empty.dash")}</Code>
       </ScrollArea>
     </Paper>
   );
@@ -105,7 +111,7 @@ function GreetingsAccordion({
         <Text size="sm" fw={600} mb={6}>
           {title}
         </Text>
-        <Text c="dimmed">—</Text>
+        <Text c="dimmed">{i18n.t("empty.dash")}</Text>
       </Paper>
     );
   }
@@ -123,7 +129,8 @@ function GreetingsAccordion({
 
       <Accordion variant="contained" radius="md">
         {greetings.map((g, idx) => {
-          const preview = (g || "").split("\n")[0]?.trim() || "—";
+          const preview =
+            (g || "").split("\n")[0]?.trim() || i18n.t("empty.dash");
           return (
             <Accordion.Item key={idx} value={String(idx)}>
               <Accordion.Control>
@@ -138,13 +145,21 @@ function GreetingsAccordion({
                   <CopyButton value={g || ""}>
                     {({ copied, copy }) => (
                       <Button variant="light" size="xs" onClick={copy}>
-                        {copied ? "Скопировано" : "Копировать"}
+                        {copied
+                          ? i18n.t("actions.copied")
+                          : i18n.t("actions.copy")}
                       </Button>
                     )}
                   </CopyButton>
                 </Group>
-                <Spoiler maxHeight={220} showLabel="Показать" hideLabel="Скрыть">
-                  <Text style={{ whiteSpace: "pre-wrap" }}>{g || "—"}</Text>
+                <Spoiler
+                  maxHeight={220}
+                  showLabel={i18n.t("actions.show")}
+                  hideLabel={i18n.t("actions.hide")}
+                >
+                  <Text style={{ whiteSpace: "pre-wrap" }}>
+                    {g || i18n.t("empty.dash")}
+                  </Text>
                 </Spoiler>
               </Accordion.Panel>
             </Accordion.Item>
@@ -155,7 +170,13 @@ function GreetingsAccordion({
   );
 }
 
-function ActionsPanel({ details }: { details: CardDetails | null }) {
+function ActionsPanel({
+  details,
+  locale,
+}: {
+  details: CardDetails | null;
+  locale: string;
+}) {
   return (
     <Paper
       p="md"
@@ -166,27 +187,27 @@ function ActionsPanel({ details }: { details: CardDetails | null }) {
       }}
     >
       <Stack gap="sm">
-        <Text fw={600}>Действия</Text>
+        <Text fw={600}>{i18n.t("cardDetails.actions")}</Text>
 
-        <Tooltip label="Скоро" withArrow>
+        <Tooltip label={i18n.t("cardDetails.soon")} withArrow>
           <Button fullWidth variant="light" disabled>
-            Скачать
+            {i18n.t("cardDetails.download")}
           </Button>
         </Tooltip>
-        <Tooltip label="Скоро" withArrow>
+        <Tooltip label={i18n.t("cardDetails.soon")} withArrow>
           <Button fullWidth variant="light" color="red" disabled>
-            Удалить
+            {i18n.t("cardDetails.delete")}
           </Button>
         </Tooltip>
-        <Tooltip label="Скоро" withArrow>
+        <Tooltip label={i18n.t("cardDetails.soon")} withArrow>
           <Button fullWidth variant="light" disabled>
-            Переименовать
+            {i18n.t("cardDetails.rename")}
           </Button>
         </Tooltip>
 
         <Divider my="sm" />
 
-        <Text fw={600}>Метаданные</Text>
+        <Text fw={600}>{i18n.t("cardDetails.metadata")}</Text>
 
         <Stack gap={6}>
           <Group justify="space-between" wrap="nowrap">
@@ -195,13 +216,13 @@ function ActionsPanel({ details }: { details: CardDetails | null }) {
             </Text>
             <Group gap={6} wrap="nowrap">
               <Text size="sm" lineClamp={1} style={{ maxWidth: 140 }}>
-                {details?.id ?? "—"}
+                {details?.id ?? i18n.t("empty.dash")}
               </Text>
               {details?.id && (
                 <CopyButton value={details.id}>
                   {({ copied, copy }) => (
                     <Button variant="subtle" size="xs" onClick={copy}>
-                      {copied ? "OK" : "Copy"}
+                      {copied ? "OK" : i18n.t("actions.copy")}
                     </Button>
                   )}
                 </CopyButton>
@@ -218,26 +239,30 @@ function ActionsPanel({ details }: { details: CardDetails | null }) {
 
           <Group justify="space-between" wrap="nowrap">
             <Text size="sm" c="dimmed">
-              Создано
+              {i18n.t("cardDetails.createdAt")}
             </Text>
-            <Text size="sm">{formatDateRu(details?.created_at)}</Text>
+            <Text size="sm">{formatDate(details?.created_at, locale)}</Text>
           </Group>
 
           <Group justify="space-between" wrap="nowrap">
             <Text size="sm" c="dimmed">
-              Токены (≈)
+              {i18n.t("cardDetails.tokensApprox")}
             </Text>
             <Text size="sm">
-              {details ? String(details.prompt_tokens_est ?? 0) : "—"}
+              {details
+                ? String(details.prompt_tokens_est ?? 0)
+                : i18n.t("empty.dash")}
             </Text>
           </Group>
 
           <Group justify="space-between" wrap="nowrap">
             <Text size="sm" c="dimmed">
-              Alt greetings
+              {i18n.t("cardDetails.tabsAlt")}
             </Text>
             <Text size="sm">
-              {details ? String(details.alternate_greetings_count ?? 0) : "—"}
+              {details
+                ? String(details.alternate_greetings_count ?? 0)
+                : i18n.t("empty.dash")}
             </Text>
           </Group>
         </Stack>
@@ -247,6 +272,7 @@ function ActionsPanel({ details }: { details: CardDetails | null }) {
 }
 
 export function CardDetailsDrawer() {
+  const { t, i18n: i18nRt } = useTranslation();
   const [openedId, details, isLoading, error, isCensored] = useUnit([
     $openedId,
     $details,
@@ -254,6 +280,8 @@ export function CardDetailsDrawer() {
     $error,
     $isCensored,
   ]);
+
+  const locale = i18nRt.language === "ru" ? "ru-RU" : "en-US";
 
   const opened = Boolean(openedId);
   const [imgOpened, setImgOpened] = useState(false);
@@ -270,7 +298,7 @@ export function CardDetailsDrawer() {
         size="100%"
         title={
           <Title order={4} lineClamp={1}>
-            {details?.name || "Карточка"}
+            {details?.name || t("cardDetails.detailsTitleFallback")}
           </Title>
         }
       >
@@ -294,7 +322,7 @@ export function CardDetailsDrawer() {
               {error && (
                 <Paper p="md">
                   <Text c="red" fw={600}>
-                    Ошибка загрузки
+                    {t("cardDetails.loadingTitle")}
                   </Text>
                   <Text c="dimmed">{error}</Text>
                 </Paper>
@@ -302,10 +330,12 @@ export function CardDetailsDrawer() {
 
               <Tabs defaultValue="main" keepMounted={false}>
                 <Tabs.List>
-                  <Tabs.Tab value="main">Основное</Tabs.Tab>
-                  <Tabs.Tab value="alt">Alt greetings</Tabs.Tab>
-                  <Tabs.Tab value="system">System</Tabs.Tab>
-                  <Tabs.Tab value="raw">Raw</Tabs.Tab>
+                  <Tabs.Tab value="main">{t("cardDetails.tabsMain")}</Tabs.Tab>
+                  <Tabs.Tab value="alt">{t("cardDetails.tabsAlt")}</Tabs.Tab>
+                  <Tabs.Tab value="system">
+                    {t("cardDetails.tabsSystem")}
+                  </Tabs.Tab>
+                  <Tabs.Tab value="raw">{t("cardDetails.tabsRaw")}</Tabs.Tab>
                 </Tabs.List>
 
                 <Tabs.Panel value="main" pt="md">
@@ -315,19 +345,21 @@ export function CardDetailsDrawer() {
                       <Grid gutter="md" align="stretch">
                         <Grid.Col span={{ base: 12, md: 4 }}>
                           <Group justify="space-between" align="center" mb={8}>
-                            <Text fw={600}>Изображение</Text>
+                            <Text fw={600}>{t("cardDetails.image")}</Text>
                             <Button
                               variant="light"
                               size="xs"
                               onClick={() => setImgOpened(true)}
                               disabled={!openedId}
                             >
-                              Увеличить
+                              {t("cardDetails.zoomButton")}
                             </Button>
                           </Group>
                           <Image
                             src={imageSrc}
-                            alt={details?.name || "Изображение карточки"}
+                            alt={
+                              details?.name || t("cardDetails.imageAltFallback")
+                            }
                             fit="contain"
                             fallbackSrc="/favicon.svg"
                             style={{
@@ -346,35 +378,39 @@ export function CardDetailsDrawer() {
                           <Stack gap="sm">
                             <div>
                               <Text size="sm" fw={600} mb={4}>
-                                Name
+                                {t("cardDetails.fieldName")}
                               </Text>
                               <Title order={3} lh={1.15}>
-                                {details?.name || "—"}
+                                {details?.name || t("empty.dash")}
                               </Title>
                             </div>
 
                             <div>
                               <Text size="sm" fw={600} mb={6}>
-                                Tags
+                                {t("cardDetails.fieldTags")}
                               </Text>
                               {tags.length > 0 ? (
                                 <Group gap={6} wrap="wrap">
                                   {tags.map((t) => (
-                                    <Badge key={t} variant="light" color="indigo">
+                                    <Badge
+                                      key={t}
+                                      variant="light"
+                                      color="indigo"
+                                    >
                                       {t}
                                     </Badge>
                                   ))}
                                 </Group>
                               ) : (
-                                <Text c="dimmed">—</Text>
+                                <Text c="dimmed">{t("empty.dash")}</Text>
                               )}
                             </div>
 
                             <div>
                               <Text size="sm" fw={600} mb={6}>
-                                Creator
+                                {t("cardDetails.fieldCreator")}
                               </Text>
-                              <Text>{details?.creator || "—"}</Text>
+                              <Text>{details?.creator || t("empty.dash")}</Text>
                             </div>
 
                             <div>
@@ -389,27 +425,27 @@ export function CardDetailsDrawer() {
                     </Paper>
 
                     <CollapsibleFieldBlock
-                      label="Description"
+                      label={t("cardDetails.description")}
                       value={details?.description}
                       maxHeight={180}
                     />
                     <CollapsibleFieldBlock
-                      label="Personality"
+                      label={t("cardDetails.personality")}
                       value={details?.personality}
                       maxHeight={160}
                     />
                     <CollapsibleFieldBlock
-                      label="Scenario"
+                      label={t("cardDetails.scenario")}
                       value={details?.scenario}
                       maxHeight={160}
                     />
                     <CollapsibleFieldBlock
-                      label="First message"
+                      label={t("cardDetails.firstMessage")}
                       value={details?.first_mes}
                       maxHeight={220}
                     />
                     <CollapsibleFieldBlock
-                      label="Message example"
+                      label={t("cardDetails.messageExample")}
                       value={details?.mes_example}
                       maxHeight={220}
                     />
@@ -419,13 +455,13 @@ export function CardDetailsDrawer() {
                 <Tabs.Panel value="alt" pt="md">
                   <Stack gap="md">
                     <GreetingsAccordion
-                      title="Alternate greetings"
+                      title={t("cardDetails.altGreetingsTitle")}
                       greetings={details?.alternate_greetings ?? []}
                     />
                     {details?.group_only_greetings &&
                       details.group_only_greetings.length > 0 && (
                         <GreetingsAccordion
-                          title="Group only greetings"
+                          title={t("cardDetails.groupOnlyGreetingsTitle")}
                           greetings={details.group_only_greetings}
                         />
                       )}
@@ -435,12 +471,12 @@ export function CardDetailsDrawer() {
                 <Tabs.Panel value="system" pt="md">
                   <Stack gap="md">
                     <CollapsibleFieldBlock
-                      label="System prompt"
+                      label={t("cardDetails.systemPrompt")}
                       value={details?.system_prompt}
                       maxHeight={220}
                     />
                     <CollapsibleFieldBlock
-                      label="Post history instructions"
+                      label={t("cardDetails.postHistoryInstructions")}
                       value={details?.post_history_instructions}
                       maxHeight={220}
                     />
@@ -456,7 +492,7 @@ export function CardDetailsDrawer() {
 
           {/* Right pane */}
           <Grid.Col span={{ base: 12, md: 3 }}>
-            <ActionsPanel details={details} />
+            <ActionsPanel details={details} locale={locale} />
           </Grid.Col>
         </Grid>
       </Drawer>
@@ -465,11 +501,11 @@ export function CardDetailsDrawer() {
         opened={imgOpened}
         onClose={() => setImgOpened(false)}
         size="xl"
-        title={details?.name || "Изображение карточки"}
+        title={details?.name || t("cardDetails.imageAltFallback")}
       >
         <Image
           src={imageSrc}
-          alt={details?.name || "Изображение карточки"}
+          alt={details?.name || t("cardDetails.imageAltFallback")}
           fit="contain"
           fallbackSrc="/favicon.svg"
           style={{
@@ -482,5 +518,3 @@ export function CardDetailsDrawer() {
     </>
   );
 }
-
-

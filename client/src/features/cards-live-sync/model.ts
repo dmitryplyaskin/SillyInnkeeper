@@ -8,6 +8,7 @@ import type {
 } from "@/shared/types/events";
 import { applyFilters, loadCardsFiltersFx } from "@/features/cards-filters";
 import { notifications } from "@mantine/notifications";
+import i18n from "@/shared/i18n/i18n";
 
 export const startLiveSync = createEvent<void>();
 export const stopLiveSync = createEvent<void>();
@@ -86,8 +87,8 @@ scanStarted.watch((evt) => {
 
   notifications.show({
     id: SCAN_NOTIFICATION_ID,
-    title: "Сканирование карточек",
-    message: `Папка: ${folder} • 0/${total} (0%)`,
+    title: i18n.t("liveSync.scanTitle"),
+    message: i18n.t("liveSync.start", { folder, total }),
     loading: true,
     autoClose: false,
     withCloseButton: false,
@@ -105,8 +106,8 @@ scanProgress.watch((evt) => {
   const folder = shortFolderLabel(evt.folderPath);
   notifications.update({
     id: SCAN_NOTIFICATION_ID,
-    title: "Сканирование карточек",
-    message: `Папка: ${folder} • ${done}/${total} (${percent}%)`,
+    title: i18n.t("liveSync.scanTitle"),
+    message: i18n.t("liveSync.progress", { folder, done, total, percent }),
     loading: true,
     autoClose: false,
     withCloseButton: false,
@@ -128,8 +129,8 @@ scanFinished.watch((evt) => {
 
   notifications.update({
     id: SCAN_NOTIFICATION_ID,
-    title: "Сканирование завершено",
-    message: `Папка: ${folder} • ${done}/${total} • ${seconds}с`,
+    title: i18n.t("liveSync.scanDoneTitle"),
+    message: i18n.t("liveSync.finished", { folder, done, total, seconds }),
     loading: false,
     autoClose: 2500,
     withCloseButton: true,
@@ -139,13 +140,19 @@ scanFinished.watch((evt) => {
 cardsResynced.watch((evt) => {
   if (evt.addedCards <= 0 && evt.removedCards <= 0) return;
   const parts: string[] = [];
-  if (evt.addedCards > 0) parts.push(`Добавлено: ${evt.addedCards}`);
-  if (evt.removedCards > 0) parts.push(`Удалено: ${evt.removedCards}`);
+  if (evt.addedCards > 0)
+    parts.push(i18n.t("liveSync.added", { count: evt.addedCards }));
+  if (evt.removedCards > 0)
+    parts.push(i18n.t("liveSync.removed", { count: evt.removedCards }));
   const seconds = (evt.durationMs / 1000).toFixed(1);
   const folder = shortFolderLabel(evt.folderPath);
   notifications.show({
-    title: "Библиотека обновлена",
-    message: `Папка: ${folder} • ${parts.join(", ")} • ${seconds}с`,
+    title: i18n.t("liveSync.libraryUpdatedTitle"),
+    message: i18n.t("liveSync.updated", {
+      folder,
+      parts: parts.join(", "),
+      seconds,
+    }),
   });
 });
 

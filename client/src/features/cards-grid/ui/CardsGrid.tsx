@@ -2,11 +2,13 @@ import { Virtuoso } from "react-virtuoso";
 import { useUnit } from "effector-react";
 import { useMemo } from "react";
 import { Loader, Alert, Text, Stack, Center, Box } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import { $cards, $isLoading, $error } from "@/entities/cards";
 import { $columnsCount, $isLocalStorageLoaded } from "@/features/view-settings";
 import { Card } from "@/entities/cards/ui/Card";
 
 export function CardsGrid() {
+  const { t } = useTranslation();
   const [cards, isLoading, error, columnsCount, isLocalStorageLoaded] = useUnit(
     [$cards, $isLoading, $error, $columnsCount, $isLocalStorageLoaded]
   );
@@ -32,7 +34,7 @@ export function CardsGrid() {
       <Center h="50vh">
         <Stack align="center" gap="md">
           <Loader size="lg" />
-          <Text>Загрузка настроек...</Text>
+          <Text>{t("grid.loadingSettings")}</Text>
         </Stack>
       </Center>
     );
@@ -43,7 +45,7 @@ export function CardsGrid() {
       <Center h="50vh">
         <Stack align="center" gap="md">
           <Loader size="lg" />
-          <Text>Загрузка карточек...</Text>
+          <Text>{t("grid.loadingCards")}</Text>
         </Stack>
       </Center>
     );
@@ -51,7 +53,7 @@ export function CardsGrid() {
 
   if (error) {
     return (
-      <Alert color="red" title="Ошибка">
+      <Alert color="red" title={t("errors.generic")}>
         {error}
       </Alert>
     );
@@ -61,7 +63,7 @@ export function CardsGrid() {
     return (
       <Center h="50vh">
         <Text c="dimmed" size="lg">
-          Карточки не найдены
+          {t("empty.notFoundCards")}
         </Text>
       </Center>
     );

@@ -17,9 +17,11 @@
     "dompurify": "^3.3.1",
     "effector": "^23.4.4",
     "effector-react": "^23.3.0",
+    "i18next": "^25.7.2",
     "patronum": "^2.3.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-i18next": "^16.5.0",
     "react-markdown": "^10.1.0",
     "react-virtuoso": "^4.17.0",
     "remark-gfm": "^4.0.1"

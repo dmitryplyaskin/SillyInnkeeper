@@ -12,6 +12,7 @@ import {
   Box,
 } from "@mantine/core";
 import { useUnit } from "effector-react";
+import { useTranslation } from "react-i18next";
 import type { CardListItem } from "@/shared/types/cards";
 import { $isCensored } from "@/features/view-settings";
 import { openCard } from "@/features/card-details";
@@ -38,6 +39,7 @@ function formatTokensEstimate(value: unknown): string {
 }
 
 export function Card({ card }: CardProps) {
+  const { t, i18n } = useTranslation();
   const [isCensored, onOpen] = useUnit([$isCensored, openCard]);
   const [opened, setOpened] = useState(false);
 
@@ -49,7 +51,8 @@ export function Card({ card }: CardProps) {
   const createdAtLabel = (() => {
     const t = Number((card as any).created_at);
     if (!Number.isFinite(t) || t <= 0) return null;
-    return new Date(t).toLocaleDateString("ru-RU");
+    const locale = i18n.language === "ru" ? "ru-RU" : "en-US";
+    return new Date(t).toLocaleDateString(locale);
   })();
 
   const greetingsCount = Number((card as any).alternate_greetings_count) || 0;
@@ -89,7 +92,7 @@ export function Card({ card }: CardProps) {
           >
             <Image
               src={card.avatar_url}
-              alt={card.name || "Миниатюра карточки"}
+              alt={card.name || t("card.thumbnailAltFallback")}
               fit="cover"
               loading="lazy"
               fallbackSrc="/favicon.svg"
@@ -117,7 +120,7 @@ export function Card({ card }: CardProps) {
               e.stopPropagation();
               setOpened(true);
             }}
-            title="Открыть в полный экран"
+            title={t("card.fullscreenTitle")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -137,37 +140,37 @@ export function Card({ card }: CardProps) {
 
         <Stack gap={6} mt="sm" style={{ flex: 1, overflow: "hidden" }}>
           <Text fw={600} size="lg" lineClamp={1}>
-            {card.name || "Без названия"}
+            {card.name || t("card.untitled")}
           </Text>
 
           {card.creator && (
             <Text size="sm" c="dimmed" lineClamp={1}>
-              Создатель: {card.creator}
+              {t("card.creatorPrefix", { creator: card.creator })}
             </Text>
           )}
 
           <Group gap={6} wrap="nowrap" style={{ overflow: "hidden" }}>
             {hasBook && (
-              <Tooltip label="У карточки есть Character Book" withArrow>
+              <Tooltip label={t("card.hasBook")} withArrow>
                 <Badge size="sm" color="gray" variant="light">
                   Book
                 </Badge>
               </Tooltip>
             )}
             {greetingsCount > 0 && (
-              <Tooltip label="Альтернативные приветствия (кол-во)" withArrow>
+              <Tooltip label={t("card.altGreetingsCount")} withArrow>
                 <Badge size="sm" color="gray" variant="light">
                   G:{greetingsCount}
                 </Badge>
               </Tooltip>
             )}
-            <Tooltip label="Оценка токенов (примерно)" withArrow>
+            <Tooltip label={t("card.tokensEstimateTip")} withArrow>
               <Badge size="sm" color="gray" variant="light">
                 {tokensEstimate} tok
               </Badge>
             </Tooltip>
             {createdAtLabel && (
-              <Tooltip label="Дата создания (по файлу)" withArrow>
+              <Tooltip label={t("card.createdAtTip")} withArrow>
                 <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
                   {createdAtLabel}
                 </Text>
@@ -214,7 +217,7 @@ export function Card({ card }: CardProps) {
         opened={opened}
         onClose={() => setOpened(false)}
         size="xl"
-        title={card.name || "Изображение карточки"}
+        title={card.name || t("card.imageTitleFallback")}
       >
         <Box
           style={{
@@ -226,7 +229,7 @@ export function Card({ card }: CardProps) {
         >
           <Image
             src={`/api/image/${card.id}`}
-            alt={card.name || "Изображение карточки"}
+            alt={card.name || t("card.imageTitleFallback")}
             fit="contain"
             fallbackSrc="/favicon.svg"
             style={{

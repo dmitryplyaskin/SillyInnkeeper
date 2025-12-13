@@ -10,7 +10,9 @@ import {
 import { useForm } from "@mantine/form";
 import { useUnit } from "effector-react";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { saveSettingsFx, $error, $isLoading } from "@/entities/settings";
+import i18n from "@/shared/i18n/i18n";
 import type { Settings } from "@/shared/types/settings";
 
 type SettingsFormValues = {
@@ -25,6 +27,11 @@ export type SettingsFormProps = {
   title?: string;
   description?: string;
   /**
+   * Apply language immediately when user changes language in the select.
+   * Useful for first-run setup screen; should be false in settings modal.
+   */
+  applyLanguageOnChange?: boolean;
+  /**
    * `paper` — самостоятельная карточка (для fullscreen setup).
    * `plain` — без внешнего контейнера (для использования внутри Modal).
    */
@@ -38,16 +45,21 @@ export type SettingsFormProps = {
 export function SettingsForm({
   initialSettings,
   onSaved,
-  title = "Настройки приложения",
-  description = "Укажите пути к необходимым папкам для работы приложения",
+  title,
+  description,
+  applyLanguageOnChange = false,
   variant = "paper",
   showHeader = true,
 }: SettingsFormProps) {
+  const { t } = useTranslation();
   const [error, isLoading, saveSettingsFn] = useUnit([
     $error,
     $isLoading,
     saveSettingsFx,
   ]);
+
+  const resolvedTitle = title ?? t("setup.appSettingsTitle");
+  const resolvedDescription = description ?? t("settingsForm.description");
 
   const form = useForm<SettingsFormValues>({
     initialValues: {
@@ -58,7 +70,7 @@ export function SettingsForm({
     validate: {
       cardsFolderPath: (value) => {
         if (!value || value.trim() === "") {
-          return "Путь к папке с картами обязателен";
+          return i18n.t("settingsForm.cardsFolderPathRequired");
         }
         return null;
       },
@@ -98,46 +110,53 @@ export function SettingsForm({
         {showHeader && (
           <>
             <Text size="lg" fw={500}>
-              {title}
+              {resolvedTitle}
             </Text>
 
             <Text size="sm" c="dimmed">
-              {description}
+              {resolvedDescription}
             </Text>
           </>
         )}
 
         {error && (
-          <Alert color="red" title="Ошибка">
+          <Alert color="red" title={t("errors.generic")}>
             {error}
           </Alert>
         )}
 
         <Select
-          label="Язык"
-          placeholder="Выберите язык"
+          label={t("language.labelBilingual")}
+          placeholder={t("language.placeholder")}
           data={[
-            { value: "ru", label: "Русский" },
-            { value: "en", label: "English" },
+            { value: "ru", label: t("language.ruBilingual") },
+            { value: "en", label: t("language.enBilingual") },
           ]}
-          {...form.getInputProps("language")}
+          value={form.values.language}
+          onChange={(v) => {
+            if (!v) return;
+            form.setFieldValue("language", v as SettingsFormValues["language"]);
+            if (applyLanguageOnChange) {
+              void i18n.changeLanguage(v);
+            }
+          }}
         />
 
         <TextInput
-          label="Путь к папке с картами"
-          placeholder="C:\\path\\to\\cards"
+          label={t("settingsForm.cardsFolderPathLabel")}
+          placeholder={t("settingsForm.cardsFolderPathPlaceholder")}
           required
           {...form.getInputProps("cardsFolderPath")}
         />
 
         <TextInput
-          label="Путь к SillyTavern"
-          placeholder="C:\\path\\to\\sillytavern (опционально)"
+          label={t("settingsForm.sillyTavernPathLabel")}
+          placeholder={t("settingsForm.sillyTavernPathPlaceholder")}
           {...form.getInputProps("sillytavenrPath")}
         />
 
         <Button type="submit" loading={isLoading} fullWidth>
-          Сохранить
+          {t("actions.save")}
         </Button>
       </Stack>
     </form>

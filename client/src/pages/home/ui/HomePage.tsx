@@ -11,6 +11,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useUnit } from "effector-react";
+import { useTranslation } from "react-i18next";
 import { loadFromApiFx } from "@/features/view-settings";
 import { ViewSettingsPanel } from "@/features/view-settings";
 import { CardsGrid } from "@/features/cards-grid";
@@ -23,6 +24,7 @@ import {
 import { CardDetailsDrawer } from "@/features/card-details";
 
 export function HomePage() {
+  const { t } = useTranslation();
   const [loadSettings, loadFilters, onApply] = useUnit([
     loadFromApiFx,
     loadCardsFiltersFx,
@@ -56,7 +58,7 @@ export function HomePage() {
                 SillyInnkeeper
               </Title>
               <Text size="sm" c="dimmed" lh={1.1}>
-                Библиотека карточек • быстрый поиск и фильтры
+                {t("home.subtitle")}
               </Text>
             </Stack>
 
@@ -67,14 +69,14 @@ export function HomePage() {
                 onClick={() => setPathsOpened(true)}
                 style={{ whiteSpace: "nowrap" }}
               >
-                Настройки
+                {t("home.settingsButton")}
               </Button>
               <Button
                 variant="light"
                 onClick={() => setFiltersOpened(true)}
                 style={{ whiteSpace: "nowrap" }}
               >
-                Фильтры
+                {t("home.filtersButton")}
               </Button>
             </Group>
           </Group>
@@ -92,7 +94,7 @@ export function HomePage() {
         onClose={() => setFiltersOpened(false)}
         position="right"
         size="md"
-        title="Фильтры"
+        title={t("home.filtersDrawerTitle")}
       >
         <CardsFiltersPanel />
       </Drawer>

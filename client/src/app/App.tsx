@@ -10,7 +10,9 @@ import {
 import { Notifications } from "@mantine/notifications";
 import { Suspense, lazy, useEffect } from "react";
 import { useUnit } from "effector-react";
+import { useTranslation } from "react-i18next";
 import { theme } from "@/theme";
+import i18n from "@/shared/i18n/i18n";
 import {
   $settings,
   $isLoading,
@@ -37,10 +39,21 @@ function ChunkFallback() {
 
 export default function App() {
   const [settings, isLoading, error] = useUnit([$settings, $isLoading, $error]);
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadSettingsFx();
   }, []);
+
+  useEffect(() => {
+    // Apply language from persisted settings only after first-run.
+    // First-run screen manages language immediately from the form.
+    if (!settings) return;
+    if (settings.cardsFolderPath === null) return;
+    if (i18n.language !== settings.language) {
+      void i18n.changeLanguage(settings.language);
+    }
+  }, [settings?.language, settings?.cardsFolderPath]);
 
   useEffect(() => {
     let stop: (() => void) | undefined;
@@ -70,7 +83,7 @@ export default function App() {
       <MantineProvider theme={theme}>
         <Notifications position="top-right" />
         <Container size="md" py="xl">
-          <Alert color="red" title="Ошибка загрузки настроек">
+          <Alert color="red" title={t("errors.loadSettingsTitle")}>
             {error}
           </Alert>
         </Container>

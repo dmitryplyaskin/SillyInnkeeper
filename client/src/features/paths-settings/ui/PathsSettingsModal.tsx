@@ -1,5 +1,6 @@
 import { Modal } from "@mantine/core";
 import { useUnit } from "effector-react";
+import { useTranslation } from "react-i18next";
 import { $settings } from "@/entities/settings";
 import { SettingsForm } from "@/features/settings-form";
 
@@ -13,6 +14,7 @@ export function PathsSettingsModal({
   onClose,
 }: PathsSettingsModalProps) {
   const settings = useUnit($settings);
+  const { t } = useTranslation();
 
   if (!settings) return null;
 
@@ -20,7 +22,7 @@ export function PathsSettingsModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title="Настройки приложения"
+      title={t("setup.appSettingsTitle")}
       centered
       size="md"
       padding="lg"

@@ -14,6 +14,7 @@ import {
   Tooltip,
   ActionIcon,
 } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import {
   $filters,
   $filtersData,
@@ -42,20 +43,8 @@ import {
 } from "../model";
 import type { TriState } from "@/shared/types/cards-query";
 
-const TRI_STATE_DATA: Array<{ value: TriState; label: string }> = [
-  { value: "any", label: "Не важно" },
-  { value: "1", label: "Только с" },
-  { value: "0", label: "Только без" },
-];
-
-const SORT_DATA = [
-  { value: "created_at_desc", label: "Сначала новые" },
-  { value: "created_at_asc", label: "Сначала старые" },
-  { value: "name_asc", label: "Имя: А → Я" },
-  { value: "name_desc", label: "Имя: Я → А" },
-] as const;
-
 function InfoTip({ text }: { text: string }) {
+  const { t } = useTranslation();
   return (
     <Tooltip label={text} withArrow multiline maw={280}>
       <ActionIcon
@@ -63,7 +52,7 @@ function InfoTip({ text }: { text: string }) {
         color="gray"
         size="sm"
         radius="xl"
-        aria-label="Пояснение"
+        aria-label={t("filters.infoTipAria")}
       >
         i
       </ActionIcon>
@@ -72,6 +61,7 @@ function InfoTip({ text }: { text: string }) {
 }
 
 export function CardsFiltersPanel() {
+  const { t } = useTranslation();
   const [
     filters,
     filtersData,
@@ -124,6 +114,19 @@ export function CardsFiltersPanel() {
     resetFilters,
   ]);
 
+  const TRI_STATE_DATA: Array<{ value: TriState; label: string }> = [
+    { value: "any", label: t("filters.triAny") },
+    { value: "1", label: t("filters.triHas") },
+    { value: "0", label: t("filters.triHasNot") },
+  ];
+
+  const SORT_DATA = [
+    { value: "created_at_desc", label: t("filters.sortNewFirst") },
+    { value: "created_at_asc", label: t("filters.sortOldFirst") },
+    { value: "name_asc", label: t("filters.sortNameAsc") },
+    { value: "name_desc", label: t("filters.sortNameDesc") },
+  ] as const;
+
   function mergeOptions(
     selected: string[],
     serverOptions: Array<{ value: string; count: number }>
@@ -156,7 +159,7 @@ export function CardsFiltersPanel() {
               onReset();
             }}
           >
-            Сбросить
+            {t("actions.reset")}
           </Button>
           <Button
             variant="light"
@@ -165,29 +168,29 @@ export function CardsFiltersPanel() {
               loadFilters();
             }}
           >
-            Обновить списки
+            {t("actions.refreshLists")}
           </Button>
         </Group>
       </Group>
 
       {filtersError && (
-        <Alert color="red" title="Ошибка загрузки фильтров">
+        <Alert color="red" title={t("errors.loadFiltersTitle")}>
           {filtersError}
         </Alert>
       )}
 
-      <Divider label="Поиск и сортировка" />
+      <Divider label={t("filters.searchAndSort")} />
 
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <TextInput
-          label="Имя"
-          placeholder="Поиск по имени..."
+          label={t("filters.name")}
+          placeholder={t("filters.namePlaceholder")}
           value={filters.name}
           onChange={(e) => onSetName(e.currentTarget.value)}
         />
 
         <Select
-          label="Сортировка"
+          label={t("filters.sort")}
           data={[...SORT_DATA] as any}
           value={filters.sort}
           onChange={(v) => {
@@ -199,14 +202,14 @@ export function CardsFiltersPanel() {
       <Divider
         label={
           <Group gap={6}>
-            <Text size="sm">Метаданные</Text>
+            <Text size="sm">{t("filters.meta")}</Text>
           </Group>
         }
       />
 
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <MultiSelect
-          label="Создатель"
+          label={t("filters.creator")}
           data={creatorOptions}
           value={filters.creator}
           onChange={onSetCreators}
@@ -215,7 +218,7 @@ export function CardsFiltersPanel() {
         />
 
         <MultiSelect
-          label="Версия спеки"
+          label={t("filters.specVersion")}
           data={specVersionOptions}
           value={filters.spec_version}
           onChange={onSetSpecVersions}
@@ -226,8 +229,8 @@ export function CardsFiltersPanel() {
         <MultiSelect
           label={
             <Group gap={6}>
-              <Text size="sm">Теги</Text>
-              <InfoTip text="Работает по AND: карточка должна содержать все выбранные теги." />
+              <Text size="sm">{t("filters.tags")}</Text>
+              <InfoTip text={t("filters.tagsTip")} />
             </Group>
           }
           data={tagOptions}
@@ -241,15 +244,15 @@ export function CardsFiltersPanel() {
       <Divider
         label={
           <Group gap={6}>
-            <Text size="sm">Дата создания</Text>
-            <InfoTip text="Фильтрация по суткам в локальном времени." />
+            <Text size="sm">{t("filters.createdAt")}</Text>
+            <InfoTip text={t("filters.localDayTip")} />
           </Group>
         }
       />
 
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <TextInput
-          label="Создано: от"
+          label={t("filters.createdFrom")}
           type="date"
           value={filters.created_from || ""}
           rightSection={
@@ -258,7 +261,7 @@ export function CardsFiltersPanel() {
                 variant="subtle"
                 color="gray"
                 size="sm"
-                aria-label="Очистить дату 'от'"
+                aria-label={t("filters.clearDateFromAria")}
                 onClick={() => onSetCreatedFrom(undefined)}
               >
                 ×
@@ -276,7 +279,7 @@ export function CardsFiltersPanel() {
         />
 
         <TextInput
-          label="Создано: до"
+          label={t("filters.createdTo")}
           type="date"
           value={filters.created_to || ""}
           rightSection={
@@ -285,7 +288,7 @@ export function CardsFiltersPanel() {
                 variant="subtle"
                 color="gray"
                 size="sm"
-                aria-label="Очистить дату 'до'"
+                aria-label={t("filters.clearDateToAria")}
                 onClick={() => onSetCreatedTo(undefined)}
               >
                 ×
@@ -303,41 +306,45 @@ export function CardsFiltersPanel() {
         />
       </SimpleGrid>
 
-      <Divider label="Токены (оценка)" />
+      <Divider label={t("filters.tokensEstimate")} />
 
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <NumberInput
-          label={(
-            <Group gap={6}>
-              <Text size="sm">Минимум</Text>
-              <InfoTip text="0 — не применять. Значения примерные (оценка)." />
-            </Group>
-          ) as any}
+          label={
+            (
+              <Group gap={6}>
+                <Text size="sm">{t("filters.min")}</Text>
+                <InfoTip text={t("filters.tokensMinTip")} />
+              </Group>
+            ) as any
+          }
           min={0}
           value={filters.prompt_tokens_min}
           onChange={(v) => onSetPromptTokensMin(Number(v) || 0)}
         />
         <NumberInput
-          label={(
-            <Group gap={6}>
-              <Text size="sm">Максимум</Text>
-              <InfoTip text="0 — не применять. Max не может быть меньше Min." />
-            </Group>
-          ) as any}
+          label={
+            (
+              <Group gap={6}>
+                <Text size="sm">{t("filters.max")}</Text>
+                <InfoTip text={t("filters.tokensMaxTip")} />
+              </Group>
+            ) as any
+          }
           min={0}
           value={filters.prompt_tokens_max}
           onChange={(v) => onSetPromptTokensMax(Number(v) || 0)}
         />
       </SimpleGrid>
 
-      <Divider label="Альтернативные приветствия" />
+      <Divider label={t("filters.altGreetings")} />
 
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <Select
           label={
             <Group gap={6}>
-              <Text size="sm">Наличие</Text>
-              <InfoTip text="«Есть» — минимум 1 (или больше, если задано «Минимум»). «Нет» — строго 0. «Не важно» — учитывается только «Минимум»." />
+              <Text size="sm">{t("filters.presence")}</Text>
+              <InfoTip text={t("filters.presenceTip")} />
             </Group>
           }
           data={TRI_STATE_DATA as any}
@@ -346,30 +353,30 @@ export function CardsFiltersPanel() {
         />
 
         <NumberInput
-          label="Минимум, шт."
+          label={t("filters.minCount")}
           min={0}
           value={filters.alternate_greetings_min}
           onChange={(v) => onSetAlternateGreetingsMin(Number(v) || 0)}
         />
       </SimpleGrid>
 
-      <Divider label="Наличие полей" />
+      <Divider label={t("filters.fieldsPresence")} />
 
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <Select
-          label="Заметки автора"
+          label={t("filters.hasCreatorNotes")}
           data={TRI_STATE_DATA as any}
           value={filters.has_creator_notes}
           onChange={(v) => onSetHasCreatorNotes((v as TriState) || "any")}
         />
         <Select
-          label="Системный промпт"
+          label={t("filters.hasSystemPrompt")}
           data={TRI_STATE_DATA as any}
           value={filters.has_system_prompt}
           onChange={(v) => onSetHasSystemPrompt((v as TriState) || "any")}
         />
         <Select
-          label="Инструкции истории"
+          label={t("filters.hasPostHistoryInstructions")}
           data={TRI_STATE_DATA as any}
           value={filters.has_post_history_instructions}
           onChange={(v) =>
@@ -377,25 +384,25 @@ export function CardsFiltersPanel() {
           }
         />
         <Select
-          label="Личность"
+          label={t("filters.hasPersonality")}
           data={TRI_STATE_DATA as any}
           value={filters.has_personality}
           onChange={(v) => onSetHasPersonality((v as TriState) || "any")}
         />
         <Select
-          label="Сценарий"
+          label={t("filters.hasScenario")}
           data={TRI_STATE_DATA as any}
           value={filters.has_scenario}
           onChange={(v) => onSetHasScenario((v as TriState) || "any")}
         />
         <Select
-          label="Пример сообщений"
+          label={t("filters.hasMesExample")}
           data={TRI_STATE_DATA as any}
           value={filters.has_mes_example}
           onChange={(v) => onSetHasMesExample((v as TriState) || "any")}
         />
         <Select
-          label="Лорбук"
+          label={t("filters.hasCharacterBook")}
           data={TRI_STATE_DATA as any}
           value={filters.has_character_book}
           onChange={(v) => onSetHasCharacterBook((v as TriState) || "any")}
@@ -403,8 +410,7 @@ export function CardsFiltersPanel() {
       </SimpleGrid>
 
       <Text size="sm" c="dimmed">
-        Примечание: полнотекстовый поиск по description/first_mes будет добавлен
-        позже через FTS5.
+        {t("filters.noteFts")}
       </Text>
     </Stack>
   );

@@ -5,12 +5,16 @@ export interface ViewSettings {
   isCensored: boolean;
 }
 
+import i18n from "@/shared/i18n/i18n";
+
 export async function getViewSettings(): Promise<ViewSettings> {
   const response = await fetch("/api/view-settings");
 
   if (!response.ok) {
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
     throw new Error(
-      `Ошибка загрузки настроек отображения: ${response.statusText}`
+      `${i18n.t("errors.loadViewSettings")}: ${response.statusText}`
     );
   }
 
@@ -29,10 +33,10 @@ export async function updateViewSettings(
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
     throw new Error(
-      errorText ||
-        `Ошибка сохранения настроек отображения: ${response.statusText}`
+      `${i18n.t("errors.saveViewSettings")}: ${response.statusText}`
     );
   }
 
