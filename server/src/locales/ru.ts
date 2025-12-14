@@ -80,6 +80,8 @@ const ru = {
   "api.cards.get_failed": "Не удалось получить карточку",
   "api.cards.not_found": "Карточка не найдена",
   "api.cards.filters_failed": "Не удалось получить данные фильтров карточек",
+  "api.cards.export_failed": "Не удалось экспортировать PNG карточки",
+  "api.export.invalid_data_json": "Некорректные данные карточки для экспорта",
 
   "api.image.not_found": "Изображение не найдено",
   "api.image.file_not_found": "Файл изображения не найден",
@@ -90,7 +92,7 @@ const ru = {
 
   // logs (localized)
   "log.server.readLanguageSettingsFailed": "Ошибка при чтении настроек языка",
-  "log.server.started": "Сервер запущен на порту {port}",
+  "log.server.started": "Сервер запущен на {host}:{port}",
   "log.server.initScannerFailed": "Ошибка при инициализации сканера",
   "log.server.startFsWatcherFailed": "Ошибка при запуске FS watcher",
   "log.server.signalReceived":
@@ -110,6 +112,17 @@ const ru = {
   "log.sse.clientDisconnected":
     "SSE клиент отключен: {clientId} (total={total})",
   "error.sse.connectionFailed": "Ошибка при установке SSE соединения",
+
+  "api.st.invalid_cardId": "Некорректный cardId",
+  "api.st.invalid_ok": "Некорректное поле ok (ожидается boolean)",
+  "api.st.play_failed": "Не удалось отправить команду Play в SillyTavern",
+  "api.st.import_result_failed":
+    "Не удалось принять результат импорта из SillyTavern",
+
+  "log.st.playRequested": "ST play: запрос на карточку {cardId}",
+  "log.st.playBroadcasted": "ST play: событие отправлено для карточки {cardId}",
+  "log.st.importResultReceived":
+    "ST import-result: получен результат для карточки {cardId} (ok={ok})",
 
   "log.fsWatcher.triggerScan": "FS watcher trigger scan ({reason})",
   "log.fsWatcher.started": "FS watcher started: {folderPath}",

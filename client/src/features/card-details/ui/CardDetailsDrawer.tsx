@@ -23,6 +23,7 @@ import {
   Image,
   Modal,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import type { CardDetails } from "@/shared/types/cards";
 import { $details, $error, $isLoading, $openedId, closeCard } from "../model";
 import { $isCensored } from "@/features/view-settings";
@@ -177,6 +178,42 @@ function ActionsPanel({
   details: CardDetails | null;
   locale: string;
 }) {
+  const [isSendingPlay, setIsSendingPlay] = useState(false);
+
+  const exportPngUrl = details?.id
+    ? `/api/cards/${encodeURIComponent(details.id)}/export.png?download=1`
+    : undefined;
+
+  async function playInSillyTavern(): Promise<void> {
+    if (!details?.id) return;
+    if (isSendingPlay) return;
+    setIsSendingPlay(true);
+    try {
+      const res = await fetch("/api/st/play", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId: details.id }),
+      });
+      if (!res.ok) {
+        const errText = (await res.text().catch(() => "")).trim();
+        throw new Error(errText || res.statusText);
+      }
+      notifications.show({
+        title: i18n.t("cardDetails.playInSillyTavern"),
+        message: i18n.t("cardDetails.playSent"),
+        color: "green",
+      });
+    } catch (e) {
+      notifications.show({
+        title: i18n.t("cardDetails.playInSillyTavern"),
+        message: i18n.t("cardDetails.playFailed"),
+        color: "red",
+      });
+    } finally {
+      setIsSendingPlay(false);
+    }
+  }
+
   return (
     <Paper
       p="md"
@@ -189,11 +226,28 @@ function ActionsPanel({
       <Stack gap="sm">
         <Text fw={600}>{i18n.t("cardDetails.actions")}</Text>
 
-        <Tooltip label={i18n.t("cardDetails.soon")} withArrow>
-          <Button fullWidth variant="light" disabled>
-            {i18n.t("cardDetails.download")}
-          </Button>
-        </Tooltip>
+        <Button
+          fullWidth
+          variant="filled"
+          onClick={() => void playInSillyTavern()}
+          loading={isSendingPlay}
+          disabled={!details?.id}
+        >
+          {i18n.t("cardDetails.playInSillyTavern")}
+        </Button>
+
+        <Button
+          fullWidth
+          variant="light"
+          onClick={() => {
+            if (!exportPngUrl) return;
+            // Скачивание через navigation: имя берём из Content-Disposition сервера
+            window.location.href = exportPngUrl;
+          }}
+          disabled={!exportPngUrl}
+        >
+          {i18n.t("cardDetails.download")}
+        </Button>
         <Tooltip label={i18n.t("cardDetails.soon")} withArrow>
           <Button fullWidth variant="light" color="red" disabled>
             {i18n.t("cardDetails.delete")}

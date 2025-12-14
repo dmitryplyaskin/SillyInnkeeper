@@ -11,7 +11,9 @@ import type { FsWatcherService } from "./services/fs-watcher";
 import type { CardsSyncOrchestrator } from "./services/cards-sync-orchestrator";
 import { setCurrentLanguage } from "./i18n/language";
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+// Фиксированный порт по умолчанию для интеграции (можно переопределить через ENV PORT)
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 48912;
+const HOST = "127.0.0.1";
 
 async function startServer(): Promise<void> {
   try {
@@ -31,8 +33,8 @@ async function startServer(): Promise<void> {
     }
 
     // Запускаем сервер
-    const server = app.listen(PORT, () => {
-      logger.infoKey("log.server.started", { port: PORT });
+    const server = app.listen(PORT, HOST, () => {
+      logger.infoKey("log.server.started", { port: PORT, host: HOST });
 
       // Инициализируем сканер после запуска сервера
       initializeScannerWithOrchestrator(orchestrator, db).catch((error) => {

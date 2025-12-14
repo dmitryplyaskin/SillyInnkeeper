@@ -33,3 +33,4 @@ if (!i18n.isInitialized) {
 }
 
 export default i18n;
+

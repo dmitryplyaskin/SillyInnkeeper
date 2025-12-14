@@ -1,5 +1,7 @@
 import { Router, Request, Response } from "express";
 import Database from "better-sqlite3";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { createCardsService } from "../../services/cards";
 import { logger } from "../../utils/logger";
 import type {
@@ -12,6 +14,11 @@ import { getSettings } from "../../services/settings";
 import { getOrCreateLibraryId } from "../../services/libraries";
 import { AppError } from "../../errors/app-error";
 import { sendError } from "../../errors/http";
+import { buildPngWithCcv3TextChunk } from "../../services/png-export";
+import {
+  makeAttachmentContentDisposition,
+  sanitizeWindowsFilenameBase,
+} from "../../utils/filename";
 
 const router = Router();
 
@@ -192,6 +199,89 @@ router.get("/cards", async (req: Request, res: Response) => {
     return sendError(res, error, {
       status: 500,
       code: "api.cards.list_failed",
+    });
+  }
+});
+
+// GET /api/cards/:id/export.png - канонический экспорт PNG с CCv3 метаданными
+router.get("/cards/:id/export.png", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const db = getDb(req);
+
+    const row = db
+      .prepare(
+        `
+        SELECT
+          c.id,
+          c.name,
+          c.data_json,
+          (
+            SELECT cf.file_path
+            FROM card_files cf
+            WHERE cf.card_id = c.id
+            LIMIT 1
+          ) AS file_path
+        FROM cards c
+        WHERE c.id = ?
+        LIMIT 1
+      `
+      )
+      .get(id) as
+      | {
+          id: string;
+          name: string | null;
+          data_json: string;
+          file_path: string | null;
+        }
+      | undefined;
+
+    if (!row) {
+      throw new AppError({ status: 404, code: "api.cards.not_found" });
+    }
+    if (!row.file_path) {
+      throw new AppError({ status: 404, code: "api.image.not_found" });
+    }
+    if (!existsSync(row.file_path)) {
+      throw new AppError({ status: 404, code: "api.image.file_not_found" });
+    }
+
+    const ccv3Object = safeJsonParse<unknown>(row.data_json);
+    if (!ccv3Object) {
+      throw new AppError({ status: 500, code: "api.export.invalid_data_json" });
+    }
+
+    const originalPng = await readFile(row.file_path);
+    const outPng = buildPngWithCcv3TextChunk({
+      inputPng: originalPng,
+      ccv3Object,
+    });
+
+    // filename rules
+    const queryFilenameRaw =
+      typeof req.query.filename === "string" ? req.query.filename : undefined;
+    const baseCandidate = (queryFilenameRaw ?? row.name ?? "").trim();
+    const baseWithoutExt = baseCandidate.replace(/\.png$/i, "");
+    const base = sanitizeWindowsFilenameBase(baseWithoutExt, `card-${id}`);
+    const filename = `${base}.png`;
+
+    res.status(200);
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-store");
+
+    if (String(req.query.download ?? "") === "1") {
+      res.setHeader(
+        "Content-Disposition",
+        makeAttachmentContentDisposition(filename)
+      );
+    }
+
+    res.send(outPng);
+  } catch (error) {
+    logger.errorKey(error, "api.cards.export_failed");
+    return sendError(res, error, {
+      status: 500,
+      code: "api.cards.export_failed",
     });
   }
 });

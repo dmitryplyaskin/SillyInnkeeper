@@ -161,6 +161,13 @@ const ru = {
     altGreetingsTitle: "Alternate greetings",
     groupOnlyGreetingsTitle: "Group only greetings",
     detailsTitleFallback: "Карточка",
+    playInSillyTavern: "Play in SillyTavern",
+    playSent: "Команда отправлена в SillyTavern",
+    playFailed: "Не удалось отправить команду в SillyTavern",
+    stImportOkTitle: "Импорт в SillyTavern",
+    stImportOkMessage: "Импорт успешен (cardId: {{cardId}})",
+    stImportFailTitle: "Импорт в SillyTavern",
+    stImportFailMessage: "Импорт не удался (cardId: {{cardId}})",
   },
   creatorNotes: {
     title: "Заметки автора",

@@ -5,6 +5,7 @@ import type {
   CardsScanFinishedEvent,
   CardsScanProgressEvent,
   CardsScanStartedEvent,
+  StImportResultEvent,
 } from "@/shared/types/events";
 import { applyFilters, loadCardsFiltersFx } from "@/features/cards-filters";
 import { notifications } from "@mantine/notifications";
@@ -18,6 +19,7 @@ const scanStarted = createEvent<CardsScanStartedEvent>();
 const scanProgress = createEvent<CardsScanProgressEvent>();
 const scanFinished = createEvent<CardsScanFinishedEvent>();
 const connected = createEvent<void>();
+const stImportResult = createEvent<StImportResultEvent>();
 
 let client: EventsClient | null = null;
 
@@ -37,6 +39,7 @@ startLiveSync.watch(() => {
     onScanStarted: (evt) => scanStarted(evt),
     onScanProgress: (evt) => scanProgress(evt),
     onScanFinished: (evt) => scanFinished(evt),
+    onStImportResult: (evt) => stImportResult(evt),
     onError: () => {
       // браузер сам переподключается; лог/UX добавим позже при необходимости
     },
@@ -134,6 +137,21 @@ scanFinished.watch((evt) => {
     loading: false,
     autoClose: 2500,
     withCloseButton: true,
+  });
+});
+
+stImportResult.watch((evt) => {
+  notifications.show({
+    title: evt.ok
+      ? i18n.t("cardDetails.stImportOkTitle")
+      : i18n.t("cardDetails.stImportFailTitle"),
+    message:
+      evt.message && evt.message.trim().length > 0
+        ? evt.message
+        : evt.ok
+        ? i18n.t("cardDetails.stImportOkMessage", { cardId: evt.cardId })
+        : i18n.t("cardDetails.stImportFailMessage", { cardId: evt.cardId }),
+    color: evt.ok ? "green" : "red",
   });
 });
 

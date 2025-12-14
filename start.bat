@@ -100,13 +100,13 @@ if not exist "server\dist\server.js" (
 
 echo.
 echo [5/7] Starting production server...
-echo Project will be available at: http://localhost:3000
+echo Project will be available at: http://127.0.0.1:48912
 echo Press Ctrl+C to stop the server
 echo.
 
 echo [6/7] Opening browser...
 timeout /t 3 /nobreak >nul
-start http://localhost:3000
+start http://127.0.0.1:48912
 
 echo [7/7] Starting server with %PACKAGE_MANAGER%...
 pushd server

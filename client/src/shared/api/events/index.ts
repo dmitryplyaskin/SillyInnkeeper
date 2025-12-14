@@ -3,6 +3,7 @@ import type {
   CardsScanFinishedEvent,
   CardsScanProgressEvent,
   CardsScanStartedEvent,
+  StImportResultEvent,
 } from "@/shared/types/events";
 
 export type EventsClient = {
@@ -14,6 +15,7 @@ export function createEventsClient(handlers: {
   onScanStarted?: (evt: CardsScanStartedEvent) => void;
   onScanProgress?: (evt: CardsScanProgressEvent) => void;
   onScanFinished?: (evt: CardsScanFinishedEvent) => void;
+  onStImportResult?: (evt: StImportResultEvent) => void;
   onHello?: (data: unknown) => void;
   onError?: (error: unknown) => void;
 }): EventsClient {
@@ -64,11 +66,21 @@ export function createEventsClient(handlers: {
     }
   };
 
+  const onStImportResult = (e: MessageEvent) => {
+    try {
+      const data = JSON.parse(String(e.data)) as StImportResultEvent;
+      handlers.onStImportResult?.(data);
+    } catch (err) {
+      handlers.onError?.(err);
+    }
+  };
+
   es.addEventListener("hello", onHello as any);
   es.addEventListener("cards:resynced", onResynced as any);
   es.addEventListener("cards:scan_started", onScanStarted as any);
   es.addEventListener("cards:scan_progress", onScanProgress as any);
   es.addEventListener("cards:scan_finished", onScanFinished as any);
+  es.addEventListener("st:import_result", onStImportResult as any);
 
   es.onerror = (err) => {
     handlers.onError?.(err);
@@ -82,6 +94,7 @@ export function createEventsClient(handlers: {
         es.removeEventListener("cards:scan_started", onScanStarted as any);
         es.removeEventListener("cards:scan_progress", onScanProgress as any);
         es.removeEventListener("cards:scan_finished", onScanFinished as any);
+        es.removeEventListener("st:import_result", onStImportResult as any);
         es.close();
       } catch {
         // ignore

@@ -42,3 +42,12 @@ export type CardsScanFinishedEvent = {
   finishedAt: number;
   durationMs: number;
 };
+
+export type StImportResultEvent = {
+  type: "st:import_result";
+  ts: number;
+  cardId: string;
+  ok: boolean;
+  message?: string;
+  stCharacterId?: string;
+};

@@ -159,6 +159,13 @@ const en = {
     altGreetingsTitle: "Alternate greetings",
     groupOnlyGreetingsTitle: "Group only greetings",
     detailsTitleFallback: "Card",
+    playInSillyTavern: "Play in SillyTavern",
+    playSent: "Command sent to SillyTavern",
+    playFailed: "Failed to send command to SillyTavern",
+    stImportOkTitle: "SillyTavern import",
+    stImportOkMessage: "Import succeeded (cardId: {{cardId}})",
+    stImportFailTitle: "SillyTavern import",
+    stImportFailMessage: "Import failed (cardId: {{cardId}})",
   },
   creatorNotes: {
     title: "Creator notes",

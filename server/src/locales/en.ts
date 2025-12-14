@@ -74,6 +74,8 @@ const en = {
   "api.cards.get_failed": "Could not get card",
   "api.cards.not_found": "Card was not found",
   "api.cards.filters_failed": "Could not get cards filters data",
+  "api.cards.export_failed": "Could not export card PNG",
+  "api.export.invalid_data_json": "Invalid card data for export",
 
   "api.image.not_found": "Image was not found",
   "api.image.file_not_found": "Image file was not found",
@@ -84,7 +86,7 @@ const en = {
 
   // logs (localized)
   "log.server.readLanguageSettingsFailed": "Failed to read language settings",
-  "log.server.started": "Server started on port {port}",
+  "log.server.started": "Server started on {host}:{port}",
   "log.server.initScannerFailed": "Failed to initialize scanner",
   "log.server.startFsWatcherFailed": "Failed to start FS watcher",
   "log.server.signalReceived":
@@ -104,6 +106,17 @@ const en = {
   "log.sse.clientDisconnected":
     "SSE client disconnected: {clientId} (total={total})",
   "error.sse.connectionFailed": "Failed to establish SSE connection",
+
+  "api.st.invalid_cardId": "Invalid cardId",
+  "api.st.invalid_ok": "Invalid ok field (expected boolean)",
+  "api.st.play_failed": "Could not send Play command to SillyTavern",
+  "api.st.import_result_failed":
+    "Could not accept import result from SillyTavern",
+
+  "log.st.playRequested": "ST play: request for card {cardId}",
+  "log.st.playBroadcasted": "ST play: event broadcasted for card {cardId}",
+  "log.st.importResultReceived":
+    "ST import-result: received result for card {cardId} (ok={ok})",
 
   "log.fsWatcher.triggerScan": "FS watcher trigger scan ({reason})",
   "log.fsWatcher.started": "FS watcher started: {folderPath}",
