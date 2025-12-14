@@ -7,7 +7,11 @@ import type {
   CardsScanStartedEvent,
   StImportResultEvent,
 } from "@/shared/types/events";
-import { applyFilters, loadCardsFiltersFx } from "@/features/cards-filters";
+import {
+  applyFilters,
+  applyFiltersSilent,
+  loadCardsFiltersFx,
+} from "@/features/cards-filters";
 import { notifications } from "@mantine/notifications";
 import i18n from "@/shared/i18n/i18n";
 
@@ -84,8 +88,9 @@ scanStarted.watch((evt) => {
 
   // During scan: periodically refresh cards list so user sees it updating.
   if (scanPollTimer) clearInterval(scanPollTimer);
+  applyFiltersSilent(); // immediate refresh without loader "jitter"
   scanPollTimer = setInterval(() => {
-    applyFilters();
+    applyFiltersSilent();
   }, 2000);
 
   notifications.show({
@@ -128,7 +133,7 @@ scanFinished.watch((evt) => {
     scanPollTimer = null;
   }
   // Final refresh right after finishing scan
-  applyFilters();
+  applyFiltersSilent();
 
   notifications.update({
     id: SCAN_NOTIFICATION_ID,

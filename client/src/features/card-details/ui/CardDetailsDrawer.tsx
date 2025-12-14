@@ -41,6 +41,7 @@ import i18n from "@/shared/i18n/i18n";
 import { deleteCard, deleteCardFileDuplicate } from "@/shared/api/cards";
 import { CopyableTruncatedText } from "@/shared/ui/CopyableTruncatedText";
 import { renameCardMainFile, setCardMainFile } from "@/shared/api/cards";
+import { showFile } from "@/shared/api/explorer";
 
 function formatDate(ms: number | null | undefined, locale: string): string {
   const t = typeof ms === "number" ? ms : Number(ms);
@@ -214,6 +215,10 @@ function ActionsPanel({
   const [isDeletingCard, setIsDeletingCard] = useState(false);
   const [isSettingMainFile, setIsSettingMainFile] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [isOpeningInExplorer, setIsOpeningInExplorer] = useState(false);
+  const [openingDuplicatePath, setOpeningDuplicatePath] = useState<
+    string | null
+  >(null);
 
   const exportPngUrl = details?.id
     ? `/api/cards/${encodeURIComponent(details.id)}/export.png?download=1`
@@ -251,6 +256,62 @@ function ActionsPanel({
 
   const duplicates = details?.duplicates ?? [];
   const hasDuplicates = duplicates.length > 0;
+
+  async function openMainInExplorer(): Promise<void> {
+    const p = (details?.file_path ?? "").trim();
+    if (!p) return;
+    if (isOpeningInExplorer) return;
+    setIsOpeningInExplorer(true);
+    try {
+      await showFile(p);
+      notifications.show({
+        title: i18n.t("cardDetails.openInExplorer"),
+        message: i18n.t("cardDetails.openInExplorerHint"),
+        color: "blue",
+        autoClose: 3500,
+      });
+    } catch (e) {
+      const msg =
+        e instanceof Error && e.message.trim()
+          ? e.message
+          : i18n.t("cardDetails.openInExplorerFailed");
+      notifications.show({
+        title: i18n.t("cardDetails.openInExplorer"),
+        message: msg,
+        color: "red",
+      });
+    } finally {
+      setIsOpeningInExplorer(false);
+    }
+  }
+
+  async function openDuplicateInExplorer(p: string): Promise<void> {
+    const fp = (p ?? "").trim();
+    if (!fp) return;
+    if (openingDuplicatePath) return;
+    setOpeningDuplicatePath(fp);
+    try {
+      await showFile(fp);
+      notifications.show({
+        title: i18n.t("cardDetails.showInExplorer"),
+        message: i18n.t("cardDetails.openInExplorerHint"),
+        color: "blue",
+        autoClose: 3500,
+      });
+    } catch (e) {
+      const msg =
+        e instanceof Error && e.message.trim()
+          ? e.message
+          : i18n.t("cardDetails.openInExplorerFailed");
+      notifications.show({
+        title: i18n.t("cardDetails.showInExplorer"),
+        message: msg,
+        color: "red",
+      });
+    } finally {
+      setOpeningDuplicatePath(null);
+    }
+  }
 
   async function deleteDuplicateConfirmed(): Promise<void> {
     if (!details?.id) return;
@@ -399,11 +460,15 @@ function ActionsPanel({
             </Button>
           </Tooltip>
 
-          <Tooltip label={i18n.t("cardDetails.soon")} withArrow>
-            <Button fullWidth variant="light" disabled>
-              {i18n.t("cardDetails.openInExplorer")}
-            </Button>
-          </Tooltip>
+          <Button
+            fullWidth
+            variant="light"
+            onClick={() => void openMainInExplorer()}
+            disabled={!details?.file_path}
+            loading={isOpeningInExplorer}
+          >
+            {i18n.t("cardDetails.openInExplorer")}
+          </Button>
 
           <Button
             fullWidth
@@ -547,7 +612,8 @@ function ActionsPanel({
                         >
                           <ActionIcon
                             variant="light"
-                            disabled
+                            onClick={() => void openDuplicateInExplorer(p)}
+                            loading={openingDuplicatePath === p}
                             aria-label={i18n.t("cardDetails.showInExplorer")}
                           >
                             <svg

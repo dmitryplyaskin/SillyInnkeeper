@@ -13,7 +13,17 @@ import type { CardsQuery } from "@/shared/types/cards-query";
 type LoadCardsParams = { requestId: number; query?: CardsQuery };
 type LoadCardsResult = { requestId: number; cards: CardListItem[] };
 
-const loadCardsInternalFx = createEffect<LoadCardsParams, LoadCardsResult, Error>(
+export const loadCardsFx = createEffect<
+  LoadCardsParams,
+  LoadCardsResult,
+  Error
+>(async ({ requestId, query }) => {
+  const cards = await getCards(query);
+  return { requestId, cards };
+});
+
+// Silent variant: does the same request, but is NOT tied to the global cards loader.
+const loadCardsSilentFx = createEffect<LoadCardsParams, LoadCardsResult, Error>(
   async ({ requestId, query }) => {
     const cards = await getCards(query);
     return { requestId, cards };
@@ -26,24 +36,24 @@ export const $error = createStore<string | null>(null);
 const $lastRequestId = createStore(0);
 
 // Объединение pending состояний
-export const $isLoading = combine(
-  loadCardsInternalFx.pending,
-  (pending) => pending
-);
+export const $isLoading = combine(loadCardsFx.pending, (pending) => pending);
 
 // Events
 export const loadCards = createEvent<CardsQuery | void>();
+export const loadCardsSilent = createEvent<CardsQuery | void>();
 const setCards = createEvent<CardListItem[]>();
 const setError = createEvent<string | null>();
 
 // Обновление stores через события
 $cards.on(setCards, (_, cards) => cards);
 $error.on(setError, (_, error) => error);
-$lastRequestId.on(loadCardsInternalFx, (_, p) => p.requestId);
+$lastRequestId
+  .on(loadCardsFx, (_, p) => p.requestId)
+  .on(loadCardsSilentFx, (_, p) => p.requestId);
 
 // Связывание effects с событиями
 sample({
-  clock: loadCardsInternalFx.doneData,
+  clock: loadCardsFx.doneData,
   source: $lastRequestId,
   filter: (lastId, done) => done.requestId === lastId,
   fn: (_, done) => done.cards,
@@ -51,13 +61,21 @@ sample({
 });
 
 sample({
-  clock: loadCardsInternalFx.doneData,
+  clock: loadCardsSilentFx.doneData,
+  source: $lastRequestId,
+  filter: (lastId, done) => done.requestId === lastId,
+  fn: (_, done) => done.cards,
+  target: setCards,
+});
+
+sample({
+  clock: [loadCardsFx.doneData, loadCardsSilentFx.doneData],
   fn: () => null,
   target: setError,
 });
 
 sample({
-  clock: loadCardsInternalFx.failData,
+  clock: loadCardsFx.failData,
   fn: (error: Error) => error.message,
   target: setError,
 });
@@ -70,8 +88,16 @@ sample({
     requestId: lastId + 1,
     query: query as CardsQuery | undefined,
   }),
-  target: loadCardsInternalFx,
+  target: loadCardsFx,
 });
 
-// keep backward-compatible export name (but prefer `loadCards` event)
-export const loadCardsFx = loadCardsInternalFx;
+// silent trigger (same semantics, but does not toggle `$isLoading`)
+sample({
+  clock: loadCardsSilent,
+  source: $lastRequestId,
+  fn: (lastId, query) => ({
+    requestId: lastId + 1,
+    query: query as CardsQuery | undefined,
+  }),
+  target: loadCardsSilentFx,
+});

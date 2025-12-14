@@ -13,7 +13,7 @@ import type {
   CardsSort,
   TriState,
 } from "@/shared/types/cards-query";
-import { loadCards } from "@/entities/cards";
+import { loadCards, loadCardsSilent } from "@/entities/cards";
 
 export interface CardsFiltersState {
   sort: CardsSort;
@@ -94,8 +94,10 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     tags: state.tags,
     created_from_ms,
     created_to_ms,
-    prompt_tokens_min: state.prompt_tokens_min > 0 ? state.prompt_tokens_min : undefined,
-    prompt_tokens_max: state.prompt_tokens_max > 0 ? state.prompt_tokens_max : undefined,
+    prompt_tokens_min:
+      state.prompt_tokens_min > 0 ? state.prompt_tokens_min : undefined,
+    prompt_tokens_max:
+      state.prompt_tokens_max > 0 ? state.prompt_tokens_max : undefined,
     has_creator_notes: state.has_creator_notes,
     has_system_prompt: state.has_system_prompt,
     has_post_history_instructions: state.has_post_history_instructions,
@@ -151,6 +153,7 @@ export const setHasAlternateGreetings = createEvent<TriState>();
 export const setAlternateGreetingsMin = createEvent<number>();
 export const resetFilters = createEvent<void>();
 export const applyFilters = createEvent<void>();
+export const applyFiltersSilent = createEvent<void>();
 
 $filters
   .on(setSort, (s, sort) => ({ ...s, sort }))
@@ -273,6 +276,13 @@ sample({
   source: $filters,
   fn: (state) => toQuery(state),
   target: loadCards,
+});
+
+sample({
+  clock: applyFiltersSilent,
+  source: $filters,
+  fn: (state) => toQuery(state),
+  target: loadCardsSilent,
 });
 
 // Reset should deterministically apply defaults

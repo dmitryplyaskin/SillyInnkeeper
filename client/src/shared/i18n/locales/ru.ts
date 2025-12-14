@@ -177,7 +177,10 @@ const ru = {
     stImportFailTitle: "Импорт в SillyTavern",
     stImportFailMessage: "Импорт не удался (cardId: {{cardId}})",
     duplicatesTitle: "Дубликаты",
-    showInExplorer: "Показать в проводнике (скоро)",
+    showInExplorer: "Показать в проводнике",
+    openInExplorerFailed: "Не удалось открыть в проводнике",
+    openInExplorerHint:
+      "Если проводник не появился поверх окон — проверьте панель задач.",
     makeMainFile: "Сделать основным файлом",
     deleteDuplicate: "Удалить дубль",
     confirmDeleteDuplicateTitle: "Удалить дубль?",

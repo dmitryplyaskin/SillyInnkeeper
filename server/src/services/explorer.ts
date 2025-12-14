@@ -91,8 +91,15 @@ export async function showFolder(folderPath: string): Promise<void> {
   const platform = process.platform;
 
   if (platform === "win32") {
-    // Prefer fire-and-forget to avoid blocking on Explorer window.
-    spawnFireAndForget("explorer.exe", [folderPath]);
+    // Starting Explorer directly is sometimes flaky from Node.
+    // cmd.exe + start is more reliable for GUI apps and does not block.
+    spawnFireAndForget("cmd.exe", [
+      "/c",
+      "start",
+      "",
+      "explorer.exe",
+      folderPath,
+    ]);
     return;
   }
 
@@ -120,7 +127,14 @@ export async function showFile(filePath: string): Promise<void> {
 
   if (platform === "win32") {
     // Note: explorer expects `/select,` as a single arg.
-    spawnFireAndForget("explorer.exe", ["/select,", filePath]);
+    spawnFireAndForget("cmd.exe", [
+      "/c",
+      "start",
+      "",
+      "explorer.exe",
+      "/select,",
+      filePath,
+    ]);
     return;
   }
 
