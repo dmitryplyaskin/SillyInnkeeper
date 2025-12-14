@@ -8,6 +8,8 @@
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://opensource.org/licenses/AGPL-3.0)
 
+![Main img](assets/main.webp)
+
 ## 💡 Why SillyInnkeeper?
 
 If you have a large collection of character cards (hundreds or thousands of files), you've likely encountered problems when working with them:
