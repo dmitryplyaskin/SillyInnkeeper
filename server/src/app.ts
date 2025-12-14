@@ -9,6 +9,7 @@ import apiRoutes from "./routes/api";
 import { SseHub } from "./services/sse-hub";
 import { CardsSyncOrchestrator } from "./services/cards-sync-orchestrator";
 import { FsWatcherService } from "./services/fs-watcher";
+import { ThumbnailQueue } from "./services/thumbnail-queue";
 
 export interface AppOptions {
   dbPath?: string;
@@ -33,7 +34,14 @@ export async function createApp(
   const sseHub = new SseHub();
   app.locals.sseHub = sseHub;
 
-  const cardsSyncOrchestrator = new CardsSyncOrchestrator(db, sseHub);
+  const thumbnailQueue = new ThumbnailQueue(db);
+  app.locals.thumbnailQueue = thumbnailQueue;
+
+  const cardsSyncOrchestrator = new CardsSyncOrchestrator(
+    db,
+    sseHub,
+    thumbnailQueue
+  );
   app.locals.cardsSyncOrchestrator = cardsSyncOrchestrator;
 
   const fsWatcher = new FsWatcherService(cardsSyncOrchestrator);

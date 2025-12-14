@@ -1,6 +1,55 @@
-import { readFileSync } from "node:fs";
+import { open } from "node:fs/promises";
 import { ParsedCardData } from "./types";
 import { logger } from "../utils/logger";
+
+const PNG_SIGNATURE_HEX = "89504e470d0a1a0a";
+
+async function readExact(
+  filePath: string,
+  fh: Awaited<ReturnType<typeof open>>,
+  length: number,
+  position: number
+): Promise<Buffer | null> {
+  const buffer = Buffer.allocUnsafe(length);
+  let offset = 0;
+  while (offset < length) {
+    const { bytesRead } = await fh.read(
+      buffer,
+      offset,
+      length - offset,
+      position + offset
+    );
+    if (bytesRead <= 0) {
+      logger.errorMessageKey("error.png.textChunkInsufficientData", {
+        filePath,
+      });
+      return null;
+    }
+    offset += bytesRead;
+  }
+  return buffer;
+}
+
+function detectSpecVersion(cardData: any): "1.0" | "2.0" | "3.0" | "UNKNOWN" {
+  if (cardData?.spec === "chara_card_v3") return "3.0";
+  if (cardData?.spec === "chara_card_v2") return "2.0";
+  if (!cardData?.spec) {
+    // Если spec отсутствует, пытаемся определить V1 по обязательным полям
+    const v1RequiredFields = [
+      "name",
+      "description",
+      "personality",
+      "scenario",
+      "first_mes",
+      "mes_example",
+    ];
+    const hasAllV1Fields = v1RequiredFields.every((field) =>
+      Object.prototype.hasOwnProperty.call(cardData, field)
+    );
+    if (hasAllV1Fields) return "1.0";
+  }
+  return "UNKNOWN";
+}
 
 /**
  * Парсит метаданные карточки из PNG файла
@@ -9,158 +58,88 @@ import { logger } from "../utils/logger";
  * @param filePath Путь к PNG файлу
  * @returns Парсированные данные карточки или null в случае ошибки
  */
-export function parsePngMetadata(filePath: string): ParsedCardData | null {
+export async function parsePngMetadata(
+  filePath: string
+): Promise<ParsedCardData | null> {
+  let fh: Awaited<ReturnType<typeof open>> | null = null;
   try {
-    // Читаем файл в буфер
-    const buffer = readFileSync(filePath);
+    fh = await open(filePath, "r");
 
     // Проверяем PNG сигнатуру (первые 8 байт: 89 50 4E 47 0D 0A 1A 0A)
-    if (
-      buffer.length < 8 ||
-      buffer.toString("hex", 0, 8) !== "89504e470d0a1a0a"
-    ) {
+    const signature = await readExact(filePath, fh, 8, 0);
+    if (!signature || signature.toString("hex") !== PNG_SIGNATURE_HEX) {
       logger.errorMessageKey("error.png.invalidPng", { filePath });
       return null;
     }
 
-    // Собираем все tEXt чанки для обработки
-    const textChunks: Array<{ keyword: string; text: string }> = [];
     let position = 8;
+    let charaText: string | null = null;
 
-    while (position < buffer.length - 12) {
-      // Читаем длину чанка (4 байта, big-endian)
-      const chunkLength = buffer.readUInt32BE(position);
-      position += 4;
+    // Идём по чанкам без чтения больших данных (IDAT и т.п. пропускаем через seek)
+    // stop: IEND или EOF
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const header = await readExact(filePath, fh, 8, position);
+      if (!header) break;
 
-      // Читаем тип чанка (4 байта)
-      const chunkType = buffer.toString("ascii", position, position + 4);
-      position += 4;
+      const chunkLength = header.readUInt32BE(0);
+      const chunkType = header.toString("ascii", 4, 8);
+      position += 8;
 
-      // Если это чанк tEXt
       if (chunkType === "tEXt") {
-        // Проверяем, что у нас достаточно данных для чтения чанка
-        if (buffer.length < position + chunkLength + 4) {
-          logger.errorMessageKey("error.png.textChunkInsufficientData", {
-            filePath,
-          });
-          return null;
-        }
-
-        // Читаем данные чанка
-        const chunkData = buffer.slice(position, position + chunkLength);
+        const chunkData = await readExact(filePath, fh, chunkLength, position);
+        if (!chunkData) return null;
 
         // В чанке tEXt формат: keyword (null-terminated) + text
         const nullIndex = chunkData.indexOf(0);
         if (nullIndex > 0 && nullIndex < chunkData.length - 1) {
-          const keyword = chunkData.slice(0, nullIndex).toString("ascii");
+          const keyword = chunkData
+            .slice(0, nullIndex)
+            .toString("ascii")
+            .toLowerCase();
           const text = chunkData.slice(nullIndex + 1).toString("latin1");
 
-          // Сохраняем чанки ccv3 и chara для последующей обработки
-          if (
-            keyword.toLowerCase() === "ccv3" ||
-            keyword.toLowerCase() === "chara"
-          ) {
-            textChunks.push({ keyword: keyword.toLowerCase(), text });
+          if (keyword === "ccv3") {
+            try {
+              const decodedData = Buffer.from(text, "base64").toString("utf-8");
+              const cardData = JSON.parse(decodedData);
+              return {
+                data: cardData,
+                spec_version: detectSpecVersion(cardData),
+                chunk_type: "ccv3",
+              };
+            } catch (error) {
+              logger.errorKey(error, "error.png.decodeCcv3Failed", {
+                filePath,
+              });
+              // продолжаем искать fallback chara
+            }
+          } else if (keyword === "chara") {
+            // fallback, но продолжаем читать, вдруг где-то дальше встретится ccv3
+            charaText = text;
           }
         }
 
-        // Пропускаем CRC (4 байта) и переходим к следующему чанку
+        // skip data (already read) + CRC
         position += chunkLength + 4;
-      } else if (chunkType === "IEND") {
-        // Конец файла
+        continue;
+      }
+
+      if (chunkType === "IEND") {
         break;
-      } else {
-        // Пропускаем другие чанки (данные + CRC)
-        if (buffer.length >= position + chunkLength + 4) {
-          position += chunkLength + 4;
-        } else {
-          // Недостаточно данных
-          break;
-        }
       }
+
+      // Пропускаем данные + CRC без чтения
+      position += chunkLength + 4;
     }
 
-    // Приоритет версий: сначала ищем ccv3 (V3), затем chara (V2)
-    // Ищем ccv3 (V3) - наивысший приоритет
-    const ccv3Chunk = textChunks.find((chunk) => chunk.keyword === "ccv3");
-    if (ccv3Chunk) {
+    if (charaText) {
       try {
-        const decodedData = Buffer.from(ccv3Chunk.text, "base64").toString(
-          "utf-8"
-        );
+        const decodedData = Buffer.from(charaText, "base64").toString("utf-8");
         const cardData = JSON.parse(decodedData);
-
-        // Определяем версию спецификации
-        let specVersion: "1.0" | "2.0" | "3.0" | "UNKNOWN" = "UNKNOWN";
-        if (cardData.spec === "chara_card_v3") {
-          specVersion = "3.0";
-        } else if (cardData.spec === "chara_card_v2") {
-          specVersion = "2.0";
-        } else if (!cardData.spec) {
-          // Если spec отсутствует, пытаемся определить V1 по обязательным полям
-          const v1RequiredFields = [
-            "name",
-            "description",
-            "personality",
-            "scenario",
-            "first_mes",
-            "mes_example",
-          ];
-          const hasAllV1Fields = v1RequiredFields.every((field) =>
-            cardData.hasOwnProperty(field)
-          );
-          if (hasAllV1Fields) {
-            specVersion = "1.0";
-          }
-        }
-
         return {
           data: cardData,
-          spec_version: specVersion,
-          chunk_type: "ccv3",
-        };
-      } catch (error) {
-        logger.errorKey(error, "error.png.decodeCcv3Failed", { filePath });
-        // Продолжаем поиск chara чанка
-      }
-    }
-
-    // Fallback: ищем chara (V2)
-    const charaChunk = textChunks.find((chunk) => chunk.keyword === "chara");
-    if (charaChunk) {
-      try {
-        const decodedData = Buffer.from(charaChunk.text, "base64").toString(
-          "utf-8"
-        );
-        const cardData = JSON.parse(decodedData);
-
-        // Определяем версию спецификации
-        let specVersion: "1.0" | "2.0" | "3.0" | "UNKNOWN" = "UNKNOWN";
-        if (cardData.spec === "chara_card_v2") {
-          specVersion = "2.0";
-        } else if (cardData.spec === "chara_card_v3") {
-          specVersion = "3.0";
-        } else if (!cardData.spec) {
-          // Если spec отсутствует, пытаемся определить V1 по обязательным полям
-          const v1RequiredFields = [
-            "name",
-            "description",
-            "personality",
-            "scenario",
-            "first_mes",
-            "mes_example",
-          ];
-          const hasAllV1Fields = v1RequiredFields.every((field) =>
-            cardData.hasOwnProperty(field)
-          );
-          if (hasAllV1Fields) {
-            specVersion = "1.0";
-          }
-        }
-
-        return {
-          data: cardData,
-          spec_version: specVersion,
+          spec_version: detectSpecVersion(cardData),
           chunk_type: "chara",
         };
       } catch (error) {
@@ -169,10 +148,15 @@ export function parsePngMetadata(filePath: string): ParsedCardData | null {
       }
     }
 
-    // Чанки ccv3 и chara не найдены
     return null;
   } catch (error) {
     logger.errorKey(error, "error.png.parseFailed", { filePath });
     return null;
+  } finally {
+    try {
+      await fh?.close();
+    } catch {
+      // ignore
+    }
   }
 }

@@ -248,9 +248,8 @@ export class CardsService {
         }
       }
 
-      const avatarUrl = row.avatar_path
-        ? `/api/thumbnail/${row.id}`
-        : "/api/thumbnail/default";
+      // Превью генерятся лениво по /api/thumbnail/:id
+      const avatarUrl = `/api/thumbnail/${row.id}`;
 
       return {
         id: row.id,

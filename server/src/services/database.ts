@@ -4,7 +4,17 @@ import Database from "better-sqlite3";
  * Утилиты для работы с базой данных SQLite
  */
 export class DatabaseService {
+  private stmtCache = new Map<string, Database.Statement>();
+
   constructor(private db: Database.Database) {}
+
+  private prepareCached(sql: string): Database.Statement {
+    const cached = this.stmtCache.get(sql);
+    if (cached) return cached;
+    const stmt = this.db.prepare(sql);
+    this.stmtCache.set(sql, stmt);
+    return stmt;
+  }
 
   /**
    * Выполняет SQL запрос и возвращает результат
@@ -13,7 +23,7 @@ export class DatabaseService {
    * @returns Результат выполнения запроса
    */
   query<T = unknown>(sql: string, params: unknown[] = []): T[] {
-    const stmt = this.db.prepare(sql);
+    const stmt = this.prepareCached(sql);
     return stmt.all(...params) as T[];
   }
 
@@ -24,7 +34,7 @@ export class DatabaseService {
    * @returns Первая строка результата или undefined
    */
   queryOne<T = unknown>(sql: string, params: unknown[] = []): T | undefined {
-    const stmt = this.db.prepare(sql);
+    const stmt = this.prepareCached(sql);
     return stmt.get(...params) as T | undefined;
   }
 
@@ -35,7 +45,7 @@ export class DatabaseService {
    * @returns Информация об изменениях
    */
   execute(sql: string, params: unknown[] = []): Database.RunResult {
-    const stmt = this.db.prepare(sql);
+    const stmt = this.prepareCached(sql);
     return stmt.run(...params);
   }
 
@@ -62,7 +72,7 @@ export class DatabaseService {
    * @returns Подготовленный statement
    */
   prepare(sql: string): Database.Statement {
-    return this.db.prepare(sql);
+    return this.prepareCached(sql);
   }
 
   /**

@@ -3,6 +3,7 @@ import { logger } from "../utils/logger";
 import { createScanService } from "./scan";
 import { createDatabaseService } from "./database";
 import type { SseHub } from "./sse-hub";
+import type { ThumbnailQueue } from "./thumbnail-queue";
 
 export type SyncOrigin = "fs" | "app";
 
@@ -56,7 +57,11 @@ export class CardsSyncOrchestrator {
   private lastFolderPath: string | null = null;
   private lastLibraryId: string | null = null;
 
-  constructor(private db: Database.Database, private hub: SseHub) {}
+  constructor(
+    private db: Database.Database,
+    private hub: SseHub,
+    private thumbnailQueue?: ThumbnailQueue
+  ) {}
 
   requestScan(
     origin: SyncOrigin,
@@ -206,6 +211,13 @@ export class CardsSyncOrchestrator {
         };
 
         this.hub.broadcast("cards:resynced", payload, { id: payload.revision });
+
+        // Background: generate missing thumbnails for this library
+        try {
+          this.thumbnailQueue?.generateMissingForLibrary(currentLibraryId);
+        } catch (e) {
+          logger.error(e, "thumbnail background generation failed");
+        }
 
         logger.infoKey("log.cardsSync.resynced", {
           revision: payload.revision,

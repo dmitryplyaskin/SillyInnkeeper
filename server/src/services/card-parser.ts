@@ -21,10 +21,10 @@ export class CardParser {
    * @param filePath - Путь к PNG файлу
    * @returns Извлеченные данные или null в случае ошибки
    */
-  parse(filePath: string): ExtractedCardData | null {
+  async parse(filePath: string): Promise<ExtractedCardData | null> {
     try {
       // Читаем метаданные из PNG
-      const parsedData = parsePngMetadata(filePath);
+      const parsedData = await parsePngMetadata(filePath);
       if (!parsedData) {
         logger.errorMessageKey("error.cardParser.noMetadata", { filePath });
         return null;

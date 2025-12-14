@@ -4,6 +4,14 @@ import { ensureDir } from "fs-extra";
 import { logger } from "../utils/logger";
 
 const THUMBNAILS_DIR = join(process.cwd(), "data", "cache", "thumbnails");
+const WEBP_QUALITY = 80;
+const WEBP_EFFORT = (() => {
+  const raw = process.env.THUMB_WEBP_EFFORT;
+  const n = raw != null ? Number(raw) : 2;
+  if (!Number.isFinite(n)) return 2;
+  // sharp webp effort is 0..6
+  return Math.max(0, Math.min(6, Math.floor(n)));
+})();
 
 /**
  * Генерирует миниатюру WebP из PNG файла
@@ -25,7 +33,7 @@ export async function generateThumbnail(
     // Генерируем миниатюру: resize до ширины 300px и конвертируем в WebP
     await sharp(sourcePath)
       .resize({ width: 300, withoutEnlargement: true })
-      .webp({ quality: 80 })
+      .webp({ quality: WEBP_QUALITY, effort: WEBP_EFFORT })
       .toFile(thumbnailPath);
 
     // Возвращаем относительный путь от папки data
