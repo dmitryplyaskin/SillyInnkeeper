@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   AppShell,
+  Badge,
   Box,
   ActionIcon,
   Button,
@@ -110,9 +111,14 @@ export function HomePage() {
         <Container size="xl" h="100%">
           <Group justify="space-between" h="100%">
             <Stack gap={2}>
-              <Title order={3} lh={1.1}>
-                SillyInnkeeper
-              </Title>
+              <Group gap="xs" align="center">
+                <Title order={3} lh={1.1}>
+                  SillyInnkeeper
+                </Title>
+                <Badge size="sm" variant="light" c="dimmed">
+                  v{__APP_VERSION__}
+                </Badge>
+              </Group>
               <Text size="sm" c="dimmed" lh={1.1}>
                 {t("home.subtitle")}
               </Text>
