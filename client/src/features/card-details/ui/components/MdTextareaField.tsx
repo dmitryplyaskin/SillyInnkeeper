@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   ActionIcon,
   Group,
   Modal,
   Paper,
-  ScrollArea,
   SegmentedControl,
   Stack,
   Text,
@@ -14,11 +20,138 @@ import {
 } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
+import { createPortal } from "react-dom";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import DOMPurify from "dompurify";
 
 type Mode = "edit" | "preview";
+
+function IframeMarkdownPreview({
+  source,
+  autoHeight,
+  height,
+}: {
+  source: string;
+  autoHeight: boolean;
+  height?: string | number;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [mountNode, setMountNode] = useState<HTMLElement | null>(null);
+  const [measuredHeight, setMeasuredHeight] = useState<number>(180);
+
+  const ensureDoc = () => {
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
+    if (!iframe || !doc) return;
+
+    if (!doc.documentElement) return;
+    if (!doc.body) {
+      doc.open();
+      doc.write("<!doctype html><html><head></head><body></body></html>");
+      doc.close();
+    }
+
+    // Base styles for readability; author's <style> can override.
+    const baseStyleId = "__md_preview_base__";
+    if (!doc.getElementById(baseStyleId)) {
+      const style = doc.createElement("style");
+      style.id = baseStyleId;
+      style.textContent = `
+        :root { color-scheme: light dark; }
+        html, body { margin: 0; padding: 0; }
+        body {
+          padding: 12px;
+          font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+          line-height: 1.5;
+        }
+        img { max-width: 100%; height: auto; }
+        pre { white-space: pre-wrap; }
+        code { white-space: pre-wrap; }
+      `;
+      doc.head.appendChild(style);
+    }
+
+    setMountNode(doc.body);
+  };
+
+  // Ensure iframe document exists and has base styles.
+  useEffect(() => {
+    ensureDoc();
+  }, []);
+
+  // Auto-height: track body size and resize iframe.
+  useLayoutEffect(() => {
+    if (!autoHeight) return;
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
+    const body = doc?.body;
+    if (!iframe || !doc || !body) return;
+
+    const measure = () => {
+      // scrollHeight is the most stable for content height.
+      const next = Math.max(120, body.scrollHeight);
+      setMeasuredHeight(next);
+    };
+
+    measure();
+
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(body);
+    // Also observe documentElement to catch some layout cases.
+    if (doc.documentElement) ro.observe(doc.documentElement);
+
+    return () => ro.disconnect();
+  }, [autoHeight, source]);
+
+  return (
+    <>
+      <iframe
+        ref={iframeRef}
+        title="preview"
+        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+        onLoad={() => ensureDoc()}
+        style={{
+          width: "100%",
+          border: 0,
+          display: "block",
+          height: autoHeight ? measuredHeight : height ?? 520,
+        }}
+      />
+
+      {mountNode
+        ? createPortal(
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw]}
+              components={{
+                a: ({ children, ...props }) => (
+                  <a {...props} target="_blank" rel="noopener noreferrer">
+                    {children}
+                  </a>
+                ),
+                img: ({ ...props }) => (
+                  <img
+                    {...props}
+                    style={{ maxWidth: "100%", height: "auto" }}
+                    alt={(props as any).alt ?? ""}
+                  />
+                ),
+                pre: ({ children, ...props }) => (
+                  <pre {...props} style={{ whiteSpace: "pre-wrap" }}>
+                    {children}
+                  </pre>
+                ),
+              }}
+            >
+              {source}
+            </ReactMarkdown>,
+            mountNode
+          )
+        : null}
+    </>
+  );
+}
 
 export function MdTextareaField({
   label,
@@ -223,49 +356,38 @@ export function MdTextareaField({
             {collapsedPreviewText}
           </Text>
         ) : (
-          <ScrollArea type="auto" offsetScrollbars>
-            <div style={{ paddingRight: 8 }}>
-              {isEmpty ? (
-                <Text c="dimmed">{t("empty.dash")}</Text>
-              ) : (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw]}
-                  components={{
-                    a: ({ children, ...props }) => (
-                      <a {...props} target="_blank" rel="noopener noreferrer">
-                        {children}
-                      </a>
-                    ),
-                    img: ({ ...props }) => (
-                      <img
-                        {...props}
-                        style={{ maxWidth: "100%", height: "auto" }}
-                        alt={(props as any).alt ?? ""}
-                      />
-                    ),
-                    pre: ({ children, ...props }) => (
-                      <pre {...props} style={{ whiteSpace: "pre-wrap" }}>
-                        {children}
-                      </pre>
-                    ),
-                  }}
-                >
-                  {previewSource}
-                </ReactMarkdown>
-              )}
-            </div>
-          </ScrollArea>
+          <div>
+            {isEmpty ? (
+              <Text c="dimmed">{t("empty.dash")}</Text>
+            ) : (
+              <IframeMarkdownPreview source={previewSource} autoHeight />
+            )}
+          </div>
         )}
       </Paper>
 
       <Modal
         opened={modalOpened}
         onClose={() => setModalOpened(false)}
-        size="xl"
+        centered
+        size={1024}
+        styles={{
+          content: {
+            width: "70vw",
+            maxWidth: 1024,
+            height: "90vh",
+            maxHeight: "90vh",
+          },
+          body: {
+            height: "calc(90vh - 61px)",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          },
+        }}
         title={label}
       >
-        <Stack gap="md">
+        <Stack gap="md" style={{ height: "100%", flex: 1, minHeight: 0 }}>
           <Group justify="space-between" align="center" wrap="nowrap">
             <Text size="sm" fw={600}>
               {label}
@@ -286,9 +408,12 @@ export function MdTextareaField({
               key={textareaKey ? `${textareaKey}:modal` : undefined}
               ref={modalRef}
               placeholder={placeholder}
-              autosize
-              minRows={14}
-              maxRows={28}
+              autosize={false}
+              style={{ flex: 1, minHeight: 0 }}
+              styles={{
+                input: { height: "100%", resize: "none" },
+                wrapper: { height: "100%" },
+              }}
               {...textareaProps}
               value={textareaProps?.value ?? value}
               defaultValue={textareaProps?.defaultValue}
@@ -298,39 +423,17 @@ export function MdTextareaField({
               }}
             />
           ) : (
-            <ScrollArea h="70vh" type="auto" offsetScrollbars>
-              <div style={{ paddingRight: 8 }}>
-                {isEmpty ? (
-                  <Text c="dimmed">{t("empty.dash")}</Text>
-                ) : (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
-                    components={{
-                      a: ({ children, ...props }) => (
-                        <a {...props} target="_blank" rel="noopener noreferrer">
-                          {children}
-                        </a>
-                      ),
-                      img: ({ ...props }) => (
-                        <img
-                          {...props}
-                          style={{ maxWidth: "100%", height: "auto" }}
-                          alt={(props as any).alt ?? ""}
-                        />
-                      ),
-                      pre: ({ children, ...props }) => (
-                        <pre {...props} style={{ whiteSpace: "pre-wrap" }}>
-                          {children}
-                        </pre>
-                      ),
-                    }}
-                  >
-                    {previewSource}
-                  </ReactMarkdown>
-                )}
-              </div>
-            </ScrollArea>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              {isEmpty ? (
+                <Text c="dimmed">{t("empty.dash")}</Text>
+              ) : (
+                <IframeMarkdownPreview
+                  source={previewSource}
+                  autoHeight={false}
+                  height={"100%"}
+                />
+              )}
+            </div>
           )}
         </Stack>
       </Modal>
