@@ -173,11 +173,20 @@ export class LorebooksService {
     const limit =
       typeof params.limit === "number" && Number.isFinite(params.limit)
         ? Math.max(1, Math.floor(params.limit))
-        : 100;
+        : undefined;
     const offset =
       typeof params.offset === "number" && Number.isFinite(params.offset)
         ? Math.max(0, Math.floor(params.offset))
-        : 0;
+        : undefined;
+
+    // Если limit не передан — отдаём все строки (без LIMIT).
+    // Если offset передан без limit — используем "LIMIT -1 OFFSET N" (SQLite).
+    const limitSql =
+      typeof limit === "number"
+        ? "LIMIT ? OFFSET ?"
+        : typeof offset === "number"
+        ? "LIMIT -1 OFFSET ?"
+        : "";
 
     const sql = `
       SELECT
@@ -193,7 +202,7 @@ export class LorebooksService {
       FROM lorebooks l
       ${whereSql}
       ORDER BY l.created_at DESC
-      LIMIT ? OFFSET ?
+      ${limitSql}
     `;
 
     const rows = this.dbService.query<{
@@ -204,7 +213,14 @@ export class LorebooksService {
       created_at: number;
       updated_at: number;
       cards_count: number;
-    }>(sql, [...sqlParams, limit, offset]);
+    }>(
+      sql,
+      typeof limit === "number"
+        ? [...sqlParams, limit, typeof offset === "number" ? offset : 0]
+        : typeof offset === "number"
+        ? [...sqlParams, offset]
+        : sqlParams
+    );
 
     return rows.map((row) => ({
       id: row.id,
@@ -217,7 +233,11 @@ export class LorebooksService {
     }));
   }
 
-  getById(id: string): (LorebookRow & { cards: Array<{ id: string; name: string | null }> }) | null {
+  getById(
+    id: string
+  ):
+    | (LorebookRow & { cards: Array<{ id: string; name: string | null }> })
+    | null {
     const lorebook = this.dbService.queryOne<LorebookRow>(
       `
       SELECT id, content_hash, name, description, spec, data_json, created_at, updated_at
@@ -317,14 +337,14 @@ export class LorebooksService {
 
     return {
       row: {
-      id,
-      content_hash: hash,
-      name,
-      description,
-      spec: "lorebook_v3",
-      data_json: dataJson,
-      created_at: now,
-      updated_at: now,
+        id,
+        content_hash: hash,
+        name,
+        description,
+        spec: "lorebook_v3",
+        data_json: dataJson,
+        created_at: now,
+        updated_at: now,
       },
       is_duplicate: false,
     };
@@ -452,5 +472,3 @@ export function createLorebooksService(
   const dbService = createDatabaseService(db);
   return new LorebooksService(dbService);
 }
-
-
