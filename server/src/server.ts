@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./config/env";
 import { createApp } from "./app";
 import { initializeScannerWithOrchestrator } from "./plugins/scanner";
 import { logger } from "./utils/logger";
@@ -11,9 +11,24 @@ import type { FsWatcherService } from "./services/fs-watcher";
 import type { CardsSyncOrchestrator } from "./services/cards-sync-orchestrator";
 import { setCurrentLanguage } from "./i18n/language";
 
-// Фиксированный порт по умолчанию для интеграции (можно переопределить через ENV PORT)
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 48912;
-const HOST = "127.0.0.1";
+function readPort(
+  ...candidates: Array<string | undefined>
+): number | undefined {
+  for (const c of candidates) {
+    const raw = typeof c === "string" ? c.trim() : "";
+    if (!raw) continue;
+    const v = Number.parseInt(raw, 10);
+    if (Number.isFinite(v) && v > 0 && v <= 65535) return v;
+  }
+  return undefined;
+}
+
+// Порт/хост SillyInnkeeper
+// - INNKEEPER_PORT: предпочитаемый вариант
+// - PORT: совместимость (например, для хостингов/общих практик)
+const PORT = readPort(process.env.INNKEEPER_PORT, process.env.PORT) ?? 48912;
+const HOST =
+  String(process.env.INNKEEPER_HOST ?? "127.0.0.1").trim() || "127.0.0.1";
 
 async function startServer(): Promise<void> {
   try {

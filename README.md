@@ -164,6 +164,19 @@ npm start
 http://127.0.0.1:48912
 ```
 
+### Configuration (.env)
+
+You can configure **host/port** and SillyTavern integration via a root `.env` file.
+
+- Copy [`env.example`](env.example) to `.env` (in the repository root, next to `package.json`)
+- Variables:
+  - `INNKEEPER_HOST` — bind interface (default `127.0.0.1`). Use `0.0.0.0` to allow access from your local network.
+  - `INNKEEPER_PORT` — server port (default `48912`)
+  - `ST_PORT` — SillyTavern port for default CORS allowlist (default `8000`)
+  - `CORS_ALLOW_ORIGINS` — extra allowed origins (comma-separated), e.g. `http://192.168.1.50:8001`
+
+**Note about LAN**: if you set `INNKEEPER_HOST=0.0.0.0`, open the app from another device using `http://<your-pc-lan-ip>:<INNKEEPER_PORT>` (you may also need to allow inbound traffic in your firewall).
+
 ## 🚀 Quick Start
 
 ### First Launch
@@ -196,6 +209,10 @@ http://127.0.0.1:48912
    ```
    http://127.0.0.1:48912
    ```
+
+   If SillyTavern is opened on a different machine, **do not use `localhost`** — use the Innkeeper machine IP/hostname instead (e.g. `http://192.168.1.10:48912`).
+
+   If SillyTavern is not on port 8000, set `ST_PORT` (and/or add its full origin to `CORS_ALLOW_ORIGINS`).
 
 3. Enable "Auto-connect" for automatic connection
 
