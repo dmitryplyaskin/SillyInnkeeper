@@ -9,6 +9,11 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://opensource.org/licenses/AGPL-3.0)
 
 ![主界面](../assets/main.webp)
+## 关于汉化
+
+- 本汉化不定时更新，有可能落后于原版
+- 使用过程中有任何关于汉化的问题请联系我
+- 汉化作者 [@刻风雫](https://github.com/544244857)
 
 ## 💡 为什么选择 SillyInnkeeper？
 
