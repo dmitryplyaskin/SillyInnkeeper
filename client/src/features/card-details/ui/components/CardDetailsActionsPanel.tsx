@@ -567,7 +567,7 @@ export function CardDetailsActionsPanel({
               <Text size="sm">
                 {typeof details?.created_at === "number"
                   ? new Date(details.created_at).toLocaleString(
-                      i18n.language === "ru" ? "ru-RU" : "en-US"
+                      i18n.language === "ru" ? "ru-RU" : i18n.language === "zh-CN" ? "zh-CN" : "en-US"
                     )
                   : i18n.t("empty.dash")}
               </Text>

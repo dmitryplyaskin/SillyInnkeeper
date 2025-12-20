@@ -8,5 +8,11 @@
   "scripts": {
     "start:client": "cd client && yarn dev",
     "start:server": "cd server && yarn dev"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }

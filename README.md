@@ -2,7 +2,7 @@
 
 **SillyInnkeeper** is an application for convenient work with character cards for SillyTavern. It provides powerful tools for searching, filtering, and sorting thousands of cards, as well as integration with SillyTavern for quick character launching.
 
-> 🌐 **Languages**: [English](README.md) | [Русский](docs/README.ru.md)
+> 🌐 **Languages**: [English](README.md) | [Русский](docs/README.ru.md) | [简体中文](docs/README.zh-CN.md)
 
 > 🔗 **SillyTavern Extension**: [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper) — Install this extension in SillyTavern to integrate with SillyInnkeeper.
 

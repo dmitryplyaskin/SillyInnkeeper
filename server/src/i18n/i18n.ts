@@ -2,12 +2,14 @@ import type { Language } from "../services/settings";
 import { getCurrentLanguage } from "./language";
 import en from "../locales/en";
 import ru from "../locales/ru";
+import zhCN from "../locales/zh-CN";
 
 type Dict = Record<string, string>;
 
 const dictionaries: Record<Language, Dict> = {
   en,
   ru,
+  "zh-CN": zhCN,
 };
 
 export type I18nParams = Record<string, unknown>;
