@@ -1,331 +1,337 @@
 # SillyInnkeeper
 
-**SillyInnkeeper** is an application for convenient work with character cards for SillyTavern. It provides powerful tools for searching, filtering, and sorting thousands of cards, as well as integration with SillyTavern for quick character launching.
+**SillyInnkeeper** 是一个用于便捷管理 SillyTavern 角色卡片的应用程序。它提供了强大的搜索、筛选和排序工具，可处理数千张卡片，并与 SillyTavern 集成以实现快速启动角色。
 
-> 🌐 **Languages**: [English](README.md) | [Русский](docs/README.ru.md) | [简体中文](docs/README.zh-CN.md)
+> 🌐 **语言**: [English](README.en.md) | [Русский](README.ru.md) | [简体中文](README.ru.md)
 
-> 🔗 **SillyTavern Extension**: [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper) — Install this extension in SillyTavern to integrate with SillyInnkeeper.
+> 🔗 **SillyTavern 扩展**: [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper) — 在 SillyTavern 中安装此扩展以与 SillyInnkeeper 集成。
 
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://opensource.org/licenses/AGPL-3.0)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://opensource.org/licenses/AGPL-3.0)[![Branch: zh-CN-translation](D:\SillyInnkeeper\SillyInnkeeper-Chinese-\branch-zh--CN--translation-brightgreen.svg)](https://github.com/你的用户名/原仓库名/tree/zh-CN-translation)
 
-![Main img](assets/main.webp)
+![主界面](../assets/main.webp)
 
-## 💡 Why SillyInnkeeper?
+## 关于汉化
 
-If you have a large collection of character cards (hundreds or thousands of files), you've likely encountered problems when working with them:
+- 本汉化不定时更新，有可能落后于原版
+- 使用过程中有任何关于汉化的问题请联系我
+- 汉化作者 [@刻风雫](https://github.com/544244857)
 
-- **Lag and freezing** — SillyTavern's built-in tools can't handle large volumes of cards
-- **Slow search** — Searching through cards takes a long time or doesn't work at all
-- **Inconvenient filtering** — Limited filtering and sorting capabilities
-- **Navigation difficulties** — Hard to find the right card among thousands of files
-- **Missing metadata** — Difficult to understand what's in a card without opening it
+## 💡 为什么选择 SillyInnkeeper？
 
-SillyInnkeeper solves all these problems by providing a fast and convenient way to work with your card collection.
+如果你拥有大量的角色卡片收藏（数百或数千个文件），你可能遇到过以下问题：
 
-## ✨ Key Features
+- **卡顿和冻结** — SillyTavern 的内置工具无法处理大量卡片
+- **搜索缓慢** — 搜索卡片需要很长时间或根本无法工作
+- **筛选不便** — 筛选和排序功能有限
+- **导航困难** — 难以在数千个文件中找到合适的卡片
+- **元数据缺失** — 不打开文件很难了解卡片的内容
 
-### Card Library Management
+SillyInnkeeper 解决了所有这些问题，为你的卡片收藏提供快速便捷的管理方式。
 
-- **Automatic scanning**: Just specify the folder with cards — the application will find and index all PNG files automatically
-- **Automatic updates**: When new cards are added or existing ones are changed, the application will automatically update the information
-- **Duplicate management**: Automatic detection of identical cards and convenient management of them
+## ✨ 主要功能
 
-### Powerful Search and Filtering
+### 卡片库管理
 
-- **Search by name**: Quick search for cards by character name
-- **Filter by creator**: Find all cards from a specific author
-- **Filter by tags**: Select multiple tags for precise search
-- **Filter by date**: Find cards created in a specific period
-- **Filter by content**: Find cards with specific fields (e.g., only with system prompt or with alternate greetings)
-- **Filter by size**: Search by approximate number of prompt tokens
-- **Flexible sorting**: Sort by creation date or by name
+- **自动扫描**：只需指定卡片文件夹 — 应用程序将自动查找并索引所有 PNG 文件
+- **自动更新**：当添加新卡片或更改现有卡片时，应用程序将自动更新信息
+- **重复管理**：自动检测相同的卡片并便捷管理
 
-### Convenient Card Viewing
+### 强大的搜索和筛选
 
-- **All information in one place**: View all card data without needing to open the file
-- **Tab organization**: Information is divided into categories for convenience:
-  - Main information (name, description, personality, scenario, first message)
-  - Alternate greetings
-  - System prompts
-  - Raw JSON (for advanced users)
-- **Image viewing**: Zoom card images with optional blur (censorship)
-- **Metadata**: View ID, specification version, creation date, and other useful information
+- **按名称搜索**：快速按角色名称搜索卡片
+- **按创建者筛选**：查找特定作者的所有卡片
+- **按标签筛选**：选择多个标签进行精确搜索
+- **按日期筛选**：查找在特定时期创建的卡片
+- **按内容筛选**：查找包含特定字段的卡片（例如，仅包含系统提示词或备用问候语的卡片）
+- **按大小筛选**：按提示词 token 数量搜索
+- **灵活排序**：按创建日期或名称排序
 
-### SillyTavern Integration
+### 便捷的卡片查看
 
-- **One-click launch**: The "Play" button instantly imports the card into SillyTavern
-- **Automatic import**: The SillyTavern extension automatically receives cards from SillyInnkeeper
-- **Card export**: Download PNG files with correct metadata for use in other applications
+- **信息集中显示**：无需打开文件即可查看所有卡片数据
+- **标签页组织**：信息按类别划分以便查看：
+  - 主要信息（名称、描述、性格、场景、首条消息）
+  - 备用问候语
+  - 系统提示词
+  - 原始 JSON（供高级用户使用）
+- **图片查看**：缩放卡片图片，可选模糊（审查）
+- **元数据**：查看 ID、规范版本、创建日期和其他有用信息
 
-### User Experience
+### SillyTavern 集成
 
-- **Fast performance**: The application is optimized to work with thousands of cards without lag
-- **Automatic thumbnails**: All cards are displayed with thumbnails for quick viewing
-- **Themes**: Light, dark, and automatic theme (follows system settings)
-- **Two languages**: Support for Russian and English
+- **一键启动**："使用"按钮可立即将卡片导入 SillyTavern
+- **自动导入**：SillyTavern 扩展自动接收来自 SillyInnkeeper 的卡片
+- **卡片导出**：下载带有正确元数据的 PNG 文件，以便在其他应用程序中使用
 
-### Format Support
+### 用户体验
 
-- Support for Character Card V1, V2, and V3 — work with cards of any format
+- **快速性能**：应用程序经过优化，可处理数千张卡片而不会卡顿
+- **自动缩略图**：所有卡片都以缩略图显示，便于快速浏览
+- **主题**：浅色、深色和自动主题（跟随系统设置）
+- **多语言**：支持俄语、英语和简体中文
 
-## 💻 System Requirements
+### 格式支持
 
-- **Node.js**: version 18.x or higher (recommended 20.x or 24.x)
-- **Yarn**: version 4.12.0 (or npm 9.x+)
-- **Operating system**: Windows 10/11, Linux, macOS
-- **RAM**: minimum 2 GB (recommended 4 GB+ for large collections)
-- **Free disk space**: minimum 500 MB for installation + space for database and cache
+- 支持 Character Card V1、V2 和 V3 — 可使用任何格式的卡片
 
-## 📦 Installation
+## 💻 系统要求
 
-### Prerequisites
+- **Node.js**：18.x 或更高版本（推荐 20.x 或 24.x）
+- **Yarn**：4.12.0 版本（或 npm 9.x+）
+- **操作系统**：Windows 10/11、Linux、macOS
+- **内存**：最低 2 GB（大型收藏推荐 4 GB+）
+- **可用磁盘空间**：安装至少需要 500 MB + 数据库和缓存所需空间
 
-Make sure you have installed:
+## 📦 安装
 
-- [Node.js](https://nodejs.org/) (version 18.x or higher)
-- [Yarn](https://yarnpkg.com/) (version 4.12.0) or npm
+### 前置要求
 
-### Method 1: Automatic Installation (Windows)
+确保已安装：
 
-1. Clone the repository:
+- [Node.js](https://nodejs.org/)（18.x 或更高版本）
+- [Yarn](https://yarnpkg.com/)（4.12.0 版本）或 npm
+
+### 方法 1：自动安装（Windows）
+
+1. 克隆仓库：
 
 ```bash
 git clone https://github.com/dmitryplyaskin/SillyInnkeeper.git
 cd SillyInnkeeper
 ```
 
-2. Run the installation script:
+2. 运行安装脚本：
 
 ```bash
 start.bat
 ```
 
-The script will automatically install all dependencies, build the project, and start the server. The browser will open automatically.
+脚本将自动安装所有依赖项、构建项目并启动服务器。浏览器将自动打开。
 
-### Method 2: Manual Installation
+### 方法 2：手动安装
 
-1. Clone the repository:
+1. 克隆仓库：
 
 ```bash
 git clone https://github.com/dmitryplyaskin/SillyInnkeeper.git
 cd SillyInnkeeper
 ```
 
-2. Install server dependencies:
+2. 安装服务器依赖：
 
 ```bash
 cd server
 yarn install
-# or
+# 或
 npm install
 ```
 
-3. Install client dependencies:
+3. 安装客户端依赖：
 
 ```bash
 cd ../client
 yarn install
-# or
+# 或
 npm install
 ```
 
-4. Build the project:
+4. 构建项目：
 
-Build the client:
+构建客户端：
 
 ```bash
 cd client
 yarn build
-# or
+# 或
 npm run build
 ```
 
-Build the server:
+构建服务器：
 
 ```bash
 cd server
 yarn build
-# or
+# 或
 npm run build
 ```
 
-5. Start the server:
+5. 启动服务器：
 
 ```bash
 cd server
 yarn start
-# or
+# 或
 npm start
 ```
 
-6. Open your browser and navigate to:
+6. 打开浏览器并访问：
 
 ```
 http://127.0.0.1:48912
 ```
 
-## 🚀 Quick Start
+## 🚀 快速开始
 
-### First Launch
+### 首次启动
 
-1. **Start the application** (see [Installation](#-installation) section)
+1. **启动应用程序**（参见[安装](#-安装)部分）
 
-2. **Configure the path to the cards folder**:
+2. **配置卡片文件夹路径**：
 
-   - Open settings (the "Settings" button in the top panel)
-   - Specify the path to the folder where your PNG card files are stored
-   - Save the settings
+   - 打开设置（顶部面板中的"设置"按钮）
+   - 指定存储 PNG 卡片文件的文件夹路径
+   - 保存设置
 
-3. **Wait for scanning to complete**:
+3. **等待扫描完成**：
 
-   - On first launch, the application will automatically start scanning the specified folder
-   - Scanning progress is displayed in the interface
-   - After completion, all cards will be available for search and viewing
+   - 首次启动时，应用程序将自动开始扫描指定的文件夹
+   - 扫描进度会在界面中显示
+   - 完成后，所有卡片都可供搜索和查看
 
-4. **Start using**:
-   - Use search and filters to find the cards you need
-   - Click on a card to view detailed information
-   - Use the "Play" button to launch the card in SillyTavern (if integration is configured)
+4. **开始使用**：
+   - 使用搜索和筛选器查找所需的卡片
+   - 点击卡片查看详细信息
+   - 使用"使用"按钮在 SillyTavern 中启动卡片（如果已配置集成）
 
-### SillyTavern Integration Setup
+### 设置 SillyTavern 集成
 
-1. Install the [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper) extension in SillyTavern
+1. 在 SillyTavern 中安装 [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper) 扩展
 
-2. In the extension settings, specify the SillyInnkeeper URL:
+2. 在扩展设置中，指定 SillyInnkeeper 的 URL：
 
    ```
    http://127.0.0.1:48912
    ```
 
-3. Enable "Auto-connect" for automatic connection
+3. 启用"自动连接"以实现自动连接
 
-4. Now you can use the "Play" button in SillyInnkeeper to automatically import the card into SillyTavern
+4. 现在你可以使用 SillyInnkeeper 中的"使用"按钮自动将卡片导入 SillyTavern
 
-## 📖 Usage
+## 📖 使用说明
 
-### Main Interface
+### 主界面
 
-The main screen of the application consists of:
+应用程序的主屏幕包括：
 
-- **Top panel**: Header, theme switcher, view settings, settings and filters buttons
-- **Card grid**: List of all cards with thumbnails
-- **Filters sidebar**: Opens with the "Filters" button
+- **顶部面板**：标题、主题切换器、视图设置、设置和筛选器按钮
+- **卡片网格**：所有卡片及其缩略图的列表
+- **筛选器侧边栏**：通过"筛选器"按钮打开
 
-### Search and Filtering
+### 搜索和筛选
 
-1. **Open the filters panel** (the "Filters" button in the top panel)
+1. **打开筛选器面板**（顶部面板中的"筛选器"按钮）
 
-2. **Use available filters**:
+2. **使用可用的筛选器**：
 
-   - **Search by name**: Enter the character name
-   - **Creator**: Select one or more creators
-   - **Specification version**: Filter by Character Card version (V1/V2/V3)
-   - **Tags**: Select tags for filtering
-   - **Creation date**: Specify a date range
-   - **Tokens**: Minimum and maximum number of tokens
-   - **Alternate greetings**: Presence and minimum count
-   - **Field presence**: Select fields that should be present/absent
+   - **按名称搜索**：输入角色名称
+   - **创建者**：选择一个或多个创建者
+   - **规范版本**：按 Character Card 版本筛选（V1/V2/V3）
+   - **标签**：选择标签进行筛选
+   - **创建日期**：指定日期范围
+   - **Token 数**：最小和最大 token 数量
+   - **备用问候语**：存在性和最小数量
+   - **字段存在性**：选择应存在/不存在的字段
 
-3. **Choose sorting**: By creation date or by name
+3. **选择排序**：按创建日期或名称排序
 
-4. **Apply filters**: Results will update automatically
+4. **应用筛选器**：结果将自动更新
 
-5. **Reset filters**: Use the "Reset" button to clear all filters
+5. **重置筛选器**：使用"重置"按钮清除所有筛选器
 
-### Viewing a Card
+### 查看卡片
 
-1. **Click on a card** in the grid to open detailed information
+1. **点击网格中的卡片**打开详细信息
 
-2. **Explore the information**:
+2. **浏览信息**：
 
-   - **"Main" tab**: Main information about the character
-   - **"Alternate Greetings" tab**: All alternate greetings
-   - **"System" tab**: System prompt and post history instructions
-   - **"Raw JSON" tab**: Full card JSON for editing
+   - **"主要"标签页**：角色的主要信息
+   - **"备用问候语"标签页**：所有备用问候语
+   - **"系统"标签页**：系统提示词和历史后指令
+   - **"原始"标签页**：完整的卡片 JSON，可供编辑
 
-3. **Use actions**:
-   - **Play**: Launch the card in SillyTavern
-   - **Download**: Download the PNG file of the card
-   - **Rename**: Change the name of the main file
-   - **Delete**: Delete the card or duplicate
+3. **使用操作**：
+   - **使用**：在 SillyTavern 中启动卡片
+   - **下载**：下载卡片的 PNG 文件
+   - **重命名**：更改主文件的名称
+   - **删除**：删除卡片或重复项
 
-### Library Management
+### 库管理
 
-- **Automatic updates**: When files in the cards folder are changed, the application will automatically update the index
-- **Manual scanning**: You can start a rescan through settings
-- **Duplicate management**: In the detailed card view, you can select the main file or delete duplicates
+- **自动更新**：当卡片文件夹中的文件发生更改时，应用程序将自动更新索引
+- **手动扫描**：可以通过设置启动重新扫描
+- **重复管理**：在卡片详细视图中，可以选择主文件或删除重复项
 
-## 🔗 SillyTavern Integration
+## 🔗 SillyTavern 集成
 
-SillyInnkeeper integrates with SillyTavern through the [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper) extension.
+SillyInnkeeper 通过 [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper) 扩展与 SillyTavern 集成。
 
-### Extension Installation
+### 扩展安装
 
-1. Open SillyTavern
-2. Go to **Extensions → Extension Installer**
-3. Paste the repository URL:
+1. 打开 SillyTavern
+2. 前往 **Extensions → Extension Installer**
+3. 粘贴仓库 URL：
    ```
    https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper
    ```
-4. Click "Install"
+4. 点击"Install"
 
-### Extension Configuration
+### 扩展配置
 
-1. Open **Extensions → SillyInnkeeper** in SillyTavern
-2. Specify **SillyInnkeeper URL**: `http://127.0.0.1:48912` (or your port)
-3. Enable **Auto-connect** (recommended)
-4. Optionally enable **Report import result back to SillyInnkeeper**
-5. Optionally enable **Open imported character** to automatically open the imported character
+1. 在 SillyTavern 中打开 **Extensions → SillyInnkeeper**
+2. 指定 **SillyInnkeeper URL**：`http://127.0.0.1:48912`（或你的端口）
+3. 启用 **Auto-connect**（推荐）
+4. 可选：启用 **Report import result back to SillyInnkeeper**
+5. 可选：启用 **Open imported character** 以自动打开导入的角色
 
-### Usage
+### 使用
 
-1. Open a card in SillyInnkeeper
-2. Click the **"Play"** button in the detailed view
-3. The card will automatically be imported into SillyTavern
-4. If the "Open imported character" option is enabled, the character will open automatically
+1. 在 SillyInnkeeper 中打开卡片
+2. 在详细视图中点击 **"使用"** 按钮
+3. 卡片将自动导入到 SillyTavern
+4. 如果启用了"Open imported character"选项，角色将自动打开
 
-## 🗺 Future Plans
+## 🗺 未来计划
 
-### Planned Features
+### 计划功能
 
-1. **Full SillyTavern Integration and Scanning**
+1. **完整的 SillyTavern 集成和扫描**
 
-   - Scanning cards from SillyTavern folder
-   - Managing and editing cards, chats, lorebooks, etc.
-   - Two-way synchronization between SillyInnkeeper and SillyTavern
+   - 从 SillyTavern 文件夹扫描卡片
+   - 管理和编辑卡片、聊天记录、知识库等
+   - SillyInnkeeper 和 SillyTavern 之间的双向同步
 
-2. **Lorebook Support**
+2. **知识库支持**
 
-   - Viewing and managing lorebooks from cards
-   - Editing lorebooks
-   - Export/import lorebooks
+   - 查看和管理卡片中的知识库
+   - 编辑知识库
+   - 导出/导入知识库
 
-3. **Multiple Directories Support**
+3. **多目录支持**
 
-   - Support for multiple card libraries
-   - Switching between libraries
-   - Unified search across all libraries
-   - Library management through UI
+   - 支持多个卡片库
+   - 在库之间切换
+   - 跨所有库的统一搜索
+   - 通过 UI 管理库
 
-4. **Auto-Download and Auto-Import**
+4. **自动下载和自动导入**
 
-   - Monitoring downloads folder
-   - Automatic scanning of new files
-   - Automatic import into SillyTavern (optional)
-   - Configuration rules for automatic card organization
+   - 监控下载文件夹
+   - 自动扫描新文件
+   - 自动导入到 SillyTavern（可选）
+   - 配置自动卡片组织规则
 
-## 📄 License
+## 📄 许可证
 
-This project is licensed under [AGPL-3.0](https://opensource.org/licenses/AGPL-3.0).
+本项目采用 [AGPL-3.0](https://opensource.org/licenses/AGPL-3.0) 许可证。
 
-## 👤 Author
+## 👤 作者
 
 **Dmitry Plyaskin**
 
 - GitHub: [@dmitryplyaskin](https://github.com/dmitryplyaskin)
-- Project: [SillyInnkeeper](https://github.com/dmitryplyaskin/SillyInnkeeper)
-- SillyTavern Extension: [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper)
+- 项目: [SillyInnkeeper](https://github.com/dmitryplyaskin/SillyInnkeeper)
+- SillyTavern 扩展: [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper)
 
 ---
 
-**Note**: SillyInnkeeper is an independent project, not officially affiliated with SillyTavern. It is a community tool for improving work with character cards.
+**注意**：SillyInnkeeper 是一个独立项目，并非 SillyTavern 的官方项目。它是一个社区工具，旨在改善角色卡片的使用体验。
