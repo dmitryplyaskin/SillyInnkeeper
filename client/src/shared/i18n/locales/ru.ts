@@ -7,6 +7,7 @@ const ru = {
     placeholder: "Выберите язык",
     ruBilingual: "Русский (Russian)",
     enBilingual: "English (English)",
+    zhCNBilingual: "中文 (Chinese)",
   },
   actions: {
     save: "Сохранить",

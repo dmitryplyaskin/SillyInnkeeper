@@ -51,7 +51,7 @@ export function Card({ card }: CardProps) {
   const createdAtLabel = (() => {
     const t = Number((card as any).created_at);
     if (!Number.isFinite(t) || t <= 0) return null;
-    const locale = i18n.language === "ru" ? "ru-RU" : "en-US";
+    const locale = i18n.language === "ru" ? "ru-RU" : i18n.language === "zh-CN" ? "zh-CN" : "en-US";
     return new Date(t).toLocaleDateString(locale);
   })();
 

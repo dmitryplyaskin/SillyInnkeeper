@@ -2,14 +2,13 @@
 
 **SillyInnkeeper** 是一个用于便捷管理 SillyTavern 角色卡片的应用程序。它提供了强大的搜索、筛选和排序工具，可处理数千张卡片，并与 SillyTavern 集成以实现快速启动角色。
 
-> 🌐 **语言**: [English](README.en.md) | [Русский](README.ru.md) | [简体中文](README.ru.md)
+> 🌐 **语言**: [English](../README.md) | [Русский](README.ru.md) | [简体中文](README.zh-CN.md)
 
 > 🔗 **SillyTavern 扩展**: [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper) — 在 SillyTavern 中安装此扩展以与 SillyInnkeeper 集成。
 
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://opensource.org/licenses/AGPL-3.0)[![Branch: zh-CN-translation](D:\SillyInnkeeper\SillyInnkeeper-Chinese-\branch-zh--CN--translation-brightgreen.svg)](https://github.com/你的用户名/原仓库名/tree/zh-CN-translation)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://opensource.org/licenses/AGPL-3.0)
 
 ![主界面](../assets/main.webp)
-
 ## 关于汉化
 
 - 本汉化不定时更新，有可能落后于原版

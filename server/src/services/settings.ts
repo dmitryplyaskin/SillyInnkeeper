@@ -3,7 +3,7 @@ import { readFile, writeFile, ensureDir } from "fs-extra";
 import { join } from "node:path";
 import { AppError } from "../errors/app-error";
 
-export type Language = "ru" | "en";
+export type Language = "ru" | "en" | "zh-CN";
 
 export interface Settings {
   cardsFolderPath: string | null;
@@ -40,7 +40,7 @@ export function validatePath(path: string): void {
 export function validateLanguage(
   language: unknown
 ): asserts language is Language {
-  if (language !== "ru" && language !== "en") {
+  if (language !== "ru" && language !== "en" && language !== "zh-CN") {
     throw new AppError({
       status: 400,
       code: "api.settings.invalid_language",

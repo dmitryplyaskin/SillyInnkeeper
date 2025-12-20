@@ -7,7 +7,7 @@ import { SettingsForm } from "@/features/settings-form";
 import i18n from "@/shared/i18n/i18n";
 import type { Settings } from "@/shared/types/settings";
 
-function getBrowserLanguage(): "ru" | "en" {
+function getBrowserLanguage(): "ru" | "en" | "zh-CN" {
   const candidates = [
     ...(typeof navigator !== "undefined" ? navigator.languages ?? [] : []),
     ...(typeof navigator !== "undefined" ? [navigator.language] : []),
@@ -16,6 +16,7 @@ function getBrowserLanguage(): "ru" | "en" {
   for (const lang of candidates) {
     const normalized = String(lang).toLowerCase();
     if (normalized.startsWith("ru")) return "ru";
+    if (normalized.startsWith("zh")) return "zh-CN";
   }
   return "en";
 }

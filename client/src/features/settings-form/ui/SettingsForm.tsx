@@ -23,7 +23,7 @@ import { pickFolder } from "@/shared/api/explorer";
 type SettingsFormValues = {
   cardsFolderPath: string;
   sillytavenrPath: string;
-  language: "ru" | "en";
+  language: "ru" | "en" | "zh-CN";
 };
 
 export type SettingsFormProps = {
@@ -154,6 +154,7 @@ export function SettingsForm({
           data={[
             { value: "ru", label: t("language.ruBilingual") },
             { value: "en", label: t("language.enBilingual") },
+            { value: "zh-CN", label: t("language.zhCNBilingual") },
           ]}
           value={form.values.language}
           onChange={(v) => {
