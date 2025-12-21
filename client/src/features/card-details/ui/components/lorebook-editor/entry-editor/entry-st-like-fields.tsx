@@ -17,6 +17,8 @@ import type {
   StAdditionalMatchingSource,
   StLorebookEntryExt,
   StOptionalLogic,
+  StStrategy,
+  StInsertionPosition,
   StTriggerType,
 } from "@/shared/types/lorebooks/sillytavern";
 import { clampInt, setStEntryExt } from "@/shared/types/lorebooks/sillytavern";
@@ -47,6 +49,19 @@ const OPTIONAL_LOGIC_VALUES: StOptionalLogic[] = [
   "NOT_ALL",
 ];
 
+const STRATEGY_VALUES: StStrategy[] = ["keyword", "constant", "vector"];
+
+const INSERTION_POSITION_VALUES: StInsertionPosition[] = [
+  "before_char_defs",
+  "after_char_defs",
+  "before_example_messages",
+  "after_example_messages",
+  "top_of_an",
+  "bottom_of_an",
+  "at_depth",
+  "outlet",
+];
+
 function isTriggerType(v: string): v is StTriggerType {
   return (TRIGGER_VALUES as readonly string[]).includes(v);
 }
@@ -57,6 +72,14 @@ function isAdditionalSource(v: string): v is StAdditionalMatchingSource {
 
 function isOptionalLogic(v: string): v is StOptionalLogic {
   return (OPTIONAL_LOGIC_VALUES as readonly string[]).includes(v);
+}
+
+function isStrategy(v: string): v is StStrategy {
+  return (STRATEGY_VALUES as readonly string[]).includes(v);
+}
+
+function isInsertionPosition(v: string): v is StInsertionPosition {
+  return (INSERTION_POSITION_VALUES as readonly string[]).includes(v);
 }
 
 function triBoolToSelectValue(v: boolean | undefined): string {
@@ -85,6 +108,25 @@ export function EntryStLikeFields({
   onUpdate: (updater: (entry: LorebookEntry) => LorebookEntry) => void;
 }) {
   const { t } = useTranslation();
+
+  const currentStrategy: StStrategy = useMemo(() => {
+    if (typeof st.strategy === "string" && isStrategy(st.strategy)) return st.strategy;
+    if (entry.constant === true) return "constant";
+    return "keyword";
+  }, [entry.constant, st.strategy]);
+
+  const currentInsertionPosition: StInsertionPosition | "" = useMemo(() => {
+    if (
+      typeof st.insertion_position === "string" &&
+      isInsertionPosition(st.insertion_position)
+    )
+      return st.insertion_position;
+
+    // Back-compat with CCv3 field (older editor stored only this)
+    if (entry.position === "before_char") return "before_char_defs";
+    if (entry.position === "after_char") return "after_char_defs";
+    return "";
+  }, [entry.position, st.insertion_position]);
 
   const triggers = useMemo(
     () =>
@@ -206,29 +248,120 @@ export function EntryStLikeFields({
         />
 
         <Select
-          value={entry.position ?? ""}
-          onChange={(value) =>
-            onUpdate((ent) => ({
-              ...ent,
-              position:
-                value === "before_char" || value === "after_char" ? value : undefined,
-            }))
-          }
+          label={t("cardDetails.lorebook.strategy", "Strategy")}
+          value={currentStrategy}
+          onChange={(value) => {
+            const next =
+              typeof value === "string" && isStrategy(value) ? value : "keyword";
+            onUpdate((ent) =>
+              setStEntryExt(
+                {
+                  ...ent,
+                  // Keep CCv3 "constant" in sync with strategy
+                  constant: next === "constant" ? true : undefined,
+                },
+                { strategy: next === "keyword" ? undefined : next }
+              )
+            );
+          }}
           data={[
-            { value: "", label: t("cardDetails.lorebook.optional", "Optional") },
+            { value: "keyword", label: t("cardDetails.lorebook.strategyKeyword", "Keyword") },
             {
-              value: "before_char",
-              label: t("cardDetails.lorebook.posBeforeChar", "Before Char Defs"),
+              value: "constant",
+              label: t("cardDetails.lorebook.strategyConstant", "Constant"),
             },
-            {
-              value: "after_char",
-              label: t("cardDetails.lorebook.posAfterChar", "After Char Defs"),
-            },
+            { value: "vector", label: t("cardDetails.lorebook.strategyVector", "Vector") },
           ]}
           disabled={disabled}
           size="xs"
-          placeholder={t("cardDetails.lorebook.position", "Position")}
-          w={180}
+          w={150}
+        />
+
+        <Select
+          label={t("cardDetails.lorebook.position", "Position")}
+          value={currentInsertionPosition}
+          onChange={(value) => {
+            const next =
+              typeof value === "string" && isInsertionPosition(value) ? value : "";
+
+            onUpdate((ent) => {
+              const nextPosition =
+                next === "before_char_defs"
+                  ? "before_char"
+                  : next === "after_char_defs"
+                  ? "after_char"
+                  : undefined;
+
+              return setStEntryExt(
+                {
+                  ...ent,
+                  position: nextPosition,
+                },
+                {
+                  insertion_position: next || undefined,
+                  // Clear outlet name when leaving outlet mode
+                  outlet_name: next === "outlet" ? st.outlet_name : undefined,
+                  // Clear role unless at_depth
+                  role: next === "at_depth" ? st.role : undefined,
+                }
+              );
+            });
+          }}
+          data={[
+            { value: "", label: t("cardDetails.lorebook.optional", "Optional") },
+            {
+              value: "before_char_defs",
+              label: t("cardDetails.lorebook.posBeforeCharDefs", "Before Char Defs"),
+            },
+            {
+              value: "after_char_defs",
+              label: t("cardDetails.lorebook.posAfterCharDefs", "After Char Defs"),
+            },
+            {
+              value: "before_example_messages",
+              label: t(
+                "cardDetails.lorebook.posBeforeExampleMessages",
+                "Before Examples"
+              ),
+            },
+            {
+              value: "after_example_messages",
+              label: t(
+                "cardDetails.lorebook.posAfterExampleMessages",
+                "After Examples"
+              ),
+            },
+            { value: "top_of_an", label: t("cardDetails.lorebook.posTopOfAN", "Top of AN") },
+            {
+              value: "bottom_of_an",
+              label: t("cardDetails.lorebook.posBottomOfAN", "Bottom of AN"),
+            },
+            { value: "at_depth", label: t("cardDetails.lorebook.posAtDepth", "At depth") },
+            { value: "outlet", label: t("cardDetails.lorebook.posOutlet", "Outlet") },
+          ]}
+          disabled={disabled}
+          size="xs"
+          w={220}
+        />
+
+        <NumberInput
+          label={t("cardDetails.lorebook.depth", "Depth")}
+          value={typeof st.depth === "number" ? st.depth : ""}
+          onChange={(value) =>
+            onUpdate((ent) =>
+              setStEntryExt(ent, {
+                depth:
+                  typeof value === "number" && Number.isFinite(value)
+                    ? clampInt(value, { min: 0, max: 100000, fallback: 0 })
+                    : undefined,
+              })
+            )
+          }
+          disabled={disabled}
+          placeholder={t("cardDetails.lorebook.optional", "Optional")}
+          min={0}
+          size="xs"
+          w={120}
         />
 
         <NumberInput
@@ -268,6 +401,47 @@ export function EntryStLikeFields({
           aria-label={t("cardDetails.lorebook.trigger", "Trigger %")}
         />
       </Group>
+
+      {currentInsertionPosition === "at_depth" ? (
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
+          <Select
+            label={t("cardDetails.lorebook.role", "Role")}
+            value={typeof st.role === "string" ? st.role : ""}
+            onChange={(value) => {
+              const next =
+                value === "system" || value === "user" || value === "assistant"
+                  ? value
+                  : undefined;
+              onUpdate((ent) => setStEntryExt(ent, { role: next }));
+            }}
+            data={[
+              { value: "", label: t("cardDetails.lorebook.optional", "Optional") },
+              { value: "system", label: "system" },
+              { value: "user", label: "user" },
+              { value: "assistant", label: "assistant" },
+            ]}
+            disabled={disabled}
+            size="xs"
+          />
+        </SimpleGrid>
+      ) : null}
+
+      {currentInsertionPosition === "outlet" ? (
+        <TextInput
+          label={t("cardDetails.lorebook.outletName", "Outlet name")}
+          value={typeof st.outlet_name === "string" ? st.outlet_name : ""}
+          onChange={(ev) =>
+            onUpdate((ent) =>
+              setStEntryExt(ent, {
+                outlet_name: ev.currentTarget.value.trim() || undefined,
+              })
+            )
+          }
+          disabled={disabled}
+          size="xs"
+          placeholder={t("cardDetails.lorebook.optional", "Optional")}
+        />
+      ) : null}
 
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="xs">
         <DeferredCommaListInput
@@ -327,16 +501,15 @@ export function EntryStLikeFields({
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }} spacing="xs">
         <NumberInput
           label={t("cardDetails.lorebook.scanDepth", "Scan Depth")}
-          value={typeof st.depth === "number" ? st.depth : ""}
+          value={typeof entry.scan_depth === "number" ? entry.scan_depth : ""}
           onChange={(value) =>
-            onUpdate((ent) =>
-              setStEntryExt(ent, {
-                depth:
-                  typeof value === "number" && Number.isFinite(value)
-                    ? clampInt(value, { min: 0, max: 100000, fallback: 0 })
-                    : undefined,
-              })
-            )
+            onUpdate((ent) => ({
+              ...ent,
+              scan_depth:
+                typeof value === "number" && Number.isFinite(value)
+                  ? clampInt(value, { min: 0, max: 100000, fallback: 0 })
+                  : undefined,
+            }))
           }
           disabled={disabled}
           placeholder={t("cardDetails.lorebook.useGlobal", "Use global")}

@@ -57,8 +57,8 @@ type WorldInfoEntry = {
   position:
     | "before_char_defs"
     | "after_char_defs"
-    | "before_examples"
-    | "after_examples"
+    | "before_example_messages"
+    | "after_example_messages"
     | "top_of_an"
     | "bottom_of_an"
     | { atDepth: number; role?: "system" | "user" | "assistant" }
@@ -90,7 +90,7 @@ type WorldInfoEntry = {
     | "scenario"
     | "persona_description"
     | "character_note"
-    | "creator_notes"
+    | "creators_notes"
   >;
 
   // Timed effects (stateful per chat)
@@ -237,3 +237,38 @@ Timed effects are stateful per chat:
 - **Delay**: cannot activate unless there are at least N messages in chat at evaluation time.
 
 Making changes to an entry that is currently under timed effect SHOULD clear the effect state.
+
+---
+
+## Appendix A) SillyInnkeeper ↔ SillyTavern storage mapping (practical)
+
+SillyInnkeeper edits **SillyTavern lorebooks** as stored inside CCv3 `character_book`.
+Some fields are stored directly on entries (CCv3), and many ST-specific knobs are preserved under `extensions.sillytavern`.
+
+### A.1 Entry-level mapping
+
+- **strategy** → `entry.extensions.sillytavern.entry.strategy` (`"keyword" | "constant" | "vector"`)
+- **position** → `entry.extensions.sillytavern.entry.insertion_position`
+  - **atDepth** → `entry.extensions.sillytavern.entry.depth`
+  - **role** → `entry.extensions.sillytavern.entry.role`
+  - **outlet** → `entry.extensions.sillytavern.entry.outlet_name`
+- **probability** → `entry.extensions.sillytavern.entry.trigger_percent`
+- **filter.logic** → `entry.extensions.sillytavern.entry.optional_logic`
+- **filter.keys** → `entry.extensions.sillytavern.entry.optional_filter`
+- **matchWholeWords** → `entry.extensions.sillytavern.entry.match_whole_words`
+- **useGroupScoring** → `entry.extensions.sillytavern.entry.group_scoring`
+- **groups** → `entry.extensions.sillytavern.entry.inclusion_groups`
+  - **groupWeight** → `entry.extensions.sillytavern.entry.group_weight`
+  - **prioritizeInclusion** → `entry.extensions.sillytavern.entry.prioritize_inclusion`
+- **characterFilter** → `entry.extensions.sillytavern.entry.character_filter` (`{ mode, values }`)
+- **triggers** → `entry.extensions.sillytavern.entry.triggers`
+- **additionalMatchingSources** → `entry.extensions.sillytavern.entry.additional_matching_sources`
+- **recursion** flags → `entry.extensions.sillytavern.entry.{non_recursable, prevent_further_recursion, delay_until_recursion, recursion_level, ignore_budget}`
+- **timed** → `entry.extensions.sillytavern.entry.{sticky, cooldown, delay}`
+
+### A.2 Lorebook-level (global defaults)
+
+- `settings.caseSensitiveKeys` → `lorebook.extensions.sillytavern.lorebook.case_sensitive_default`
+- `settings.matchWholeWords` → `lorebook.extensions.sillytavern.lorebook.match_whole_words_default`
+- `settings.useGroupScoring` → `lorebook.extensions.sillytavern.lorebook.group_scoring_default`
+- `settings.scanDepth` (ST default) → `lorebook.extensions.sillytavern.lorebook.scan_depth_default`

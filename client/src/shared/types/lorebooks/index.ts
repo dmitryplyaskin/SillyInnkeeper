@@ -31,6 +31,7 @@ export interface LorebookEntry {
   extensions: Record<string, any>;
   enabled: boolean;
   insertion_order: number;
+  scan_depth?: number;
   case_sensitive?: boolean;
   use_regex: boolean;
   constant?: boolean;

@@ -63,7 +63,16 @@ export const LorebookEntryCard = memo(function LorebookEntryCard({
     typeof entry.priority === "number"
       ? String(entry.priority)
       : t("empty.dash");
-  const positionText = entry.position ?? t("empty.dash");
+  const positionText =
+    typeof st.insertion_position === "string"
+      ? st.insertion_position
+      : entry.position ?? t("empty.dash");
+  const strategyText =
+    typeof st.strategy === "string"
+      ? st.strategy
+      : entry.constant
+      ? "constant"
+      : t("empty.dash");
 
   return (
     <Paper p="xs" withBorder>
@@ -92,8 +101,8 @@ export const LorebookEntryCard = memo(function LorebookEntryCard({
 
           <Group gap="xs" wrap="nowrap">
             <Text size="xs" c="dimmed" visibleFrom="sm">
-              {positionText} · #{entry.insertion_order} · P:{priorityText} · T:
-              {triggerText}
+              {positionText} · S:{strategyText} · #{entry.insertion_order} · P:
+              {priorityText} · T:{triggerText}
             </Text>
             <Checkbox
               size="xs"
