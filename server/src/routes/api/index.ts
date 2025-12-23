@@ -13,6 +13,7 @@ import image from "./image";
 import events from "./events";
 import st from "./st";
 import explorer from "./explorer";
+import lorebooks from "./lorebooks";
 
 const router = Router();
 
@@ -81,5 +82,6 @@ router.use(image);
 router.use(events);
 router.use(st);
 router.use(explorer);
+router.use(lorebooks);
 
 export default router;

@@ -79,6 +79,19 @@ const en = {
   "api.cards.save_failed": "Could not save card",
   "api.export.invalid_data_json": "Invalid card data for export",
 
+  // lorebooks API
+  "api.lorebooks.list_failed": "Could not get lorebooks list",
+  "api.lorebooks.get_failed": "Could not get lorebook",
+  "api.lorebooks.create_failed": "Could not create lorebook",
+  "api.lorebooks.update_failed": "Could not update lorebook",
+  "api.lorebooks.delete_failed": "Could not delete lorebook",
+  "api.lorebooks.not_found": "Lorebook was not found",
+  "api.lorebooks.invalid_data": "Invalid lorebook data",
+  "api.lorebooks.duplicate":
+    "Lorebook with the same content already exists (content hash duplicate)",
+  "api.lorebooks.in_use":
+    "Cannot delete lorebook: it is still linked to cards (use force=1 to override)",
+
   "api.image.not_found": "Image was not found",
   "api.image.file_not_found": "Image file was not found",
   "api.image.get_failed": "Could not get image",

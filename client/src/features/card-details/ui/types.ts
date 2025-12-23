@@ -12,4 +12,5 @@ export interface CardDetailsDraft {
   post_history_instructions: string;
   alternate_greetings: string[];
   group_only_greetings: string[];
+  character_book?: unknown;
 }

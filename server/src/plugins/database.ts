@@ -41,8 +41,6 @@ export async function initializeDatabase(
  * Создает необходимые таблицы, если они не существуют
  */
 function initializeSchema(db: Database.Database): void {
-  // Пример создания таблицы настроек
-  // Можно расширить по необходимости
   db.exec(`
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -106,6 +104,36 @@ function initializeSchema(db: Database.Database): void {
     -- Индексы для тегов
     CREATE INDEX IF NOT EXISTS idx_tags_rawName ON tags(rawName);
     CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
+
+    -- Таблица лорабуков (Lorebook V3 и совместимые объекты)
+    CREATE TABLE IF NOT EXISTS lorebooks (
+      id TEXT PRIMARY KEY,
+      content_hash TEXT NOT NULL,
+      name TEXT,
+      description TEXT,
+      spec TEXT NOT NULL,
+      data_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    -- Связка карточек и лорабуков (many-to-many, но пока используем максимум один на карточку)
+    CREATE TABLE IF NOT EXISTS card_lorebooks (
+      card_id TEXT NOT NULL,
+      lorebook_id TEXT NOT NULL,
+      PRIMARY KEY (card_id, lorebook_id),
+      FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
+      FOREIGN KEY (lorebook_id) REFERENCES lorebooks(id) ON DELETE CASCADE
+    );
+
+    -- Индексы для лорабуков
+    CREATE INDEX IF NOT EXISTS idx_lorebooks_name ON lorebooks(name);
+    CREATE INDEX IF NOT EXISTS idx_lorebooks_created_at ON lorebooks(created_at);
+    CREATE INDEX IF NOT EXISTS idx_card_lorebooks_lorebook_id ON card_lorebooks(lorebook_id);
+
+    -- Уникальность по каноническому хэшу содержимого
+    CREATE UNIQUE INDEX IF NOT EXISTS ux_lorebooks_content_hash
+    ON lorebooks(content_hash);
   `);
 
   // Расширения схемы для поиска/фильтрации (безопасно для уже существующей БД)

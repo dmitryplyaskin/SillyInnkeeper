@@ -31,6 +31,7 @@ import {
   $draft,
   $groupGreetingIds,
   $groupGreetingValues,
+  $lorebook,
   draftSaved,
 } from "../../model.form";
 
@@ -71,12 +72,13 @@ export function CardDetailsActionsPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [pendingCardJson, setPendingCardJson] = useState<unknown | null>(null);
 
-  const [draft, altIds, altValues, groupIds, groupValues, markSaved] = useUnit([
+  const [draft, altIds, altValues, groupIds, groupValues, lorebook, markSaved] = useUnit([
     $draft,
     $altGreetingIds,
     $altGreetingValues,
     $groupGreetingIds,
     $groupGreetingValues,
+    $lorebook,
     draftSaved,
   ]);
 
@@ -156,6 +158,14 @@ export function CardDetailsActionsPanel({
           ? baseData.extensions
           : {},
     };
+
+    // Include lorebook data if present
+    if (lorebook?.data) {
+      nextData.character_book = lorebook.data;
+    } else {
+      // Remove character_book if lorebook was cleared
+      delete nextData.character_book;
+    }
 
     // v3-required arrays
     if (!Array.isArray(nextData.alternate_greetings))

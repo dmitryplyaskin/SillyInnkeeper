@@ -85,6 +85,19 @@ const ru = {
   "api.cards.save_failed": "Не удалось сохранить карточку",
   "api.export.invalid_data_json": "Некорректные данные карточки для экспорта",
 
+  // lorebooks API
+  "api.lorebooks.list_failed": "Не удалось получить список лорбуков",
+  "api.lorebooks.get_failed": "Не удалось получить лорбук",
+  "api.lorebooks.create_failed": "Не удалось создать лорбук",
+  "api.lorebooks.update_failed": "Не удалось обновить лорбук",
+  "api.lorebooks.delete_failed": "Не удалось удалить лорбук",
+  "api.lorebooks.not_found": "Лорбук не найден",
+  "api.lorebooks.invalid_data": "Некорректные данные лорбука",
+  "api.lorebooks.duplicate":
+    "Лорбук с таким содержимым уже существует (дубликат по контент‑хэшу)",
+  "api.lorebooks.in_use":
+    "Нельзя удалить лорбук: он всё ещё привязан к карточкам (используйте force=1 для принудительного удаления)",
+
   "api.image.not_found": "Изображение не найдено",
   "api.image.file_not_found": "Файл изображения не найден",
   "api.image.get_failed": "Не удалось получить изображение",

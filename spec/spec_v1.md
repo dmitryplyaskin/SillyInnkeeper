@@ -1,110 +1,53 @@
-# Character Card V1: Specification
+# Character Card V1 — Condensed Spec (Implementation-Oriented)
 
-This exists for reference in case of ambiguity, or for future new implementers.
-[Read the definitions of MUST, SHOULD, and MAY](./keyword_definitions.md)
+This document defines the minimal Character Card V1 format (aka TavernCard V1).
 
-## Table of contents
+Normative keywords use common RFC meaning: **MUST / MUST NOT / SHOULD / SHOULD NOT / MAY**.
 
-- [Embedding methods](#embedding-methods)
-- [Fields](#fields)
-  * [name](#name)
-  * [description](#description)
-  * [personality](#personality)
-  * [scenario](#scenario)
-  * [first_mes](#first_mes)
-  * [mes_example](#mes_example)
+## 1) Containers / embedding
 
-## Embedding methods
+- **JSON**: a `.json` file MAY contain the raw V1 object (discouraged UX-wise).
+- **PNG/APNG**: the V1 JSON string is stored base64-encoded in the image metadata field **"Chara"**.
+- **WEBP**: not specified.
 
-- .json file with no image. Discouraged for user-friendliness.
-- PNG/APNG: JSON string encoded in base64 inside the "Chara" EXIF metadata field.
-- WEBP: **Not covered by the spec due to technical ambiguities.**
-
-## Fields
-
-The current format can be represented as this TypeScript type:
+## 2) Data model
 
 ```ts
-type TavernCard = {
-  name: string
-  description: string
-  personality: string
-  scenario: string
-  first_mes: string
-  mes_example: string
-}
+type TavernCardV1 = {
+  name: string;
+  description: string;
+  personality: string;
+  scenario: string;
+  first_mes: string;
+  mes_example: string;
+};
 ```
 
-All fields are mandatory and **MUST** default to the empty string, not null or absent/undefined.
+### 2.1 Required fields and defaults
 
-In prompts sent to the AI, the fields `description`, `personality`, `scenario`, `first_mes`, and `mes_example` **MUST** replace the following magic strings, with a **case-insensitive** search (e.g. `<BOT>` and `<bot>` both work):
-- {{char}} or `<BOT>` to the value of the card's `name` field
-- {{user}} or `<USER>` to the application's set display name.
+- All fields are **mandatory**.
+- On missing data, fields **MUST** default to the empty string (`""`) (not `null`, not absent).
 
-A default value for the user's name **MUST** exist.
+## 3) Placeholder replacement (prompt-time)
 
-Whether {{user}} and `<USER>` should be replaced inside the `name` field is an **UNSPECIFIED** edge case.
+In prompts sent to the AI, the following fields **MUST** perform placeholder replacement using **case-insensitive** search:
 
-Details for each field follows.
+- Fields: `description`, `personality`, `scenario`, `first_mes`, `mes_example`.
+- Replacements:
+  - `{{char}}` or `<BOT>` → card `name`.
+  - `{{user}}` or `<USER>` → application’s current user display name.
 
-### `name`
+A default user display name **MUST** exist.
 
-Used to identify a character.
+Whether `{{user}}` / `<USER>` should be replaced inside the `name` field is **UNSPECIFIED**.
 
-### `description`
+## 4) Conversation start / greetings
 
-Description of the character.
+- The chatbot **MUST** send the first message.
+- That first message **MUST** be exactly `first_mes`.
 
-**SHOULD** be included by default in every prompt.
+## 5) Example messages (`mes_example`)
 
-Front-facing alternative names used by existing projects:
-
-- ZoltanAI: "Personality"
-- Agnai: "Persona Attributes" and "{{personality}}"
-- Silly: "Description"
-
-### `personality`
-
-A short summary of the character's personality.
-
-**SHOULD** be included by default in every prompt.
-
-Front-facing alternative names used by existing projects:
-
-- ZoltanAI: "Summary"
-- Agnai: No name yet
-- Silly: "Personality summary"
-
-### `scenario`
-
-The current context and circumstances to the conversation.
-
-**SHOULD** be included by default in every prompt.
-
-### `first_mes`
-
-First message sent by the chatbot, also known as "greeting."
-
-The chatbot **MUST** be the first one to send a message, and that message
-**MUST** be the string inside `first_mes`.
-
-### `mes_example`
-
-Example conversations. It **MUST** be expected that botmakers format example
-conversations like this:
-
-```
-<START>
-{{user}}: hi
-{{char}}: hello
-<START>
-{{user}}: hi
-Haruhi: hello
-```
-
-`<START>` marks the beginning of a new conversation and **MAY** be transformed
-(e.g. into an OpenAI System message saying "Start a new conversation.")
-
-Example conversations **SHOULD**, by default, only be included in the prompt
-until actual conversation fills up the context size, and then be pruned to make
-room for actual conversation history. This behavior **MAY** be configurable by the user.
+- `mes_example` is free-form text commonly formatted as multiple blocks separated by `<START>` markers.
+- `<START>` marks a new example conversation and **MAY** be transformed into an internal representation (implementation-defined).
+- Example messages **SHOULD** be included in the prompt only until real chat history fills the context window; then they **SHOULD** be pruned to make room. This behavior **MAY** be user-configurable.

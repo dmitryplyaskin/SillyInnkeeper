@@ -9,6 +9,7 @@ import { CardParser } from "./card-parser";
 import { generateThumbnail, deleteThumbnail } from "./thumbnail";
 import { createTagService } from "./tags";
 import { computeContentHash } from "./card-hash";
+import { createLorebooksService, LorebooksService } from "./lorebooks";
 import { logger } from "../utils/logger";
 
 const CONCURRENT_LIMIT = 5;
@@ -20,12 +21,14 @@ export class ScanService {
   private limit = pLimit(CONCURRENT_LIMIT);
   private scannedFiles = new Set<string>();
   private cardParser: CardParser;
+  private lorebooksService: LorebooksService;
 
   constructor(
     private dbService: DatabaseService,
     private libraryId: string = "cards"
   ) {
     this.cardParser = new CardParser();
+    this.lorebooksService = new LorebooksService(this.dbService);
   }
 
   /**
@@ -288,6 +291,8 @@ export class ScanService {
       const hasMesExample = mesExample?.trim() ? 1 : 0;
       const hasCharacterBook = extractedData.character_book ? 1 : 0;
 
+      const characterBook = extractedData.character_book;
+
       const alternateGreetingsCount = Array.isArray(
         extractedData.alternate_greetings
       )
@@ -309,6 +314,7 @@ export class ScanService {
       // Записываем в БД в транзакции
       this.dbService.transaction((db) => {
         const dbService = createDatabaseService(db);
+        const loreService = new LorebooksService(dbService);
 
         // Если файл уже был в БД, обновляем карточку
         if (existingFile) {
@@ -372,6 +378,17 @@ export class ScanService {
               existingFile.card_id,
             ]
           );
+
+          // Синхронизация лорабука для существующей карточки
+          if (characterBook) {
+            loreService.upsertFromCharacterBook({
+              cardId: existingFile.card_id,
+              characterBook,
+              now: fileMtime,
+            });
+          } else {
+            loreService.detachCard(existingFile.card_id);
+          }
 
           // Обновляем информацию о файле
           dbService.execute(
@@ -504,6 +521,17 @@ export class ScanService {
               dirname(filePath),
             ]
           );
+
+          // Синхронизация лорабука для новой карточки или дубля по хэшу
+          if (characterBook) {
+            loreService.upsertFromCharacterBook({
+              cardId,
+              characterBook,
+              now: fileMtime,
+            });
+          } else {
+            loreService.detachCard(cardId);
+          }
         }
 
         // Синхронизируем связи card_tags (точная фильтрация по тегам)
