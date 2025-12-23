@@ -4,14 +4,44 @@ import { useMemo } from "react";
 import { Loader, Alert, Text, Stack, Center, Box } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { $cards, $isLoading, $error } from "@/entities/cards";
-import { $columnsCount, $isLocalStorageLoaded } from "@/features/view-settings";
+import {
+  $columnsCount,
+  $isLocalStorageLoaded,
+  $isCensored,
+} from "@/features/view-settings";
 import { Card } from "@/entities/cards/ui/Card";
+import { openCard } from "@/features/card-details";
+import {
+  $isMultiSelectMode,
+  $selectedCardsMap,
+  toggleCardSelected,
+} from "@/features/cards-multi-select";
 
 export function CardsGrid() {
   const { t } = useTranslation();
-  const [cards, isLoading, error, columnsCount, isLocalStorageLoaded] = useUnit(
-    [$cards, $isLoading, $error, $columnsCount, $isLocalStorageLoaded]
-  );
+  const [
+    cards,
+    isLoading,
+    error,
+    columnsCount,
+    isLocalStorageLoaded,
+    isCensored,
+    isSelectionMode,
+    selectedMap,
+    onToggleSelected,
+    onOpen,
+  ] = useUnit([
+    $cards,
+    $isLoading,
+    $error,
+    $columnsCount,
+    $isLocalStorageLoaded,
+    $isCensored,
+    $isMultiSelectMode,
+    $selectedCardsMap,
+    toggleCardSelected,
+    openCard,
+  ]);
 
   const cardWidth = columnsCount === 3 ? 340 : columnsCount === 5 ? 280 : 240;
   const gap = columnsCount === 7 ? 12 : 16;
@@ -98,7 +128,15 @@ export function CardsGrid() {
               }}
             >
               {row.map((card) => (
-                <Card key={card.id} card={card} />
+                <Card
+                  key={card.id}
+                  card={card}
+                  isCensored={isCensored}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={Boolean(selectedMap[card.id])}
+                  onToggleSelected={onToggleSelected}
+                  onOpen={onOpen}
+                />
               ))}
               {/* Заполняем пустые ячейки в последней строке */}
               {row.length < columnsCount &&

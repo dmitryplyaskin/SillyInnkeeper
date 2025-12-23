@@ -77,6 +77,10 @@ const en = {
   "api.cards.export_failed": "Could not export card PNG",
   "api.cards.invalid_card_json": "Invalid card data for save",
   "api.cards.save_failed": "Could not save card",
+  "api.cards.invalid_card_ids":
+    "Invalid card_ids (expected a non-empty array of card IDs)",
+  "api.cards.some_not_found": "Some cards were not found",
+  "api.cards.bulk_delete_failed": "Could not delete selected cards",
   "api.export.invalid_data_json": "Invalid card data for export",
 
   // lorebooks API

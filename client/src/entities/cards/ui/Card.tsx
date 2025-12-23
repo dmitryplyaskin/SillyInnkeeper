@@ -10,15 +10,18 @@ import {
   Modal,
   ActionIcon,
   Box,
+  useMantineTheme,
 } from "@mantine/core";
-import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
 import type { CardListItem } from "@/shared/types/cards";
-import { $isCensored } from "@/features/view-settings";
-import { openCard } from "@/features/card-details";
 
 interface CardProps {
   card: CardListItem;
+  isCensored: boolean;
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelected?: (id: string) => void;
+  onOpen?: (id: string) => void;
 }
 
 function formatTokensEstimate(value: unknown): string {
@@ -38,10 +41,20 @@ function formatTokensEstimate(value: unknown): string {
   return `≈ ${label}k`;
 }
 
-export function Card({ card }: CardProps) {
+export function Card({
+  card,
+  isCensored,
+  isSelectionMode = false,
+  isSelected = false,
+  onToggleSelected,
+  onOpen,
+}: CardProps) {
   const { t, i18n } = useTranslation();
-  const [isCensored, onOpen] = useUnit([$isCensored, openCard]);
   const [opened, setOpened] = useState(false);
+  const theme = useMantineTheme();
+
+  const checkboxBg = isSelected ? theme.colors.blue[6] : "rgba(255,255,255,0.75)";
+  const checkboxColor = isSelected ? theme.white : theme.colors.gray[7];
 
   const tags = card.tags ?? [];
   const visibleTags = tags.slice(0, 2);
@@ -71,14 +84,28 @@ export function Card({ card }: CardProps) {
           transition: "transform 160ms ease, box-shadow 160ms ease",
           overflow: "hidden",
           cursor: "pointer",
+          border: isSelected
+            ? `2px solid ${theme.colors.blue[6]}`
+            : `1px solid var(--mantine-color-default-border)`,
+          boxShadow: isSelected ? theme.shadows.md : undefined,
         }}
         role="button"
         tabIndex={0}
-        onClick={() => onOpen(card.id)}
+        onClick={() => {
+          if (isSelectionMode) {
+            onToggleSelected?.(card.id);
+            return;
+          }
+          onOpen?.(card.id);
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onOpen(card.id);
+            if (isSelectionMode) {
+              onToggleSelected?.(card.id);
+              return;
+            }
+            onOpen?.(card.id);
           }
         }}
       >
@@ -104,6 +131,45 @@ export function Card({ card }: CardProps) {
               }}
             />
           </Box>
+
+          {isSelectionMode && (
+            <Box
+              style={{
+                position: "absolute",
+                top: "8px",
+                left: "8px",
+                zIndex: 12,
+                width: "22px",
+                height: "22px",
+                borderRadius: "999px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: `1px solid var(--mantine-color-default-border)`,
+                background: checkboxBg,
+                color: checkboxColor,
+                backdropFilter: "blur(6px)",
+              }}
+              aria-hidden
+            >
+              {isSelected ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              ) : null}
+            </Box>
+          )}
+
           <ActionIcon
             variant="light"
             size="lg"

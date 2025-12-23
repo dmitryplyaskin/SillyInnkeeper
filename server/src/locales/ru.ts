@@ -83,6 +83,10 @@ const ru = {
   "api.cards.export_failed": "Не удалось экспортировать PNG карточки",
   "api.cards.invalid_card_json": "Некорректные данные карточки для сохранения",
   "api.cards.save_failed": "Не удалось сохранить карточку",
+  "api.cards.invalid_card_ids":
+    "Некорректный card_ids (ожидается непустой массив ID карточек)",
+  "api.cards.some_not_found": "Некоторые карточки не найдены",
+  "api.cards.bulk_delete_failed": "Не удалось удалить выбранные карточки",
   "api.export.invalid_data_json": "Некорректные данные карточки для экспорта",
 
   // lorebooks API
