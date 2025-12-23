@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
-import { Drawer, Grid, Title, Image, Modal } from "@mantine/core";
+import { Grid, Title, Image, Modal } from "@mantine/core";
 import { $details, $error, $isLoading, $openedId, closeCard } from "../model";
 import { $isCensored } from "@/features/view-settings";
 import { CardDetailsActionsPanel } from "./components/CardDetailsActionsPanel";
@@ -28,16 +28,27 @@ export function CardDetailsDrawer() {
 
   return (
     <>
-      <Drawer
+      <Modal
         opened={opened}
         onClose={() => closeCard()}
-        position="right"
-        size="100%"
+        centered
+        size={"100%"}
+        xOffset={0}
+        closeOnClickOutside={false}
+        zIndex={200}
+        overlayProps={{ zIndex: 199 }}
         title={
           <Title order={4} lineClamp={1}>
             {details?.name || t("cardDetails.detailsTitleFallback")}
           </Title>
         }
+        styles={{
+          content: {
+            width: "100%",
+            maxWidth: 1920,
+            height: "100%",
+          },
+        }}
       >
         {opened ? (
           <Grid gutter="md" columns={24}>
@@ -60,12 +71,14 @@ export function CardDetailsDrawer() {
             </Grid.Col>
           </Grid>
         ) : null}
-      </Drawer>
+      </Modal>
 
       <Modal
         opened={imgOpened}
         onClose={() => setImgOpened(false)}
         size="xl"
+        zIndex={400}
+        overlayProps={{ zIndex: 399 }}
         title={details?.name || t("cardDetails.imageAltFallback")}
       >
         <Image

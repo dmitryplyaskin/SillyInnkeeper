@@ -1,7 +1,8 @@
 import { createEvent, createStore, sample } from "effector";
 import type { CardDetails } from "@/shared/types/cards";
 import type { CardDetailsDraft } from "./ui/types";
-import { $details, $openedId, closeCard } from "./model";
+import type { LorebookDetails } from "@/shared/types/lorebooks";
+import { $details, $openedId, closeCard, lorebookLoaded } from "./model";
 
 function toDraft(details: CardDetails | null): CardDetailsDraft {
   return {
@@ -66,6 +67,16 @@ export const greetingMoved = createEvent<{
   direction: "up" | "down";
 }>();
 
+// -------- Lorebook --------
+export const lorebookChanged = createEvent<LorebookDetails | null>();
+export const lorebookCleared = createEvent<void>();
+
+export const $lorebook = createStore<LorebookDetails | null>(null)
+  .on(lorebookLoaded, (_, lorebook) => lorebook)
+  .on(lorebookChanged, (_, lorebook) => lorebook)
+  .on(lorebookCleared, () => null)
+  .reset(closeCard);
+
 export const $isDirty = createStore(false)
   .on(fieldChanged, () => true)
   .on(greetingValueChanged, () => true)
@@ -73,9 +84,12 @@ export const $isDirty = createStore(false)
   .on(greetingDuplicated, () => true)
   .on(greetingDeleted, () => true)
   .on(greetingMoved, () => true)
+  .on(lorebookChanged, () => true)
+  .on(lorebookCleared, () => true)
   .reset(draftLoaded)
   .reset(greetingsLoaded)
   .reset(draftSaved)
+  .reset(lorebookLoaded)
   .reset(closeCard);
 
 type GreetingsState = {

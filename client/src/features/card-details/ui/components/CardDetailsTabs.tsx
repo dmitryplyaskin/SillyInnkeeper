@@ -35,6 +35,7 @@ import { DraftMdField } from "./fields/DraftMdField";
 import { DraftNameField } from "./fields/DraftNameField";
 import { DraftTagsField } from "./fields/DraftTagsField";
 import { EditableGreetingsList } from "./EditableGreetingsList";
+import { LorebookEditor } from "./LorebookEditor";
 
 function JsonBlock({ value }: { value: unknown | null }) {
   const pretty = useMemo(() => {
@@ -145,6 +146,7 @@ export function CardDetailsTabs({
           <Tabs.Tab value="main">{t("cardDetails.tabsMain")}</Tabs.Tab>
           <Tabs.Tab value="alt">{t("cardDetails.tabsAlt")}</Tabs.Tab>
           <Tabs.Tab value="system">{t("cardDetails.tabsSystem")}</Tabs.Tab>
+          <Tabs.Tab value="lorebook">{t("cardDetails.tabsLorebook", "Lorebook")}</Tabs.Tab>
           <Tabs.Tab value="raw">{t("cardDetails.tabsRaw")}</Tabs.Tab>
         </Tabs.List>
 
@@ -311,6 +313,10 @@ export function CardDetailsTabs({
               disabled={disabled}
             />
           </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="lorebook" pt="md">
+          <LorebookEditor openedId={openedId} disabled={disabled} />
         </Tabs.Panel>
 
         <Tabs.Panel value="raw" pt="md">

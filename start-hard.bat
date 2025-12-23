@@ -90,13 +90,17 @@ popd
 
 echo.
 echo [5/7] Starting production server...
-echo Project will be available at: http://127.0.0.1:48912
+set "INNKEEPER_PORT_EFFECTIVE=%INNKEEPER_PORT%"
+if "%INNKEEPER_PORT_EFFECTIVE%"=="" set "INNKEEPER_PORT_EFFECTIVE=%PORT%"
+if "%INNKEEPER_PORT_EFFECTIVE%"=="" set "INNKEEPER_PORT_EFFECTIVE=48912"
+set "OPEN_URL=http://127.0.0.1:%INNKEEPER_PORT_EFFECTIVE%"
+echo Project will be available at: %OPEN_URL%
 echo Press Ctrl+C to stop the server
 echo.
 
 echo [6/7] Opening browser...
 timeout /t 3 /nobreak >nul
-start http://127.0.0.1:48912
+start %OPEN_URL%
 
 echo [7/7] Starting server with yarn...
 pushd server

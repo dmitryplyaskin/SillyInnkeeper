@@ -96,16 +96,18 @@ fi
 
 echo ""
 echo "[5/7] Starting production server..."
-echo "Project will be available at: http://127.0.0.1:48912"
+INNKEEPER_PORT_EFFECTIVE="${INNKEEPER_PORT:-${PORT:-48912}}"
+OPEN_URL="http://127.0.0.1:${INNKEEPER_PORT_EFFECTIVE}"
+echo "Project will be available at: ${OPEN_URL}"
 echo "Press Ctrl+C to stop the server"
 echo ""
 
 echo "[6/7] Opening browser..."
 sleep 3
 if command -v xdg-open >/dev/null 2>&1; then
-    xdg-open "http://127.0.0.1:48912"
+    xdg-open "${OPEN_URL}"
 elif command -v open >/dev/null 2>&1; then
-    open "http://127.0.0.1:48912"
+    open "${OPEN_URL}"
 else
     echo "Could not detect web browser to open URL automatically."
 fi &

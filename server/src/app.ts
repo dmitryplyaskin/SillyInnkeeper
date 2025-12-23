@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./config/env";
 import express, { Express } from "express";
 import Database from "better-sqlite3";
 import path from "node:path";

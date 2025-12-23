@@ -13,13 +13,22 @@ import image from "./image";
 import events from "./events";
 import st from "./st";
 import explorer from "./explorer";
+import lorebooks from "./lorebooks";
 
 const router = Router();
 
+function readPort(raw: string | undefined, fallback: number): number {
+  const v = Number.parseInt(String(raw ?? "").trim(), 10);
+  if (Number.isFinite(v) && v > 0 && v <= 65535) return v;
+  return fallback;
+}
+
+const stPort = readPort(process.env.ST_PORT, 8000);
+
 const DEFAULT_ALLOWED_ORIGINS = [
-  // default SillyTavern origins
-  "http://localhost:8000",
-  "http://127.0.0.1:8000",
+  // default SillyTavern origins (port can be customized)
+  `http://localhost:${stPort}`,
+  `http://127.0.0.1:${stPort}`,
 ];
 
 const allowedOrigins = new Set<string>([
@@ -73,5 +82,6 @@ router.use(image);
 router.use(events);
 router.use(st);
 router.use(explorer);
+router.use(lorebooks);
 
 export default router;
