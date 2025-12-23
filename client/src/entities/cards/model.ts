@@ -34,6 +34,7 @@ const loadCardsSilentFx = createEffect<LoadCardsParams, LoadCardsResult, Error>(
 export const $cards = createStore<CardListItem[]>([]);
 export const $error = createStore<string | null>(null);
 const $lastRequestId = createStore(0);
+const $lastQuery = createStore<CardsQuery | null>(null);
 
 // Объединение pending состояний
 export const $isLoading = combine(loadCardsFx.pending, (pending) => pending);
@@ -41,6 +42,7 @@ export const $isLoading = combine(loadCardsFx.pending, (pending) => pending);
 // Events
 export const loadCards = createEvent<CardsQuery | void>();
 export const loadCardsSilent = createEvent<CardsQuery | void>();
+export const refreshCardsSilent = createEvent<void>();
 const setCards = createEvent<CardListItem[]>();
 const setError = createEvent<string | null>();
 
@@ -50,6 +52,9 @@ $error.on(setError, (_, error) => error);
 $lastRequestId
   .on(loadCardsFx, (_, p) => p.requestId)
   .on(loadCardsSilentFx, (_, p) => p.requestId);
+
+$lastQuery.on(loadCards, (_, q) => (q ? (q as CardsQuery) : null));
+$lastQuery.on(loadCardsSilent, (_, q) => (q ? (q as CardsQuery) : null));
 
 // Связывание effects с событиями
 sample({
@@ -100,4 +105,12 @@ sample({
     query: query as CardsQuery | undefined,
   }),
   target: loadCardsSilentFx,
+});
+
+// Refresh cards using the last known query (best-effort).
+sample({
+  clock: refreshCardsSilent,
+  source: $lastQuery,
+  fn: (q) => (q ?? undefined),
+  target: loadCardsSilent,
 });

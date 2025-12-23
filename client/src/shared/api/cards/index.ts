@@ -145,6 +145,26 @@ export async function deleteCard(cardId: string): Promise<{ ok: true }> {
   return response.json();
 }
 
+export async function deleteCardsBulk(cardIds: string[]): Promise<{
+  ok: true;
+  deleted: number;
+  deleted_ids: string[];
+}> {
+  const response = await fetch(`/api/cards/bulk-delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ card_ids: cardIds }),
+  });
+
+  if (!response.ok) {
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(response.statusText);
+  }
+
+  return response.json();
+}
+
 export async function setCardMainFile(
   cardId: string,
   filePath: string | null

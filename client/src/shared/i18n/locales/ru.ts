@@ -401,6 +401,22 @@ const ru = {
     added: "Добавлено: {{count}}",
     removed: "Удалено: {{count}}",
   },
+  multiSelect: {
+    toggleOn: "Включить мультивыбор",
+    toggleOff: "Выключить мультивыбор",
+    delete: "Удалить",
+    selectedCount_one: "Выбрано: {{count}} карточка",
+    selectedCount_few: "Выбрано: {{count}} карточки",
+    selectedCount_many: "Выбрано: {{count}} карточек",
+    selectedCount_other: "Выбрано: {{count}} карточек",
+    confirmDeleteTitle: "Удалить выбранные карточки?",
+    confirmDeleteText: "Это действие нельзя отменить.",
+    confirmDeleteOk: "Удалить",
+    deleteOk_one: "Удалена {{count}} карточка",
+    deleteOk_few: "Удалены {{count}} карточки",
+    deleteOk_many: "Удалены {{count}} карточек",
+    deleteOk_other: "Удалены {{count}} карточек",
+  },
 } as const;
 
 export default ru;

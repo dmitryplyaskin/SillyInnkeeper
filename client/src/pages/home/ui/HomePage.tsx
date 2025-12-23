@@ -21,6 +21,7 @@ import {
 } from "@/features/view-settings";
 import { CardsGrid } from "@/features/cards-grid";
 import { PathsSettingsModal } from "@/features/paths-settings";
+import { MultiSelectControls } from "@/features/cards-multi-select";
 import {
   CardsFiltersPanel,
   applyFilters,
@@ -167,6 +168,8 @@ export function HomePage() {
           <CardsGrid />
         </Box>
       </AppShell.Main>
+
+      <MultiSelectControls />
 
       <Drawer
         opened={filtersOpened}

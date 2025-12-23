@@ -896,6 +896,93 @@ router.delete("/cards/:id/files", async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/cards/bulk-delete - удаление карточек списком (все файлы + БД)
+// IMPORTANT: keep this route before `/cards/:id` to avoid param match.
+router.post("/cards/bulk-delete", async (req: Request, res: Response) => {
+  try {
+    const raw = (req.body as unknown as { card_ids?: unknown } | null)?.card_ids;
+    const card_ids = Array.from(new Set(normalizeStringArray(raw)));
+
+    if (card_ids.length === 0) {
+      throw new AppError({ status: 400, code: "api.cards.invalid_card_ids" });
+    }
+
+    const db = getDb(req);
+
+    const placeholders = card_ids.map(() => "?").join(", ");
+
+    const cardRows = db
+      .prepare(
+        `
+        SELECT id, avatar_path
+        FROM cards
+        WHERE id IN (${placeholders})
+      `
+      )
+      .all(...card_ids) as Array<{ id: string; avatar_path: string | null }>;
+
+    if (cardRows.length !== card_ids.length) {
+      throw new AppError({ status: 404, code: "api.cards.some_not_found" });
+    }
+
+    const fileRows = db
+      .prepare(
+        `
+        SELECT card_id, file_path
+        FROM card_files
+        WHERE card_id IN (${placeholders})
+        ORDER BY file_birthtime ASC, file_path ASC
+      `
+      )
+      .all(...card_ids) as Array<{ card_id: string; file_path: string }>;
+
+    const filesByCardId = new Map<string, string[]>();
+    for (const id of card_ids) filesByCardId.set(id, []);
+    for (const r of fileRows) {
+      const p = typeof r.file_path === "string" ? r.file_path.trim() : "";
+      if (!p) continue;
+      const list = filesByCardId.get(r.card_id);
+      if (list) list.push(p);
+    }
+
+    // 1) Delete files first. If a critical filesystem error happens, do not touch DB.
+    for (const id of card_ids) {
+      const files = filesByCardId.get(id) ?? [];
+      for (const p of files) {
+        await unlink(p).catch((e: unknown) => {
+          const err = e as { code?: unknown } | null;
+          const code = typeof err?.code === "string" ? err.code : "";
+          if (code === "ENOENT" || code === "ENOTDIR") return;
+          throw e;
+        });
+      }
+    }
+
+    // 2) Remove cards from DB (card_files/card_tags are removed via cascade)
+    db.transaction(() => {
+      db.prepare(`DELETE FROM cards WHERE id IN (${placeholders})`).run(
+        ...card_ids
+      );
+    })();
+
+    // 3) Cleanup thumbnails (best-effort)
+    for (const row of cardRows) {
+      if (!row.avatar_path) continue;
+      const uuid = row.avatar_path.split("/").pop()?.replace(".webp", "");
+      if (!uuid) continue;
+      await deleteThumbnail(uuid).catch(() => undefined);
+    }
+
+    res.json({ ok: true, deleted: card_ids.length, deleted_ids: card_ids });
+  } catch (error) {
+    logger.errorKey(error, "api.cards.bulk_delete_failed");
+    return sendError(res, error, {
+      status: 500,
+      code: "api.cards.bulk_delete_failed",
+    });
+  }
+});
+
 // DELETE /api/cards/:id - удаление карточки полностью (все файлы + БД)
 router.delete("/cards/:id", async (req: Request, res: Response) => {
   try {

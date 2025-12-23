@@ -397,6 +397,18 @@ const en = {
     added: "Added: {{count}}",
     removed: "Removed: {{count}}",
   },
+  multiSelect: {
+    toggleOn: "Enable multi-select",
+    toggleOff: "Disable multi-select",
+    delete: "Delete",
+    selectedCount: "Selected: {{count}} card",
+    selectedCount_other: "Selected: {{count}} cards",
+    confirmDeleteTitle: "Delete selected cards?",
+    confirmDeleteText: "This action cannot be undone.",
+    confirmDeleteOk: "Delete",
+    deleteOk: "Deleted {{count}} card",
+    deleteOk_other: "Deleted {{count}} cards",
+  },
 } as const;
 
 export default en;
