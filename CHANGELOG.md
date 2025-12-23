@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/dmitryplyaskin/SillyInnkeeper/compare/v0.1.0...v0.2.0) (2025-12-23)
+
+
+### 🚀 New Features
+
+* add .env localhost and port config ([058ccde](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/058ccde567cc0e82d897d76bffe476ce549bc31b))
+* add help section in LorebookEditor with saving instructions and improve LorebookPicker clear functionality ([40def82](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/40def82242f2b3ef0a84d797a781ae7bf3b4f7f0))
+* enhance lorebook picker functionality with improved loading and query handling ([ec80ee8](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/ec80ee874ff488965839db6c670c85dcb75d91f8))
+* enhance LorebookEntryCard and LorebookSettings with new strategy and insertion position options; add scan depth and case sensitivity settings for improved lorebook management ([c022a43](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/c022a4318916d89643d8acbcf0fcfb06e0ddb14b))
+* lorebook frontend ([7a946b8](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/7a946b8b0726b5fd1aa8b21f6a3a82cd9628647a))
+* lorebook server api ([ae269f1](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/ae269f1d440d4328c462783741fe78721a70f0d8))
+
 ## [0.1.0](https://github.com/dmitryplyaskin/SillyInnkeeper/compare/v0.0.1...v0.1.0) (2025-12-15)
 
 
