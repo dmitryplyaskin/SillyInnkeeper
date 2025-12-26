@@ -25,7 +25,7 @@ export async function createApp(
   const app = express();
 
   // Middleware для парсинга JSON
-  app.use(express.json());
+  app.use(express.json({limit:"10mb"}));
 
   // Инициализация базы данных
   const db = await initializeDatabase({ dbPath: opts?.dbPath });
