@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { createCardsService } from "../../services/cards";
 import { logger } from "../../utils/logger";
 import type {
+  CardsFtsField,
   CardsSort,
   SearchCardsParams,
   TriState,
@@ -112,11 +113,67 @@ router.get("/cards", async (req: Request, res: Response) => {
       sortRaw === "created_at_desc" ||
       sortRaw === "created_at_asc" ||
       sortRaw === "name_asc" ||
-      sortRaw === "name_desc"
+      sortRaw === "name_desc" ||
+      sortRaw === "relevance"
         ? sortRaw
         : undefined;
 
     const name = parseString(req.query.name);
+    const q = parseString((req.query as any).q);
+    const qFieldsRaw = parseStringArray(req.query, "q_fields");
+
+    const extractSearchTokens = (input: string): string[] => {
+      // Split by any non-letter/non-number to align with FTS tokenization (unicode61).
+      // Example: "18-year-old" -> ["18", "year", "old"]
+      return input
+        .trim()
+        .split(/[^\p{L}\p{N}]+/gu)
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+    };
+
+    let q_fields: CardsFtsField[] | undefined;
+    if (q) {
+      if (q.length > 200) {
+        throw new AppError({ status: 400, code: "api.cards.invalid_search_query" });
+      }
+
+      const tokens = extractSearchTokens(q);
+      if (tokens.length === 0) {
+        throw new AppError({ status: 400, code: "api.cards.invalid_search_query" });
+      }
+
+      const allowed: ReadonlySet<string> = new Set([
+        "description",
+        "personality",
+        "scenario",
+        "first_mes",
+        "mes_example",
+        "creator_notes",
+        "system_prompt",
+        "post_history_instructions",
+        "alternate_greetings",
+        "group_only_greetings",
+      ]);
+
+      const normalizedFields = qFieldsRaw
+        .map((f) => f.trim())
+        .filter((f) => f.length > 0);
+
+      if (normalizedFields.length > 0) {
+        for (const f of normalizedFields) {
+          if (!allowed.has(f)) {
+            throw new AppError({
+              status: 400,
+              code: "api.cards.invalid_search_query",
+            });
+          }
+        }
+        q_fields = normalizedFields as CardsFtsField[];
+      } else {
+        q_fields = undefined; // means \"all\"
+      }
+    }
     const creators = parseStringArray(req.query, "creator");
     const spec_versions = parseStringArray(req.query, "spec_version");
     const tags = parseStringArray(req.query, "tags").map((t) =>
@@ -168,6 +225,8 @@ router.get("/cards", async (req: Request, res: Response) => {
       library_id: libraryId,
       sort,
       name,
+      q,
+      q_fields,
       creators: creators.length > 0 ? creators : undefined,
       spec_versions: spec_versions.length > 0 ? spec_versions : undefined,
       tags: tags.length > 0 ? tags : undefined,

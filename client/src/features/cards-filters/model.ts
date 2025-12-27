@@ -9,6 +9,7 @@ import { debounce } from "patronum/debounce";
 import { getCardsFilters } from "@/shared/api/cards";
 import type { CardsFiltersResponse } from "@/shared/types/cards-filters";
 import type {
+  CardsFtsField,
   CardsQuery,
   CardsSort,
   TriState,
@@ -18,6 +19,8 @@ import { loadCards, loadCardsSilent } from "@/entities/cards";
 export interface CardsFiltersState {
   sort: CardsSort;
   name: string;
+  q: string;
+  q_fields: CardsFtsField[];
   creator: string[];
   spec_version: string[];
   tags: string[];
@@ -39,6 +42,19 @@ export interface CardsFiltersState {
 const DEFAULT_FILTERS: CardsFiltersState = {
   sort: "created_at_desc",
   name: "",
+  q: "",
+  q_fields: [
+    "description",
+    "personality",
+    "scenario",
+    "first_mes",
+    "mes_example",
+    "creator_notes",
+    "system_prompt",
+    "post_history_instructions",
+    "alternate_greetings",
+    "group_only_greetings",
+  ],
   creator: [],
   spec_version: [],
   tags: [],
@@ -77,6 +93,16 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     ? toLocalDayEndMs(state.created_to)
     : undefined;
 
+  const q = state.q.trim();
+  const hasQ = q.length > 0;
+  const q_fields =
+    hasQ && state.q_fields.length > 0 ? state.q_fields : undefined;
+
+  // UX rule: if user selected "relevance" without q, keep UI selection but
+  // fall back to default server sort.
+  const sort: CardsSort | undefined =
+    state.sort === "relevance" && !hasQ ? "created_at_desc" : state.sort;
+
   const min = state.alternate_greetings_min;
   const hasAlt = state.has_alternate_greetings;
   // Логика:
@@ -87,8 +113,10 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     hasAlt === "1" ? Math.max(1, min) : hasAlt === "0" ? 0 : min;
 
   const query: CardsQuery = {
-    sort: state.sort,
+    sort,
     name: state.name,
+    q: hasQ ? q : undefined,
+    q_fields,
     creator: state.creator,
     spec_version: state.spec_version,
     tags: state.tags,
@@ -135,6 +163,8 @@ export const $filtersLoading = combine(loadCardsFiltersFx.pending, (p) => p);
 // Events
 export const setSort = createEvent<CardsSort>();
 export const setName = createEvent<string>();
+export const setQ = createEvent<string>();
+export const setQFields = createEvent<CardsFtsField[]>();
 export const setCreators = createEvent<string[]>();
 export const setSpecVersions = createEvent<string[]>();
 export const setTags = createEvent<string[]>();
@@ -158,6 +188,8 @@ export const applyFiltersSilent = createEvent<void>();
 $filters
   .on(setSort, (s, sort) => ({ ...s, sort }))
   .on(setName, (s, name) => ({ ...s, name }))
+  .on(setQ, (s, q) => ({ ...s, q }))
+  .on(setQFields, (s, q_fields) => ({ ...s, q_fields }))
   .on(setCreators, (s, creator) => ({ ...s, creator }))
   .on(setSpecVersions, (s, spec_version) => ({ ...s, spec_version }))
   .on(setTags, (s, tags) => ({ ...s, tags }))
@@ -234,11 +266,14 @@ sample({
 
 // Auto-apply:
 // - name changes are debounced
+// - q changes are debounced
 // - other changes apply immediately
 const nameDebounced = debounce({ source: setName, timeout: 450 });
+const qDebounced = debounce({ source: setQ, timeout: 450 });
 
 const immediateApplyClock = [
   setSort,
+  setQFields,
   setCreators,
   setSpecVersions,
   setTags,
@@ -266,6 +301,13 @@ sample({
 
 sample({
   clock: nameDebounced,
+  source: $filters,
+  fn: (state) => toQuery(state),
+  target: loadCards,
+});
+
+sample({
+  clock: qDebounced,
   source: $filters,
   fn: (state) => toQuery(state),
   target: loadCards,
