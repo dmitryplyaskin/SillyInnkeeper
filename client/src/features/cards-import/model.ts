@@ -1,4 +1,10 @@
-import { combine, createEffect, createEvent, createStore, sample } from "effector";
+import {
+  combine,
+  createEffect,
+  createEvent,
+  createStore,
+  sample,
+} from "effector";
 import { notifications } from "@mantine/notifications";
 import i18n from "@/shared/i18n/i18n";
 import { pickFolder } from "@/shared/api/explorer";
@@ -56,7 +62,11 @@ export const pickSourceFolderFx = createEffect<void, string | null, Error>(
 );
 
 export const startImportFx = createEffect<
-  { sourceFolderPath: string; importMode: ImportMode; duplicatesMode: DuplicatesMode },
+  {
+    sourceFolderPath: string;
+    importMode: ImportMode;
+    duplicatesMode: DuplicatesMode;
+  },
   { ok: true; started: true },
   Error
 >(async (params) => {
@@ -81,7 +91,10 @@ export const $importSettings = createStore<ImportSettings>(
   .on(importModeChanged, (s, v) => ({ ...s, importMode: v }))
   .on(duplicatesModeChanged, (s, v) => ({ ...s, duplicatesMode: v }));
 
-export const $error = createStore<string | null>(null).on(setError, (_, v) => v);
+export const $error = createStore<string | null>(null).on(
+  setError,
+  (_, v) => v
+);
 
 export const $isLoading = combine(
   loadImportSettingsFx.pending,
@@ -101,7 +114,6 @@ export const $isStartingImport = combine(
   (pending) => pending
 );
 
-// Open -> load persisted modal settings.
 sample({
   clock: openImportModal,
   target: loadImportSettingsFx,
@@ -133,7 +145,8 @@ sample({
 
 sample({
   clock: pickSourceFolderFx.doneData,
-  filter: (path): path is string => typeof path === "string" && path.trim().length > 0,
+  filter: (path): path is string =>
+    typeof path === "string" && path.trim().length > 0,
   target: sourceFolderPathChanged,
 });
 
@@ -161,7 +174,18 @@ sample({
     const hasTarget = Boolean(app?.cardsFolderPath?.trim());
     return hasSource && hasTarget;
   },
-  fn: ({ settings }) => settings,
+  fn: ({ settings }) => ({
+    sourceFolderPath: settings.sourceFolderPath!.trim(),
+    importMode: settings.importMode,
+    duplicatesMode: settings.duplicatesMode,
+  }),
+  target: startImportFx,
+});
+
+// Persist settings on import click as well (best-effort), but does not gate import start.
+sample({
+  clock: importRequested,
+  source: $importSettings,
   target: saveImportSettingsFx,
 });
 
@@ -174,22 +198,13 @@ sample({
     return !hasSource || !hasTarget;
   },
   fn: ({ settings, app }) => {
-    if (!app?.cardsFolderPath) return i18n.t("cardsImport.cardsFolderNotConfigured");
-    if (!settings.sourceFolderPath) return i18n.t("cardsImport.sourceFolderRequired");
+    if (!app?.cardsFolderPath)
+      return i18n.t("cardsImport.cardsFolderNotConfigured");
+    if (!settings.sourceFolderPath)
+      return i18n.t("cardsImport.sourceFolderRequired");
     return i18n.t("errors.generic");
   },
   target: setError,
-});
-
-sample({
-  clock: saveImportSettingsFx.doneData,
-  filter: (s) => Boolean(s.sourceFolderPath && s.sourceFolderPath.trim().length > 0),
-  fn: (s) => ({
-    sourceFolderPath: s.sourceFolderPath as string,
-    importMode: s.importMode,
-    duplicatesMode: s.duplicatesMode,
-  }),
-  target: startImportFx,
 });
 
 sample({
@@ -210,5 +225,3 @@ sample({
   fn: (e) => e.message,
   target: setError,
 });
-
-
