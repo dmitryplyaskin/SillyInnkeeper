@@ -43,4 +43,5 @@ export interface CardsQuery {
   alternate_greetings_min?: number;
   prompt_tokens_min?: number;
   prompt_tokens_max?: number;
+  patterns?: TriState;
 }

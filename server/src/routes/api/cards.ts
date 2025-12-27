@@ -268,6 +268,7 @@ router.get("/cards", async (req: Request, res: Response) => {
       has_alternate_greetings: parseTriState(
         (req.query as any).has_alternate_greetings
       ),
+      patterns: parseTriState((req.query as any).patterns),
       alternate_greetings_min:
         typeof alternateGreetingsMin === "number" && alternateGreetingsMin >= 0
           ? alternateGreetingsMin

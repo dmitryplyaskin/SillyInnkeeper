@@ -22,6 +22,7 @@ import {
   $filtersData,
   $filtersError,
   $filtersLoading,
+  $patternRulesStatus,
   loadCardsFiltersFx,
   resetFilters,
   setAlternateGreetingsMin,
@@ -45,8 +46,10 @@ import {
   setSort,
   setSpecVersions,
   setTags,
+  setPatterns,
 } from "../model";
 import type { CardsFtsField, TriState } from "@/shared/types/cards-query";
+import { openPatternRulesModal } from "@/features/pattern-rules";
 
 function InfoTip({ text }: { text: string }) {
   const { t } = useTranslation();
@@ -72,7 +75,9 @@ export function CardsFiltersPanel() {
     filtersData,
     filtersError,
     filtersLoading,
+    patternRulesStatus,
     loadFilters,
+    onOpenPatternRules,
     onSetSort,
     onSetName,
     onSetQ,
@@ -94,13 +99,16 @@ export function CardsFiltersPanel() {
     onSetHasCharacterBook,
     onSetHasAlternateGreetings,
     onSetAlternateGreetingsMin,
+    onSetPatterns,
     onReset,
   ] = useUnit([
     $filters,
     $filtersData,
     $filtersError,
     $filtersLoading,
+    $patternRulesStatus,
     loadCardsFiltersFx,
+    openPatternRulesModal,
     setSort,
     setName,
     setQ,
@@ -122,6 +130,7 @@ export function CardsFiltersPanel() {
     setHasCharacterBook,
     setHasAlternateGreetings,
     setAlternateGreetingsMin,
+    setPatterns,
     resetFilters,
   ]);
 
@@ -190,6 +199,15 @@ export function CardsFiltersPanel() {
     filtersData.spec_versions
   );
   const tagOptions = mergeOptions(filters.tags, filtersData.tags);
+
+  const patternsEnabled = filters.patterns === "1";
+  const patternsAvailable =
+    patternRulesStatus == null ? true : patternRulesStatus.hasEnabledRules;
+  const patternsDisabled = !patternsAvailable;
+  const patternsNeedsRun =
+    patternsEnabled &&
+    patternRulesStatus != null &&
+    patternRulesStatus.lastReady == null;
 
   return (
     <Stack gap="md">
@@ -299,6 +317,31 @@ export function CardsFiltersPanel() {
           </Group>
         }
       />
+
+      <Group gap="xs" align="center" wrap="wrap">
+        <Checkbox
+          label={t("filters.patterns")}
+          checked={patternsEnabled}
+          disabled={patternsDisabled}
+          onChange={(e) => onSetPatterns(e.currentTarget.checked ? "1" : "any")}
+        />
+        <InfoTip text={t("filters.patternsTip")} />
+        <Button
+          variant="subtle"
+          size="xs"
+          onClick={() => onOpenPatternRules()}
+          aria-label={t("filters.openPatternRulesAria")}
+        >
+          {t("filters.openPatternRules")}
+        </Button>
+      </Group>
+      <Text size="sm" c="dimmed">
+        {patternsDisabled
+          ? t("filters.patternsDisabled")
+          : patternsNeedsRun
+          ? t("filters.patternsNeedsRun")
+          : t("filters.patternsHint")}
+      </Text>
 
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <MultiSelect

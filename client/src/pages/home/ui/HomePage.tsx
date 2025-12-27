@@ -23,6 +23,7 @@ import { CardsGrid } from "@/features/cards-grid";
 import { PathsSettingsModal } from "@/features/paths-settings";
 import { MultiSelectControls } from "@/features/cards-multi-select";
 import { CardsImportModal, CardsImportTopbarButton } from "@/features/cards-import";
+import { PatternRulesModal, PatternRulesTopbarButton } from "@/features/pattern-rules";
 import {
   CardsFiltersPanel,
   applyFilters,
@@ -128,6 +129,7 @@ export function HomePage() {
 
             <Group gap="sm" style={{ flexShrink: 0 }}>
               <CardsImportTopbarButton />
+              <PatternRulesTopbarButton />
               <ActionIcon
                 variant="light"
                 size="lg"
@@ -189,6 +191,7 @@ export function HomePage() {
       />
 
       <CardsImportModal />
+      <PatternRulesModal />
 
       <CardDetailsDrawer />
     </AppShell>

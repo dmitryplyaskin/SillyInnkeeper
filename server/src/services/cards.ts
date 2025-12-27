@@ -62,6 +62,7 @@ export interface SearchCardsParams {
   alternate_greetings_min?: number;
   prompt_tokens_min?: number;
   prompt_tokens_max?: number;
+  patterns?: TriState;
 }
 
 /**
@@ -201,6 +202,39 @@ export class CardsService {
     if (tokensMax > 0) {
       where.push(`c.prompt_tokens_est <= ?`);
       sqlParams.push(tokensMax);
+    }
+
+    // pattern matches filter (cached)
+    const patterns = params.patterns ?? "any";
+    if (patterns !== "any") {
+      const lastReady = this.dbService.queryOne<{ rules_hash: string }>(
+        `
+        SELECT rules_hash
+        FROM pattern_rules_cache
+        WHERE status = 'ready'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `
+      );
+      const rulesHash =
+        typeof lastReady?.rules_hash === "string" && lastReady.rules_hash.trim().length > 0
+          ? lastReady.rules_hash.trim()
+          : null;
+
+      if (!rulesHash) {
+        if (patterns === "1") return [];
+        // patterns === "0": if no cache exists yet, treat as "no matches known" and return all.
+      } else if (patterns === "1") {
+        where.push(
+          `EXISTS (SELECT 1 FROM pattern_matches pm WHERE pm.rules_hash = ? AND pm.card_id = c.id)`
+        );
+        sqlParams.push(rulesHash);
+      } else if (patterns === "0") {
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM pattern_matches pm WHERE pm.rules_hash = ? AND pm.card_id = c.id)`
+        );
+        sqlParams.push(rulesHash);
+      }
     }
 
     const joinSql = (() => {
