@@ -5,6 +5,10 @@ import type {
   CardsScanStartedEvent,
   CardsImportFinishedEvent,
   StImportResultEvent,
+  PatternsProgressEvent,
+  PatternsRunDoneEvent,
+  PatternsRunFailedEvent,
+  PatternsRunStartedEvent,
 } from "@/shared/types/events";
 
 export type EventsClient = {
@@ -18,6 +22,10 @@ export function createEventsClient(handlers: {
   onScanFinished?: (evt: CardsScanFinishedEvent) => void;
   onImportFinished?: (evt: CardsImportFinishedEvent) => void;
   onStImportResult?: (evt: StImportResultEvent) => void;
+  onPatternsRunStarted?: (evt: PatternsRunStartedEvent) => void;
+  onPatternsProgress?: (evt: PatternsProgressEvent) => void;
+  onPatternsRunDone?: (evt: PatternsRunDoneEvent) => void;
+  onPatternsRunFailed?: (evt: PatternsRunFailedEvent) => void;
   onHello?: (data: unknown) => void;
   onError?: (error: unknown) => void;
 }): EventsClient {
@@ -86,6 +94,42 @@ export function createEventsClient(handlers: {
     }
   };
 
+  const onPatternsRunStarted = (e: MessageEvent) => {
+    try {
+      const data = JSON.parse(String(e.data)) as PatternsRunStartedEvent;
+      handlers.onPatternsRunStarted?.(data);
+    } catch (err) {
+      handlers.onError?.(err);
+    }
+  };
+
+  const onPatternsProgress = (e: MessageEvent) => {
+    try {
+      const data = JSON.parse(String(e.data)) as PatternsProgressEvent;
+      handlers.onPatternsProgress?.(data);
+    } catch (err) {
+      handlers.onError?.(err);
+    }
+  };
+
+  const onPatternsRunDone = (e: MessageEvent) => {
+    try {
+      const data = JSON.parse(String(e.data)) as PatternsRunDoneEvent;
+      handlers.onPatternsRunDone?.(data);
+    } catch (err) {
+      handlers.onError?.(err);
+    }
+  };
+
+  const onPatternsRunFailed = (e: MessageEvent) => {
+    try {
+      const data = JSON.parse(String(e.data)) as PatternsRunFailedEvent;
+      handlers.onPatternsRunFailed?.(data);
+    } catch (err) {
+      handlers.onError?.(err);
+    }
+  };
+
   es.addEventListener("hello", onHello as any);
   es.addEventListener("cards:resynced", onResynced as any);
   es.addEventListener("cards:scan_started", onScanStarted as any);
@@ -93,6 +137,10 @@ export function createEventsClient(handlers: {
   es.addEventListener("cards:scan_finished", onScanFinished as any);
   es.addEventListener("cards:import_finished", onImportFinished as any);
   es.addEventListener("st:import_result", onStImportResult as any);
+  es.addEventListener("patterns:run_started", onPatternsRunStarted as any);
+  es.addEventListener("patterns:progress", onPatternsProgress as any);
+  es.addEventListener("patterns:run_done", onPatternsRunDone as any);
+  es.addEventListener("patterns:run_failed", onPatternsRunFailed as any);
 
   es.onerror = (err) => {
     handlers.onError?.(err);
@@ -108,6 +156,10 @@ export function createEventsClient(handlers: {
         es.removeEventListener("cards:scan_finished", onScanFinished as any);
         es.removeEventListener("cards:import_finished", onImportFinished as any);
         es.removeEventListener("st:import_result", onStImportResult as any);
+        es.removeEventListener("patterns:run_started", onPatternsRunStarted as any);
+        es.removeEventListener("patterns:progress", onPatternsProgress as any);
+        es.removeEventListener("patterns:run_done", onPatternsRunDone as any);
+        es.removeEventListener("patterns:run_failed", onPatternsRunFailed as any);
         es.close();
       } catch {
         // ignore

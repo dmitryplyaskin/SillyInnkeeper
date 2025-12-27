@@ -7,6 +7,10 @@ import type {
   CardsScanStartedEvent,
   CardsImportFinishedEvent,
   StImportResultEvent,
+  PatternsProgressEvent,
+  PatternsRunDoneEvent,
+  PatternsRunFailedEvent,
+  PatternsRunStartedEvent,
 } from "@/shared/types/events";
 import {
   applyFilters,
@@ -26,10 +30,15 @@ const scanFinished = createEvent<CardsScanFinishedEvent>();
 const connected = createEvent<void>();
 const stImportResult = createEvent<StImportResultEvent>();
 const importFinished = createEvent<CardsImportFinishedEvent>();
+const patternsRunStarted = createEvent<PatternsRunStartedEvent>();
+const patternsProgress = createEvent<PatternsProgressEvent>();
+const patternsRunDone = createEvent<PatternsRunDoneEvent>();
+const patternsRunFailed = createEvent<PatternsRunFailedEvent>();
 
 let client: EventsClient | null = null;
 
 const SCAN_NOTIFICATION_ID = "scan-status";
+const PATTERNS_NOTIFICATION_ID = "patterns-status";
 let scanPollTimer: ReturnType<typeof setInterval> | null = null;
 
 function shortFolderLabel(folderPath: string): string {
@@ -47,6 +56,10 @@ startLiveSync.watch(() => {
     onScanFinished: (evt) => scanFinished(evt),
     onImportFinished: (evt) => importFinished(evt),
     onStImportResult: (evt) => stImportResult(evt),
+    onPatternsRunStarted: (evt) => patternsRunStarted(evt),
+    onPatternsProgress: (evt) => patternsProgress(evt),
+    onPatternsRunDone: (evt) => patternsRunDone(evt),
+    onPatternsRunFailed: (evt) => patternsRunFailed(evt),
     onError: () => {
       // браузер сам переподключается; лог/UX добавим позже при необходимости
     },
@@ -181,6 +194,58 @@ importFinished.watch((evt) => {
 
   // Make sure UI refreshes soon even if scan events are delayed.
   applyFiltersSilent();
+});
+
+// Patterns scan progress (via Notifications)
+patternsRunStarted.watch((evt) => {
+  const total = Math.max(0, evt.total_cards);
+  notifications.show({
+    id: PATTERNS_NOTIFICATION_ID,
+    title: i18n.t("patternRules.progressTitle"),
+    message: i18n.t("patternRules.progressStart", { done: 0, total }),
+    loading: true,
+    autoClose: false,
+    withCloseButton: false,
+  });
+});
+
+patternsProgress.watch((evt) => {
+  const total = Math.max(0, evt.total_cards);
+  const done = Math.min(Math.max(0, evt.processed_cards), total || evt.processed_cards);
+  const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+  notifications.update({
+    id: PATTERNS_NOTIFICATION_ID,
+    title: i18n.t("patternRules.progressTitle"),
+    message: i18n.t("patternRules.progress", { done, total, percent }),
+    loading: true,
+    autoClose: false,
+    withCloseButton: false,
+  });
+});
+
+patternsRunDone.watch((evt) => {
+  notifications.update({
+    id: PATTERNS_NOTIFICATION_ID,
+    title: i18n.t("patternRules.doneTitle"),
+    message: i18n.t("patternRules.doneMessage", { matched: evt.matched_cards }),
+    loading: false,
+    autoClose: 3500,
+    withCloseButton: true,
+    color: "green",
+  });
+  applyFiltersSilent();
+});
+
+patternsRunFailed.watch((evt) => {
+  notifications.update({
+    id: PATTERNS_NOTIFICATION_ID,
+    title: i18n.t("patternRules.failedTitle"),
+    message: i18n.t("patternRules.failedMessage", { error: evt.error }),
+    loading: false,
+    autoClose: 6000,
+    withCloseButton: true,
+    color: "red",
+  });
 });
 
 cardsResynced.watch((evt) => {

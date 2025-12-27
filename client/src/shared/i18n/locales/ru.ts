@@ -42,6 +42,10 @@ const ru = {
     loadLorebook: "Ошибка загрузки лорбука",
     saveLorebook: "Ошибка сохранения лорбука",
     deleteLorebook: "Ошибка удаления лорбука",
+    loadPatternRules: "Ошибка загрузки правил паттернов",
+    savePatternRules: "Ошибка сохранения правил паттернов",
+    loadPatternRulesStatus: "Ошибка загрузки статуса поиска по паттернам",
+    runPatternRules: "Ошибка запуска поиска по паттернам",
   },
   empty: {
     dash: "—",
@@ -146,6 +150,14 @@ const ru = {
     hasScenario: "Сценарий",
     hasMesExample: "Пример сообщений",
     hasCharacterBook: "Лорбук",
+    patterns: "Фильтр по паттернам",
+    openPatternRulesAria: "Открыть правила паттернов",
+    openPatternRules: "Правила",
+    patternsDisabled: "Добавьте и включите хотя бы одно правило",
+    patternsNeedsRun: "Поиск по паттернам ещё не запускался — нажмите «Запустить поиск» в правилах",
+    patternsHint: "Показывает только карточки, где есть совпадения по последнему успешному запуску",
+    patternsTip:
+      "Работает по результату последнего успешного запуска (кэш). Откройте правила, добавьте/отредактируйте regex и нажмите «Запустить поиск».",
   },
   card: {
     thumbnailAltFallback: "Миниатюра карточки",
@@ -469,6 +481,44 @@ const ru = {
     importFinishedTitle: "Импорт карточек завершён",
     importFinishedMessage:
       "Импортировано: {{imported}} • Дубли пропущены: {{skippedDuplicates}} • Ошибки парсинга: {{skippedParseErrors}} • Ошибки копирования: {{copyFailed}} • Удалено оригиналов: {{deletedOriginals}} • Ошибки удаления: {{deleteFailed}} • {{seconds}}с",
+  },
+  patternRules: {
+    openTooltip: "Правила/Паттерны",
+    openAria: "Открыть правила паттернов",
+    title: "Правила паттернов",
+    description:
+      "Задайте регулярные выражения для поиска проблемных конструкций в тексте карточек. Поиск запускается вручную и кэшируется.",
+    searchModeHint:
+      "Подсказка: можно ввести обычную строку (сработает как поиск по подстроке) или полноценный regex. Регистр настраивается флагами (например, добавьте “i”).",
+    addRule: "Добавить правило",
+    run: "Запустить поиск",
+    runConfirm:
+      "Поиск может занять время на больших библиотеках. Запустить пересчёт?",
+    noRulesHint: "Правил пока нет. Добавьте хотя бы одно.",
+    lastReady: "Последний успешный запуск: {{createdAt}}",
+    ruleLabel: "Правило #{{index}}",
+    deleteRuleAria: "Удалить правило",
+    enabled: "Включено",
+    pattern: "Regex",
+    patternPlaceholder: "Например: \\{\\{\\{char\\}\\}\\}",
+    flags: "Флаги",
+    savedTitle: "Правила паттернов",
+    savedMessage: "Правила сохранены",
+    runStartedTitle: "Поиск по паттернам",
+    runPendingMessage: "Запускаем…",
+    runStartedMessage: "Запущен. Прогресс появится в уведомлениях.",
+    progressTitle: "Поиск по паттернам",
+    progressStart: "0/{{total}} (0%)",
+    progress: "{{done}}/{{total}} ({{percent}}%)",
+    doneTitle: "Поиск по паттернам завершён",
+    doneMessage: "Совпадений найдено у карточек: {{matched}}",
+    failedTitle: "Поиск по паттернам",
+    failedMessage: "Ошибка: {{error}}",
+    validation: {
+      patternRequired: "Укажите regex (для включённого правила)",
+      flagsInvalid: "Некорректные флаги (допустимы: d g i m s u v y)",
+      fixErrors: "Исправьте ошибки в правилах перед сохранением",
+    },
   },
 } as const;
 

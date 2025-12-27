@@ -16,6 +16,7 @@ import st from "./st";
 import explorer from "./explorer";
 import lorebooks from "./lorebooks";
 import importSettings from "./import-settings";
+import patternRules from "./pattern-rules";
 
 const router = Router();
 
@@ -87,5 +88,6 @@ router.use(st);
 router.use(explorer);
 router.use(lorebooks);
 router.use(importSettings);
+router.use(patternRules);
 
 export default router;
