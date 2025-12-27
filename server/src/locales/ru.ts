@@ -76,6 +76,7 @@ const ru = {
 
   "api.cards.invalid_created_from": "Некорректный created_from",
   "api.cards.invalid_created_to": "Некорректный created_to",
+  "api.cards.invalid_search_query": "Некорректный поисковый запрос",
   "api.cards.list_failed": "Не удалось получить список карточек",
   "api.cards.get_failed": "Не удалось получить карточку",
   "api.cards.not_found": "Карточка не найдена",
@@ -88,6 +89,9 @@ const ru = {
   "api.cards.some_not_found": "Некоторые карточки не найдены",
   "api.cards.bulk_delete_failed": "Не удалось удалить выбранные карточки",
   "api.export.invalid_data_json": "Некорректные данные карточки для экспорта",
+
+  "api.db.fts5_not_available":
+    "Полнотекстовый поиск недоступен (FTS5 отсутствует в сборке SQLite)",
 
   // lorebooks API
   "api.lorebooks.list_failed": "Не удалось получить список лорбуков",

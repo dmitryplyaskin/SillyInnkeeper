@@ -301,6 +301,23 @@ export class ScanService {
           ).length
         : 0;
 
+      const normalizeStringArrayToText = (value: unknown): string | null => {
+        if (!Array.isArray(value)) return null;
+        const parts = value
+          .map((v) => (typeof v === "string" ? v : String(v)))
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+        if (parts.length === 0) return null;
+        return parts.join("\n");
+      };
+
+      const alternateGreetingsText = normalizeStringArrayToText(
+        extractedData.alternate_greetings
+      );
+      const groupOnlyGreetingsText = normalizeStringArrayToText(
+        (extractedData as any).group_only_greetings
+      );
+
       // Обеспечиваем существование тегов в таблице tags
       if (normalizedTags.length > 0) {
         const tagService = createTagService(this.dbService.getDatabase());
@@ -338,6 +355,8 @@ export class ScanService {
               creator_notes = ?,
               system_prompt = ?,
               post_history_instructions = ?,
+              alternate_greetings_text = ?,
+              group_only_greetings_text = ?,
               alternate_greetings_count = ?,
               has_creator_notes = ?,
               has_system_prompt = ?,
@@ -366,6 +385,8 @@ export class ScanService {
               creatorNotes,
               systemPrompt,
               postHistoryInstructions,
+              alternateGreetingsText,
+              groupOnlyGreetingsText,
               alternateGreetingsCount,
               hasCreatorNotes,
               hasSystemPrompt,
@@ -424,6 +445,8 @@ export class ScanService {
                   creator_notes,
                   system_prompt,
                   post_history_instructions,
+                  alternate_greetings_text,
+                  group_only_greetings_text,
                   alternate_greetings_count,
                   has_creator_notes,
                   has_system_prompt,
@@ -433,7 +456,7 @@ export class ScanService {
                   has_mes_example,
                   has_character_book,
                   prompt_tokens_est
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                   cardId,
                   this.libraryId,
@@ -453,6 +476,8 @@ export class ScanService {
                   creatorNotes,
                   systemPrompt,
                   postHistoryInstructions,
+                  alternateGreetingsText,
+                  groupOnlyGreetingsText,
                   alternateGreetingsCount,
                   hasCreatorNotes,
                   hasSystemPrompt,
@@ -505,6 +530,20 @@ export class ScanService {
             dbService.execute(
               `UPDATE cards SET avatar_path = COALESCE(avatar_path, ?) WHERE id = ?`,
               [avatarPath, cardId]
+            );
+          }
+
+          // Also backfill greetings_text for older DBs / early migrations (best-effort).
+          if (isDuplicateByHash) {
+            dbService.execute(
+              `
+              UPDATE cards
+              SET
+                alternate_greetings_text = COALESCE(alternate_greetings_text, ?),
+                group_only_greetings_text = COALESCE(group_only_greetings_text, ?)
+              WHERE id = ?
+            `,
+              [alternateGreetingsText, groupOnlyGreetingsText, cardId]
             );
           }
 

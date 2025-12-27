@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import { createDatabaseService, DatabaseService } from "./database";
+import { AppError } from "../errors/app-error";
 
 export interface CardListItem {
   id: string;
@@ -21,12 +22,27 @@ export type CardsSort =
   | "created_at_desc"
   | "created_at_asc"
   | "name_asc"
-  | "name_desc";
+  | "name_desc"
+  | "relevance";
+
+export type CardsFtsField =
+  | "description"
+  | "personality"
+  | "scenario"
+  | "first_mes"
+  | "mes_example"
+  | "creator_notes"
+  | "system_prompt"
+  | "post_history_instructions"
+  | "alternate_greetings"
+  | "group_only_greetings";
 
 export interface SearchCardsParams {
   library_id?: string;
   sort?: CardsSort;
   name?: string;
+  q?: string;
+  q_fields?: CardsFtsField[];
   creators?: string[];
   spec_versions?: string[];
   tags?: string[]; // rawName (normalized)
@@ -66,7 +82,12 @@ export class CardsService {
     const where: string[] = [];
     const sqlParams: unknown[] = [];
 
+    const qRaw = typeof params.q === "string" ? params.q.trim() : "";
+    const hasQ = qRaw.length > 0;
+
     const sort = params.sort ?? "created_at_desc";
+    const effectiveSort: Exclude<CardsSort, "relevance"> | "relevance" =
+      sort === "relevance" && !hasQ ? "created_at_desc" : sort;
 
     if (params.library_id && params.library_id.trim().length > 0) {
       where.push(`c.library_id = ?`);
@@ -177,10 +198,71 @@ export class CardsService {
       sqlParams.push(tokensMax);
     }
 
+    const joinSql = (() => {
+      if (!hasQ) return "";
+      const exists = this.dbService.queryOne<{ ok: number }>(
+        `SELECT 1 as ok FROM sqlite_master WHERE type='table' AND name='cards_fts' LIMIT 1`
+      );
+      if (!exists?.ok) {
+        throw new AppError({ status: 500, code: "api.db.fts5_not_available" });
+      }
+      return `JOIN cards_fts ON cards_fts.rowid = c.rowid`;
+    })();
+
+    if (hasQ) {
+      const maxLen = 200;
+      if (qRaw.length > maxLen) {
+        throw new AppError({ status: 400, code: "api.cards.invalid_search_query" });
+      }
+
+      const extractSearchTokens = (input: string): string[] => {
+        return input
+          .trim()
+          .split(/[^\p{L}\p{N}]+/gu)
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0);
+      };
+
+      const tokens = extractSearchTokens(qRaw).slice(0, 12);
+
+      if (tokens.length === 0) {
+        throw new AppError({ status: 400, code: "api.cards.invalid_search_query" });
+      }
+
+      // Quote each token to avoid treating keywords like OR/NOT as operators
+      // and reduce "fts syntax error" surface.
+      const terms = tokens.map((t) => `"${t}*"`).join(" ");
+
+      const requestedFields = Array.isArray(params.q_fields)
+        ? (params.q_fields as CardsFtsField[]).filter((f) => typeof f === "string")
+        : [];
+
+      const fieldToColumn = (f: CardsFtsField): string => {
+        if (f === "alternate_greetings") return "alternate_greetings_text";
+        if (f === "group_only_greetings") return "group_only_greetings_text";
+        return f;
+      };
+
+      const matchQuery = (() => {
+        if (!requestedFields || requestedFields.length === 0) {
+          return terms;
+        }
+        const cols = requestedFields.map((f) => fieldToColumn(f));
+        return cols.map((c) => `${c}:(${terms})`).join(" OR ");
+      })();
+
+      where.push(`cards_fts MATCH ?`);
+      sqlParams.push(matchQuery);
+    }
+
     const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
     const orderBy = (() => {
-      switch (sort) {
+      if (hasQ && (effectiveSort === "relevance" || params.sort == null)) {
+        return `ORDER BY bm25(cards_fts) ASC`;
+      }
+
+      switch (effectiveSort) {
         case "created_at_asc":
           return `ORDER BY c.created_at ASC`;
         case "name_asc":
@@ -220,6 +302,7 @@ export class CardsService {
           )
         ) as file_path
       FROM cards c
+      ${joinSql}
       ${whereSql}
       ${orderBy}
     `;

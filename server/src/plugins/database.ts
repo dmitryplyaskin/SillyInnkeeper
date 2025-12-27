@@ -169,6 +169,17 @@ function initializeSchema(db: Database.Database): void {
     "post_history_instructions",
     "post_history_instructions TEXT"
   );
+  // cards: агрегированные greetings для полнотекстового поиска (FTS)
+  addColumnIfMissing(
+    "cards",
+    "alternate_greetings_text",
+    "alternate_greetings_text TEXT"
+  );
+  addColumnIfMissing(
+    "cards",
+    "group_only_greetings_text",
+    "group_only_greetings_text TEXT"
+  );
   // cards: возможность вручную выбрать "основной" файл (если NULL — берём самый старый по file_birthtime)
   addColumnIfMissing("cards", "primary_file_path", "primary_file_path TEXT");
   addColumnIfMissing(
@@ -241,6 +252,186 @@ function initializeSchema(db: Database.Database): void {
     CREATE UNIQUE INDEX IF NOT EXISTS ux_cards_library_hash
     ON cards(library_id, content_hash);
   `);
+
+  // --- FTS5: cards_fts (external content) ---
+  // We keep this best-effort: if the SQLite build doesn't include FTS5,
+  // app should still work without full-text search.
+  try {
+    db.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS cards_fts USING fts5(
+        description,
+        personality,
+        scenario,
+        first_mes,
+        mes_example,
+        creator_notes,
+        system_prompt,
+        post_history_instructions,
+        alternate_greetings_text,
+        group_only_greetings_text,
+        content='cards',
+        content_rowid='rowid',
+        tokenize='unicode61 remove_diacritics 2',
+        prefix='2 3 4'
+      );
+    `);
+
+    // Triggers to keep cards_fts in sync with cards.
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS cards_ai AFTER INSERT ON cards BEGIN
+        INSERT INTO cards_fts(
+          rowid,
+          description,
+          personality,
+          scenario,
+          first_mes,
+          mes_example,
+          creator_notes,
+          system_prompt,
+          post_history_instructions,
+          alternate_greetings_text,
+          group_only_greetings_text
+        ) VALUES (
+          new.rowid,
+          new.description,
+          new.personality,
+          new.scenario,
+          new.first_mes,
+          new.mes_example,
+          new.creator_notes,
+          new.system_prompt,
+          new.post_history_instructions,
+          new.alternate_greetings_text,
+          new.group_only_greetings_text
+        );
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS cards_ad AFTER DELETE ON cards BEGIN
+        INSERT INTO cards_fts(cards_fts, rowid) VALUES('delete', old.rowid);
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS cards_au AFTER UPDATE ON cards BEGIN
+        INSERT INTO cards_fts(cards_fts, rowid) VALUES('delete', old.rowid);
+        INSERT INTO cards_fts(
+          rowid,
+          description,
+          personality,
+          scenario,
+          first_mes,
+          mes_example,
+          creator_notes,
+          system_prompt,
+          post_history_instructions,
+          alternate_greetings_text,
+          group_only_greetings_text
+        ) VALUES (
+          new.rowid,
+          new.description,
+          new.personality,
+          new.scenario,
+          new.first_mes,
+          new.mes_example,
+          new.creator_notes,
+          new.system_prompt,
+          new.post_history_instructions,
+          new.alternate_greetings_text,
+          new.group_only_greetings_text
+        );
+      END;
+    `);
+
+    const ftsBackfillKey = "fts5_cards_v1_backfill_done";
+    const isBackfillDone = db
+      .prepare(`SELECT value FROM settings WHERE key = ? LIMIT 1`)
+      .get(ftsBackfillKey) as { value?: string } | undefined;
+
+    if ((isBackfillDone?.value ?? "").trim() !== "1") {
+      const normalizeStringArrayToText = (value: unknown): string | null => {
+        if (!Array.isArray(value)) return null;
+        const parts = value
+          .map((v) => (typeof v === "string" ? v : String(v)))
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+        if (parts.length === 0) return null;
+        return parts.join("\n");
+      };
+
+      const extractGreetingsTexts = (
+        dataJson: string
+      ): { alt: string | null; group: string | null } => {
+        try {
+          const obj = JSON.parse(dataJson) as any;
+          const data = obj && typeof obj === "object" ? (obj as any).data : null;
+          const alt = normalizeStringArrayToText(
+            data && typeof data === "object" ? (data as any).alternate_greetings : null
+          );
+          const group = normalizeStringArrayToText(
+            data && typeof data === "object" ? (data as any).group_only_greetings : null
+          );
+          return { alt, group };
+        } catch {
+          return { alt: null, group: null };
+        }
+      };
+
+      const rows = db
+        .prepare(
+          `
+          SELECT
+            rowid,
+            data_json,
+            alternate_greetings_text,
+            group_only_greetings_text
+          FROM cards
+        `
+        )
+        .all() as Array<{
+        rowid: number;
+        data_json: string;
+        alternate_greetings_text: string | null;
+        group_only_greetings_text: string | null;
+      }>;
+
+      const update = db.prepare(
+        `
+        UPDATE cards
+        SET
+          alternate_greetings_text = ?,
+          group_only_greetings_text = ?
+        WHERE rowid = ?
+      `
+      );
+
+      db.transaction(() => {
+        for (const r of rows) {
+          if (typeof r.data_json !== "string" || r.data_json.length === 0) {
+            continue;
+          }
+          const { alt, group } = extractGreetingsTexts(r.data_json);
+          const altPrev = r.alternate_greetings_text ?? null;
+          const groupPrev = r.group_only_greetings_text ?? null;
+          if (altPrev === alt && groupPrev === group) continue;
+          update.run(alt, group, r.rowid);
+        }
+
+        // Rebuild index from content table
+        db.exec(`INSERT INTO cards_fts(cards_fts) VALUES('rebuild')`);
+
+        db.prepare(
+          `
+          INSERT INTO settings(key, value, updated_at)
+          VALUES (?, ?, CURRENT_TIMESTAMP)
+          ON CONFLICT(key) DO UPDATE SET
+            value = excluded.value,
+            updated_at = CURRENT_TIMESTAMP
+        `
+        ).run(ftsBackfillKey, "1");
+      })();
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[db] FTS5 is not available; full-text search is disabled.", e);
+  }
 
   // card_files: folder_path для фильтрации/группировки по папкам
   addColumnIfMissing("card_files", "folder_path", "folder_path TEXT");

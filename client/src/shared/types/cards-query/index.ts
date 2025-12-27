@@ -4,11 +4,26 @@ export type CardsSort =
   | "created_at_desc"
   | "created_at_asc"
   | "name_asc"
-  | "name_desc";
+  | "name_desc"
+  | "relevance";
+
+export type CardsFtsField =
+  | "description"
+  | "personality"
+  | "scenario"
+  | "first_mes"
+  | "mes_example"
+  | "creator_notes"
+  | "system_prompt"
+  | "post_history_instructions"
+  | "alternate_greetings"
+  | "group_only_greetings";
 
 export interface CardsQuery {
   sort?: CardsSort;
   name?: string;
+  q?: string;
+  q_fields?: CardsFtsField[];
   creator?: string[];
   spec_version?: string[];
   tags?: string[];

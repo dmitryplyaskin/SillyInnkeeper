@@ -70,6 +70,7 @@ const en = {
 
   "api.cards.invalid_created_from": "Invalid created_from",
   "api.cards.invalid_created_to": "Invalid created_to",
+  "api.cards.invalid_search_query": "Invalid search query",
   "api.cards.list_failed": "Could not get cards list",
   "api.cards.get_failed": "Could not get card",
   "api.cards.not_found": "Card was not found",
@@ -82,6 +83,9 @@ const en = {
   "api.cards.some_not_found": "Some cards were not found",
   "api.cards.bulk_delete_failed": "Could not delete selected cards",
   "api.export.invalid_data_json": "Invalid card data for export",
+
+  "api.db.fts5_not_available":
+    "Full-text search is not available (FTS5 is missing in SQLite build)",
 
   // lorebooks API
   "api.lorebooks.list_failed": "Could not get lorebooks list",
