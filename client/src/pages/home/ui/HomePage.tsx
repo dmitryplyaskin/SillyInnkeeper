@@ -22,6 +22,7 @@ import {
 import { CardsGrid } from "@/features/cards-grid";
 import { PathsSettingsModal } from "@/features/paths-settings";
 import { MultiSelectControls } from "@/features/cards-multi-select";
+import { CardsImportModal, CardsImportTopbarButton } from "@/features/cards-import";
 import {
   CardsFiltersPanel,
   applyFilters,
@@ -126,6 +127,7 @@ export function HomePage() {
             </Stack>
 
             <Group gap="sm" style={{ flexShrink: 0 }}>
+              <CardsImportTopbarButton />
               <ActionIcon
                 variant="light"
                 size="lg"
@@ -185,6 +187,8 @@ export function HomePage() {
         opened={pathsOpened}
         onClose={() => setPathsOpened(false)}
       />
+
+      <CardsImportModal />
 
       <CardDetailsDrawer />
     </AppShell>

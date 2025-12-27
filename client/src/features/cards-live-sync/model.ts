@@ -5,6 +5,7 @@ import type {
   CardsScanFinishedEvent,
   CardsScanProgressEvent,
   CardsScanStartedEvent,
+  CardsImportFinishedEvent,
   StImportResultEvent,
 } from "@/shared/types/events";
 import {
@@ -24,6 +25,7 @@ const scanProgress = createEvent<CardsScanProgressEvent>();
 const scanFinished = createEvent<CardsScanFinishedEvent>();
 const connected = createEvent<void>();
 const stImportResult = createEvent<StImportResultEvent>();
+const importFinished = createEvent<CardsImportFinishedEvent>();
 
 let client: EventsClient | null = null;
 
@@ -43,6 +45,7 @@ startLiveSync.watch(() => {
     onScanStarted: (evt) => scanStarted(evt),
     onScanProgress: (evt) => scanProgress(evt),
     onScanFinished: (evt) => scanFinished(evt),
+    onImportFinished: (evt) => importFinished(evt),
     onStImportResult: (evt) => stImportResult(evt),
     onError: () => {
       // браузер сам переподключается; лог/UX добавим позже при необходимости
@@ -158,6 +161,26 @@ stImportResult.watch((evt) => {
         : i18n.t("cardDetails.stImportFailMessage", { cardId: evt.cardId }),
     color: evt.ok ? "green" : "red",
   });
+});
+
+importFinished.watch((evt) => {
+  const seconds = (evt.durationMs / 1000).toFixed(1);
+  notifications.show({
+    title: i18n.t("cardsImport.importFinishedTitle"),
+    message: i18n.t("cardsImport.importFinishedMessage", {
+      imported: evt.importedFiles,
+      skippedDuplicates: evt.skippedDuplicates,
+      skippedParseErrors: evt.skippedParseErrors,
+      copyFailed: evt.copyFailed,
+      deletedOriginals: evt.deletedOriginals,
+      deleteFailed: evt.deleteFailed,
+      seconds,
+    }),
+    color: evt.copyFailed > 0 || evt.deleteFailed > 0 ? "yellow" : "green",
+  });
+
+  // Make sure UI refreshes soon even if scan events are delayed.
+  applyFiltersSilent();
 });
 
 cardsResynced.watch((evt) => {

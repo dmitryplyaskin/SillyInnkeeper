@@ -417,6 +417,41 @@ const ru = {
     deleteOk_many: "Удалены {{count}} карточек",
     deleteOk_other: "Удалены {{count}} карточек",
   },
+  cardsImport: {
+    openTooltip: "Импорт карточек",
+    openAria: "Открыть импорт карточек",
+    title: "Импорт карточек",
+    description:
+      "Импортирует PNG-карточки из другой папки в вашу библиотеку (cardsFolderPath). Карточки обрабатываются от старых к новым. Некорректные карточки пропускаются.",
+
+    sourceFolderLabel: "Папка-источник",
+    sourceFolderPlaceholder: "C:\\path\\to\\cards-to-import",
+    sourceFolderRequired: "Папка-источник обязательна",
+    cardsFolderNotConfigured:
+      "Папка библиотеки не настроена (cardsFolderPath). Откройте «Настройки».",
+
+    pickFolderAria: "Выбрать папку-источник",
+    pickFolderTooltip: "Выбрать папку",
+    pickFolderDialogTitle: "Выберите папку для импорта",
+
+    importModeLabel: "Стратегия импорта",
+    importModeCopy: "Импорт (копировать)",
+    importModeMove: "Импорт + удалить оригиналы",
+    moveWarningTitle: "Осторожно",
+    moveWarningText:
+      "Оригинальные карточки будут удалены из папки-источника после успешного копирования. Это действие нельзя отменить.",
+
+    duplicatesModeLabel: "Дубликаты (по content_hash)",
+    duplicatesModeSkip: "Пропускать",
+    duplicatesModeCopy: "Копировать всё равно",
+
+    importButton: "Импортировать",
+    importStartedTitle: "Импорт карточек",
+    importStartedMessage: "Импорт запущен. Прогресс появится в уведомлениях.",
+    importFinishedTitle: "Импорт карточек завершён",
+    importFinishedMessage:
+      "Импортировано: {{imported}} • Дубли пропущены: {{skippedDuplicates}} • Ошибки парсинга: {{skippedParseErrors}} • Ошибки копирования: {{copyFailed}} • Удалено оригиналов: {{deletedOriginals}} • Ошибки удаления: {{deleteFailed}} • {{seconds}}с",
+  },
 } as const;
 
 export default ru;

@@ -59,6 +59,16 @@ const ru = {
   "api.settings.get_failed": "Не удалось получить настройки",
   "api.settings.update_failed": "Не удалось обновить настройки",
 
+  "api.importSettings.invalid_format":
+    "Неверный формат данных. Ожидается объект с полями sourceFolderPath, importMode, duplicatesMode",
+  "api.importSettings.get_failed": "Не удалось получить настройки импорта",
+  "api.importSettings.update_failed": "Не удалось обновить настройки импорта",
+  "api.importSettings.invalid_import_mode":
+    "Некорректная стратегия импорта: {importMode}",
+  "api.importSettings.invalid_duplicates_mode":
+    "Некорректная стратегия дубликатов: {duplicatesMode}",
+  "api.importSettings.not_a_directory": "Путь не является директорией: {path}",
+
   "api.viewSettings.invalid_format":
     "Неверный формат данных. columnsCount должен быть 3, 5 или 7, isCensored должен быть boolean",
   "api.viewSettings.get_failed": "Не удалось получить настройки отображения",
@@ -83,6 +93,15 @@ const ru = {
   "api.cards.export_failed": "Не удалось экспортировать PNG карточки",
   "api.cards.invalid_card_json": "Некорректные данные карточки для сохранения",
   "api.cards.save_failed": "Не удалось сохранить карточку",
+
+  "api.cardsImport.invalid_format":
+    "Неверный формат данных. Ожидается объект с полями sourceFolderPath, importMode, duplicatesMode",
+  "api.cardsImport.already_running": "Импорт уже выполняется",
+  "api.cardsImport.path_not_exists": "Путь не существует: {path}",
+  "api.cardsImport.not_a_directory": "Путь не является директорией: {path}",
+  "api.cardsImport.cardsFolderPath_not_set":
+    "Папка библиотеки не настроена (cardsFolderPath)",
+  "api.cardsImport.start_failed": "Не удалось запустить импорт",
   "api.cards.invalid_card_ids":
     "Некорректный card_ids (ожидается непустой массив ID карточек)",
   "api.cards.some_not_found": "Некоторые карточки не найдены",
@@ -163,6 +182,14 @@ const ru = {
   "log.cardsSync.resynced":
     "cards:resynced rev={revision} origin={origin} +{added} -{removed} ({durationMs}ms)",
   "error.cardsSync.failed": "Ошибка в CardsSyncOrchestrator",
+
+  "error.cardsImport.copyFailed":
+    "Не удалось скопировать файл (source={source}, target={target})",
+  "error.cardsImport.deleteSourceFailed":
+    "Не удалось удалить исходный файл: {source}",
+  "error.cardsImport.requestScanFailed":
+    "Ошибка при запуске сканирования после импорта",
+  "error.cardsImport.failed": "Ошибка при импорте карточек",
 
   "log.scanner.autoStart": "Автозапуск сканирования папки: {folderPath}",
   "warn.scanner.deprecatedInitializeScanner":

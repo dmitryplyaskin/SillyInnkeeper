@@ -53,6 +53,15 @@ const en = {
   "api.settings.get_failed": "Could not get settings",
   "api.settings.update_failed": "Could not update settings",
 
+  "api.importSettings.invalid_format":
+    "Invalid data format. Expected object with sourceFolderPath, importMode, duplicatesMode",
+  "api.importSettings.get_failed": "Could not get import settings",
+  "api.importSettings.update_failed": "Could not update import settings",
+  "api.importSettings.invalid_import_mode": "Invalid import mode: {importMode}",
+  "api.importSettings.invalid_duplicates_mode":
+    "Invalid duplicates mode: {duplicatesMode}",
+  "api.importSettings.not_a_directory": "Path is not a directory: {path}",
+
   "api.viewSettings.invalid_format":
     "Invalid data format. columnsCount must be 3, 5 or 7, isCensored must be boolean",
   "api.viewSettings.get_failed": "Could not get view settings",
@@ -77,6 +86,15 @@ const en = {
   "api.cards.export_failed": "Could not export card PNG",
   "api.cards.invalid_card_json": "Invalid card data for save",
   "api.cards.save_failed": "Could not save card",
+
+  "api.cardsImport.invalid_format":
+    "Invalid data format. Expected object with sourceFolderPath, importMode, duplicatesMode",
+  "api.cardsImport.already_running": "Import is already running",
+  "api.cardsImport.path_not_exists": "Path does not exist: {path}",
+  "api.cardsImport.not_a_directory": "Path is not a directory: {path}",
+  "api.cardsImport.cardsFolderPath_not_set":
+    "Library folder is not configured (cardsFolderPath)",
+  "api.cardsImport.start_failed": "Could not start import",
   "api.cards.invalid_card_ids":
     "Invalid card_ids (expected a non-empty array of card IDs)",
   "api.cards.some_not_found": "Some cards were not found",
@@ -157,6 +175,12 @@ const en = {
   "log.cardsSync.resynced":
     "cards:resynced rev={revision} origin={origin} +{added} -{removed} ({durationMs}ms)",
   "error.cardsSync.failed": "CardsSyncOrchestrator error",
+
+  "error.cardsImport.copyFailed":
+    "Failed to copy file (source={source}, target={target})",
+  "error.cardsImport.deleteSourceFailed": "Failed to delete source file: {source}",
+  "error.cardsImport.requestScanFailed": "Failed to start scan after import",
+  "error.cardsImport.failed": "Cards import failed",
 
   "log.scanner.autoStart": "Auto-start scan folder: {folderPath}",
   "warn.scanner.deprecatedInitializeScanner":
