@@ -9,6 +9,9 @@ import type {
   PatternsRunDoneEvent,
   PatternsRunFailedEvent,
   PatternsRunStartedEvent,
+  TagsBulkEditDoneEvent,
+  TagsBulkEditFailedEvent,
+  TagsBulkEditStartedEvent,
 } from "@/shared/types/events";
 
 export type EventsClient = {
@@ -26,6 +29,9 @@ export function createEventsClient(handlers: {
   onPatternsProgress?: (evt: PatternsProgressEvent) => void;
   onPatternsRunDone?: (evt: PatternsRunDoneEvent) => void;
   onPatternsRunFailed?: (evt: PatternsRunFailedEvent) => void;
+  onTagsBulkEditStarted?: (evt: TagsBulkEditStartedEvent) => void;
+  onTagsBulkEditDone?: (evt: TagsBulkEditDoneEvent) => void;
+  onTagsBulkEditFailed?: (evt: TagsBulkEditFailedEvent) => void;
   onHello?: (data: unknown) => void;
   onError?: (error: unknown) => void;
 }): EventsClient {
@@ -130,6 +136,33 @@ export function createEventsClient(handlers: {
     }
   };
 
+  const onTagsBulkEditStarted = (e: MessageEvent) => {
+    try {
+      const data = JSON.parse(String(e.data)) as TagsBulkEditStartedEvent;
+      handlers.onTagsBulkEditStarted?.(data);
+    } catch (err) {
+      handlers.onError?.(err);
+    }
+  };
+
+  const onTagsBulkEditDone = (e: MessageEvent) => {
+    try {
+      const data = JSON.parse(String(e.data)) as TagsBulkEditDoneEvent;
+      handlers.onTagsBulkEditDone?.(data);
+    } catch (err) {
+      handlers.onError?.(err);
+    }
+  };
+
+  const onTagsBulkEditFailed = (e: MessageEvent) => {
+    try {
+      const data = JSON.parse(String(e.data)) as TagsBulkEditFailedEvent;
+      handlers.onTagsBulkEditFailed?.(data);
+    } catch (err) {
+      handlers.onError?.(err);
+    }
+  };
+
   es.addEventListener("hello", onHello as any);
   es.addEventListener("cards:resynced", onResynced as any);
   es.addEventListener("cards:scan_started", onScanStarted as any);
@@ -141,6 +174,9 @@ export function createEventsClient(handlers: {
   es.addEventListener("patterns:progress", onPatternsProgress as any);
   es.addEventListener("patterns:run_done", onPatternsRunDone as any);
   es.addEventListener("patterns:run_failed", onPatternsRunFailed as any);
+  es.addEventListener("tags:bulk_edit_started", onTagsBulkEditStarted as any);
+  es.addEventListener("tags:bulk_edit_done", onTagsBulkEditDone as any);
+  es.addEventListener("tags:bulk_edit_failed", onTagsBulkEditFailed as any);
 
   es.onerror = (err) => {
     handlers.onError?.(err);
@@ -160,6 +196,9 @@ export function createEventsClient(handlers: {
         es.removeEventListener("patterns:progress", onPatternsProgress as any);
         es.removeEventListener("patterns:run_done", onPatternsRunDone as any);
         es.removeEventListener("patterns:run_failed", onPatternsRunFailed as any);
+        es.removeEventListener("tags:bulk_edit_started", onTagsBulkEditStarted as any);
+        es.removeEventListener("tags:bulk_edit_done", onTagsBulkEditDone as any);
+        es.removeEventListener("tags:bulk_edit_failed", onTagsBulkEditFailed as any);
         es.close();
       } catch {
         // ignore

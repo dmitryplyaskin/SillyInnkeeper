@@ -25,6 +25,7 @@ import { PathsSettingsModal } from "@/features/paths-settings";
 import { MultiSelectControls } from "@/features/cards-multi-select";
 import { CardsImportModal } from "@/features/cards-import";
 import { PatternRulesModal } from "@/features/pattern-rules";
+import { TagsBulkEditModal } from "@/features/tags-bulk-edit";
 import {
   CardsFiltersPanel,
   applyFilters,
@@ -202,6 +203,7 @@ export function HomePage() {
 
       <CardsImportModal />
       <PatternRulesModal />
+      <TagsBulkEditModal />
 
       <CardDetailsDrawer />
     </AppShell>

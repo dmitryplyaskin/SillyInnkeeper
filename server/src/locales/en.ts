@@ -77,6 +77,16 @@ const en = {
   "api.tags.update_failed": "Could not update tag",
   "api.tags.delete_failed": "Could not delete tag",
 
+  "api.tags.bulk_edit.invalid_format": "Invalid bulk tags edit data format",
+  "api.tags.bulk_edit.no_tags_selected": "No tags selected for bulk edit",
+  "api.tags.bulk_edit.target_required": "Target tag is required for replace",
+  "api.tags.bulk_edit.target_invalid": "Invalid target tag for replace",
+  "api.tags.bulk_edit.target_not_found": "Target tag was not found: {rawName}",
+  "api.tags.bulk_edit.already_running": "Bulk tags edit is already running",
+  "api.tags.bulk_edit.cardsFolderPath_not_set":
+    "Library folder is not configured (cardsFolderPath)",
+  "api.tags.bulk_edit.start_failed": "Could not start bulk tags edit",
+
   "api.cards.invalid_created_from": "Invalid created_from",
   "api.cards.invalid_created_to": "Invalid created_to",
   "api.cards.invalid_search_query": "Invalid search query",
@@ -198,6 +208,8 @@ const en = {
     "Regex runtime error during patterns search (ruleId={ruleId})",
   "error.pattern_rules.cache_update_failed":
     "Failed to update patterns search cache status in DB",
+
+  "error.tags.bulk_edit_failed": "Bulk tags edit failed",
 
   "log.scanner.autoStart": "Auto-start scan folder: {folderPath}",
   "warn.scanner.deprecatedInitializeScanner":

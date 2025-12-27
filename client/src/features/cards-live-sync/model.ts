@@ -11,11 +11,14 @@ import type {
   PatternsRunDoneEvent,
   PatternsRunFailedEvent,
   PatternsRunStartedEvent,
+  TagsBulkEditDoneEvent,
+  TagsBulkEditFailedEvent,
 } from "@/shared/types/events";
 import {
   applyFilters,
   applyFiltersSilent,
   loadCardsFiltersFx,
+  applyTagsBulkEditToSelectedTags,
 } from "@/features/cards-filters";
 import { notifications } from "@mantine/notifications";
 import i18n from "@/shared/i18n/i18n";
@@ -34,6 +37,8 @@ const patternsRunStarted = createEvent<PatternsRunStartedEvent>();
 const patternsProgress = createEvent<PatternsProgressEvent>();
 const patternsRunDone = createEvent<PatternsRunDoneEvent>();
 const patternsRunFailed = createEvent<PatternsRunFailedEvent>();
+const tagsBulkEditDone = createEvent<TagsBulkEditDoneEvent>();
+const tagsBulkEditFailed = createEvent<TagsBulkEditFailedEvent>();
 
 let client: EventsClient | null = null;
 
@@ -60,6 +65,8 @@ startLiveSync.watch(() => {
     onPatternsProgress: (evt) => patternsProgress(evt),
     onPatternsRunDone: (evt) => patternsRunDone(evt),
     onPatternsRunFailed: (evt) => patternsRunFailed(evt),
+    onTagsBulkEditDone: (evt) => tagsBulkEditDone(evt),
+    onTagsBulkEditFailed: (evt) => tagsBulkEditFailed(evt),
     onError: () => {
       // браузер сам переподключается; лог/UX добавим позже при необходимости
     },
@@ -244,6 +251,35 @@ patternsRunFailed.watch((evt) => {
     loading: false,
     autoClose: 6000,
     withCloseButton: true,
+    color: "red",
+  });
+});
+
+tagsBulkEditDone.watch((evt) => {
+  notifications.show({
+    title: i18n.t("tagsBulkEdit.doneTitle"),
+    message: i18n.t("tagsBulkEdit.doneMessage", {
+      count: evt.affected_cards,
+    }),
+    color: "green",
+  });
+
+  // If user had deleted/replaced tags selected in filters, update selection to avoid empty results.
+  applyTagsBulkEditToSelectedTags({
+    action: evt.action,
+    from_raw: evt.from,
+    to_name: evt.action === "replace" ? evt.to?.name ?? null : null,
+  });
+
+  // Refresh filters and cards list to reflect updated tags.
+  loadCardsFiltersFx();
+  applyFiltersSilent();
+});
+
+tagsBulkEditFailed.watch((evt) => {
+  notifications.show({
+    title: i18n.t("tagsBulkEdit.failedTitle"),
+    message: i18n.t("tagsBulkEdit.failedMessage", { error: evt.error }),
     color: "red",
   });
 });

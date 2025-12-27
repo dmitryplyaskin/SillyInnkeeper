@@ -11,11 +11,17 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { IconBraces, IconDownload, IconMenu2 } from "@tabler/icons-react";
+import {
+  IconBraces,
+  IconDownload,
+  IconMenu2,
+  IconTags,
+} from "@tabler/icons-react";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
 import { openImportModal } from "@/features/cards-import";
 import { openPatternRulesModal } from "@/features/pattern-rules";
+import { openTagsBulkEditModal } from "@/features/tags-bulk-edit";
 
 export interface AppSidebarProps {
   collapsed: boolean;
@@ -24,9 +30,10 @@ export interface AppSidebarProps {
 
 export function AppSidebar({ collapsed, onToggleCollapsed }: AppSidebarProps) {
   const { t } = useTranslation();
-  const [openImport, openPatterns] = useUnit([
+  const [openImport, openPatterns, openTagsBulkEdit] = useUnit([
     openImportModal,
     openPatternRulesModal,
+    openTagsBulkEditModal,
   ]);
 
   const rail = (
@@ -69,6 +76,18 @@ export function AppSidebar({ collapsed, onToggleCollapsed }: AppSidebarProps) {
           aria-label={t("patternRules.openAria")}
         >
           <IconBraces size={18} />
+        </ActionIcon>
+      </Tooltip>
+
+      <Tooltip label={t("tagsBulkEdit.openTooltip")} withArrow position="right">
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          size="lg"
+          onClick={() => openTagsBulkEdit()}
+          aria-label={t("tagsBulkEdit.openAria")}
+        >
+          <IconTags size={18} />
         </ActionIcon>
       </Tooltip>
     </Stack>
@@ -122,6 +141,12 @@ export function AppSidebar({ collapsed, onToggleCollapsed }: AppSidebarProps) {
               label={t("patternRules.openTooltip")}
               description={t("sidebar.patternsDescription")}
               onClick={() => openPatterns()}
+            />
+            <NavLink
+              leftSection={<IconTags size={18} />}
+              label={t("tagsBulkEdit.openTooltip")}
+              description={t("sidebar.tagsBulkEditDescription")}
+              onClick={() => openTagsBulkEdit()}
             />
           </Stack>
         </Box>

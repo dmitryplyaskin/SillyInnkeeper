@@ -91,3 +91,30 @@ export type PatternsRunFailedEvent = {
   run_id: string;
   error: string;
 };
+
+export type TagsBulkEditStartedEvent = {
+  run_id: string;
+  action: "replace" | "delete";
+  from: string[];
+  to?: { id: string; name: string; rawName: string } | null;
+  startedAt: number;
+};
+
+export type TagsBulkEditDoneEvent = {
+  run_id: string;
+  action: "replace" | "delete";
+  from: string[];
+  to?: { id: string; name: string; rawName: string } | null;
+  affected_cards: number;
+  startedAt: number;
+  finishedAt: number;
+  durationMs: number;
+};
+
+export type TagsBulkEditFailedEvent = {
+  run_id: string;
+  action: "replace" | "delete";
+  from: string[];
+  to?: { id: string; name: string; rawName: string } | null;
+  error: string;
+};
