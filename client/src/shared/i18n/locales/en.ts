@@ -57,6 +57,13 @@ const en = {
     filtersButton: "Filters",
     filtersDrawerTitle: "Filters",
   },
+  sidebar: {
+    title: "Menu",
+    collapse: "Collapse menu",
+    expand: "Expand menu",
+    importDescription: "Import PNG cards from another folder",
+    patternsDescription: "Rules and run patterns search",
+  },
   setup: {
     firstRunTitle: "First launch",
     firstRunDescription:

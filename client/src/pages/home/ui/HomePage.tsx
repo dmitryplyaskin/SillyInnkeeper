@@ -12,6 +12,7 @@ import {
   Text,
   Title,
 } from "@mantine/core";
+import { useLocalStorage } from "@mantine/hooks";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,14 +23,15 @@ import {
 import { CardsGrid } from "@/features/cards-grid";
 import { PathsSettingsModal } from "@/features/paths-settings";
 import { MultiSelectControls } from "@/features/cards-multi-select";
-import { CardsImportModal, CardsImportTopbarButton } from "@/features/cards-import";
-import { PatternRulesModal, PatternRulesTopbarButton } from "@/features/pattern-rules";
+import { CardsImportModal } from "@/features/cards-import";
+import { PatternRulesModal } from "@/features/pattern-rules";
 import {
   CardsFiltersPanel,
   applyFilters,
   loadCardsFiltersFx,
 } from "@/features/cards-filters";
 import { CardDetailsDrawer } from "@/features/card-details";
+import { AppSidebar } from "@/widgets/app-sidebar";
 
 function SunIcon() {
   return (
@@ -85,6 +87,10 @@ export function HomePage() {
   ]);
   const [filtersOpened, setFiltersOpened] = useState(false);
   const [pathsOpened, setPathsOpened] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage<boolean>({
+    key: "app-sidebar-collapsed",
+    defaultValue: false,
+  });
 
   useEffect(() => {
     loadFilters();
@@ -101,6 +107,7 @@ export function HomePage() {
   return (
     <AppShell
       header={{ height: 76 }}
+      navbar={{ width: 76, breakpoint: "sm" }}
       padding="md"
       styles={{
         header: {
@@ -110,6 +117,11 @@ export function HomePage() {
         },
       }}
     >
+      <AppSidebar
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
+      />
+
       <AppShell.Header>
         <Container size="xl" h="100%">
           <Group justify="space-between" h="100%">
@@ -128,8 +140,6 @@ export function HomePage() {
             </Stack>
 
             <Group gap="sm" style={{ flexShrink: 0 }}>
-              <CardsImportTopbarButton />
-              <PatternRulesTopbarButton />
               <ActionIcon
                 variant="light"
                 size="lg"

@@ -775,6 +775,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tabler/icons-react@npm:^3.36.0":
+  version: 3.36.0
+  resolution: "@tabler/icons-react@npm:3.36.0"
+  dependencies:
+    "@tabler/icons": "npm:3.36.0"
+  peerDependencies:
+    react: ">= 16"
+  checksum: 10c0/db567c11ee4f7ab769ab80360509000b986f28ecaec8fdabe33a968731d8cab9018250961857ca1e823fa3dd73f618364224ef3f4e7ad71be792ed857123837b
+  languageName: node
+  linkType: hard
+
+"@tabler/icons@npm:3.36.0":
+  version: 3.36.0
+  resolution: "@tabler/icons@npm:3.36.0"
+  checksum: 10c0/4637add3f1326c3542cf2ebb9fcde162f34b3bfc2a716b103cc7acef666edeeac581504ea9f847946183c3eea81abb1ec5c91389f984064f50e2bad370b3e8dc
+  languageName: node
+  linkType: hard
+
 "@types/babel__core@npm:^7.20.5":
   version: 7.20.5
   resolution: "@types/babel__core@npm:7.20.5"
@@ -3426,6 +3444,7 @@ __metadata:
     "@mantine/form": "npm:^8.3.10"
     "@mantine/hooks": "npm:8.3.10"
     "@mantine/notifications": "npm:^8.3.10"
+    "@tabler/icons-react": "npm:^3.36.0"
     "@types/node": "npm:^24.0.8"
     "@types/react": "npm:^19.1.13"
     "@types/react-dom": "npm:^19.1.9"

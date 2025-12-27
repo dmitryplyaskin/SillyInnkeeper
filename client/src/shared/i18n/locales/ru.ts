@@ -57,6 +57,13 @@ const ru = {
     filtersButton: "Фильтры",
     filtersDrawerTitle: "Фильтры",
   },
+  sidebar: {
+    title: "Меню",
+    collapse: "Свернуть меню",
+    expand: "Развернуть меню",
+    importDescription: "Импорт PNG-карточек из другой папки",
+    patternsDescription: "Правила и запуск поиска по паттернам",
+  },
   setup: {
     firstRunTitle: "Первый запуск",
     firstRunDescription:
