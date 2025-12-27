@@ -4,5 +4,6 @@ export {
   $error,
   loadCards,
   loadCardsSilent,
+  refreshCardsSilent,
   loadCardsFx,
 } from "./model";

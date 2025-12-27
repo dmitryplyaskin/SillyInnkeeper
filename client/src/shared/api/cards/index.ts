@@ -21,6 +21,9 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
   if (query?.sort) params.set("sort", query.sort);
   if (query?.name && query.name.trim().length > 0)
     params.set("name", query.name.trim());
+  if (query?.q && query.q.trim().length > 0) params.set("q", query.q.trim());
+  if (query?.q_mode) params.set("q_mode", query.q_mode);
+  appendMany(params, "q_fields", query?.q_fields);
 
   appendMany(params, "creator", query?.creator);
   appendMany(params, "spec_version", query?.spec_version);
@@ -49,6 +52,8 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
     params.set("has_character_book", query.has_character_book);
   if (query?.has_alternate_greetings)
     params.set("has_alternate_greetings", query.has_alternate_greetings);
+
+  if (query?.patterns) params.set("patterns", query.patterns);
 
   if (typeof query?.alternate_greetings_min === "number")
     params.set(
@@ -134,6 +139,26 @@ export async function deleteCardFileDuplicate(
 export async function deleteCard(cardId: string): Promise<{ ok: true }> {
   const response = await fetch(`/api/cards/${encodeURIComponent(cardId)}`, {
     method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(response.statusText);
+  }
+
+  return response.json();
+}
+
+export async function deleteCardsBulk(cardIds: string[]): Promise<{
+  ok: true;
+  deleted: number;
+  deleted_ids: string[];
+}> {
+  const response = await fetch(`/api/cards/bulk-delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ card_ids: cardIds }),
   });
 
   if (!response.ok) {

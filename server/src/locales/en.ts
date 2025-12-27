@@ -53,6 +53,15 @@ const en = {
   "api.settings.get_failed": "Could not get settings",
   "api.settings.update_failed": "Could not update settings",
 
+  "api.importSettings.invalid_format":
+    "Invalid data format. Expected object with sourceFolderPath, importMode, duplicatesMode",
+  "api.importSettings.get_failed": "Could not get import settings",
+  "api.importSettings.update_failed": "Could not update import settings",
+  "api.importSettings.invalid_import_mode": "Invalid import mode: {importMode}",
+  "api.importSettings.invalid_duplicates_mode":
+    "Invalid duplicates mode: {duplicatesMode}",
+  "api.importSettings.not_a_directory": "Path is not a directory: {path}",
+
   "api.viewSettings.invalid_format":
     "Invalid data format. columnsCount must be 3, 5 or 7, isCensored must be boolean",
   "api.viewSettings.get_failed": "Could not get view settings",
@@ -68,8 +77,19 @@ const en = {
   "api.tags.update_failed": "Could not update tag",
   "api.tags.delete_failed": "Could not delete tag",
 
+  "api.tags.bulk_edit.invalid_format": "Invalid bulk tags edit data format",
+  "api.tags.bulk_edit.no_tags_selected": "No tags selected for bulk edit",
+  "api.tags.bulk_edit.target_required": "Target tag is required for replace",
+  "api.tags.bulk_edit.target_invalid": "Invalid target tag for replace",
+  "api.tags.bulk_edit.target_not_found": "Target tag was not found: {rawName}",
+  "api.tags.bulk_edit.already_running": "Bulk tags edit is already running",
+  "api.tags.bulk_edit.cardsFolderPath_not_set":
+    "Library folder is not configured (cardsFolderPath)",
+  "api.tags.bulk_edit.start_failed": "Could not start bulk tags edit",
+
   "api.cards.invalid_created_from": "Invalid created_from",
   "api.cards.invalid_created_to": "Invalid created_to",
+  "api.cards.invalid_search_query": "Invalid search query",
   "api.cards.list_failed": "Could not get cards list",
   "api.cards.get_failed": "Could not get card",
   "api.cards.not_found": "Card was not found",
@@ -77,7 +97,31 @@ const en = {
   "api.cards.export_failed": "Could not export card PNG",
   "api.cards.invalid_card_json": "Invalid card data for save",
   "api.cards.save_failed": "Could not save card",
+
+  "api.cardsImport.invalid_format":
+    "Invalid data format. Expected object with sourceFolderPath, importMode, duplicatesMode",
+  "api.cardsImport.already_running": "Import is already running",
+  "api.cardsImport.path_not_exists": "Path does not exist: {path}",
+  "api.cardsImport.not_a_directory": "Path is not a directory: {path}",
+  "api.cardsImport.cardsFolderPath_not_set":
+    "Library folder is not configured (cardsFolderPath)",
+  "api.cardsImport.start_failed": "Could not start import",
+  "api.cards.invalid_card_ids":
+    "Invalid card_ids (expected a non-empty array of card IDs)",
+  "api.cards.some_not_found": "Some cards were not found",
+  "api.cards.bulk_delete_failed": "Could not delete selected cards",
   "api.export.invalid_data_json": "Invalid card data for export",
+
+  "api.db.fts5_not_available":
+    "Full-text search is not available (FTS5 is missing in SQLite build)",
+
+  // pattern rules API
+  "api.pattern_rules.invalid_rules": "Invalid pattern rules",
+  "api.pattern_rules.get_failed": "Could not get pattern rules",
+  "api.pattern_rules.update_failed": "Could not save pattern rules",
+  "api.pattern_rules.status_failed": "Could not get patterns search status",
+  "api.pattern_rules.run_failed": "Could not start patterns search",
+  "api.pattern_rules.already_running": "Patterns search is already running",
 
   // lorebooks API
   "api.lorebooks.list_failed": "Could not get lorebooks list",
@@ -153,6 +197,19 @@ const en = {
   "log.cardsSync.resynced":
     "cards:resynced rev={revision} origin={origin} +{added} -{removed} ({durationMs}ms)",
   "error.cardsSync.failed": "CardsSyncOrchestrator error",
+
+  "error.cardsImport.copyFailed":
+    "Failed to copy file (source={source}, target={target})",
+  "error.cardsImport.deleteSourceFailed": "Failed to delete source file: {source}",
+  "error.cardsImport.requestScanFailed": "Failed to start scan after import",
+  "error.cardsImport.failed": "Cards import failed",
+
+  "warn.pattern_rules.regex_runtime_error":
+    "Regex runtime error during patterns search (ruleId={ruleId})",
+  "error.pattern_rules.cache_update_failed":
+    "Failed to update patterns search cache status in DB",
+
+  "error.tags.bulk_edit_failed": "Bulk tags edit failed",
 
   "log.scanner.autoStart": "Auto-start scan folder: {folderPath}",
   "warn.scanner.deprecatedInitializeScanner":

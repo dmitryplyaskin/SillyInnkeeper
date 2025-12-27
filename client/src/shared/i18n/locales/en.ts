@@ -18,6 +18,7 @@ const en = {
     copied: "Copied",
     cancel: "Cancel",
     close: "Close",
+    apply: "Apply",
     zoomIn: "Zoom in",
   },
   theme: {
@@ -42,6 +43,10 @@ const en = {
     loadLorebook: "Failed to load lorebook",
     saveLorebook: "Failed to save lorebook",
     deleteLorebook: "Failed to delete lorebook",
+    loadPatternRules: "Failed to load pattern rules",
+    savePatternRules: "Failed to save pattern rules",
+    loadPatternRulesStatus: "Failed to load patterns search status",
+    runPatternRules: "Failed to start patterns search",
   },
   empty: {
     dash: "—",
@@ -52,6 +57,14 @@ const en = {
     settingsButton: "Settings",
     filtersButton: "Filters",
     filtersDrawerTitle: "Filters",
+  },
+  sidebar: {
+    title: "Menu",
+    collapse: "Collapse menu",
+    expand: "Expand menu",
+    importDescription: "Import PNG cards from another folder",
+    patternsDescription: "Rules and run patterns search",
+    tagsBulkEditDescription: "Bulk replace/delete tags in cards",
   },
   setup: {
     firstRunTitle: "First launch",
@@ -103,10 +116,36 @@ const en = {
       "“Has” — at least 1 (or more, if “Minimum” is set). “Has not” — strictly 0. “Any” — only “Minimum” is considered.",
     fieldsPresence: "Fields presence",
     noteFts:
-      "Note: full-text search by description/first_mes will be added later via FTS5.",
+      "Note: FTS searches by words (word prefixes), not an exact phrase.",
+    noteLike:
+      "Note: normal search finds a literal substring (as typed), case-insensitive.",
     name: "Name",
     namePlaceholder: "Search by name…",
     sort: "Sorting",
+    sortRelevance: "Relevance",
+    relevanceNeedsQuery:
+      "Relevance works only when “Text search” is filled. Default sorting is applied now.",
+    relevanceNeedsFts:
+      "Relevance is available only in FTS mode. Default sorting is applied now.",
+    textSearch: "Text search",
+    searchModeLike: "Normal",
+    searchModeFts: "FTS",
+    textSearchPlaceholder: "Search in long fields…",
+    textSearchTip:
+      'FTS (full-text) searches by words and word prefixes: "dragon" matches "dragon*" (dragon, dragons, dragonborn…). This is NOT an exact phrase search: punctuation and word order do not matter (e.g. 18-year-old → 18 year old). Only the first ~12 words are used. Search applies only to the selected fields below. If you need to match a literal string/template (e.g. with {{char}} and quotes) — switch to "Normal".',
+    textSearchTipLike:
+      "Normal search: finds a literal substring (as typed) in the selected fields below. Punctuation and spaces are respected. Case-insensitive.",
+    textSearchFields: "Search in fields",
+    qFieldDescription: "Description",
+    qFieldPersonality: "Personality",
+    qFieldScenario: "Scenario",
+    qFieldFirstMes: "First message",
+    qFieldMesExample: "Message example",
+    qFieldCreatorNotes: "Creator notes",
+    qFieldSystemPrompt: "System prompt",
+    qFieldPostHistoryInstructions: "Post history instructions",
+    qFieldAlternateGreetings: "Alternate greetings",
+    qFieldGroupOnlyGreetings: "Group-only greetings",
     creator: "Creator",
     specVersion: "Spec version",
     tags: "Tags",
@@ -119,6 +158,8 @@ const en = {
     sortOldFirst: "Old first",
     sortNameAsc: "Name: A → Z",
     sortNameDesc: "Name: Z → A",
+    sortTokensDesc: "Tokens: high → low",
+    sortTokensAsc: "Tokens: low → high",
     hasCreatorNotes: "Creator notes",
     hasSystemPrompt: "System prompt",
     hasPostHistoryInstructions: "Post history instructions",
@@ -126,6 +167,14 @@ const en = {
     hasScenario: "Scenario",
     hasMesExample: "Message example",
     hasCharacterBook: "Lorebook",
+    patterns: "Patterns filter",
+    openPatternRulesAria: "Open pattern rules",
+    openPatternRules: "Rules",
+    patternsDisabled: "Add and enable at least one rule",
+    patternsNeedsRun: "Patterns search has not been run yet — click “Run search” in rules",
+    patternsHint: "Shows only cards that matched at least one rule in the last successful run",
+    patternsTip:
+      "Works from the last successful patterns run (cached). Open rules to add/edit regexes and click “Run search”.",
   },
   card: {
     thumbnailAltFallback: "Card thumbnail",
@@ -396,6 +445,132 @@ const en = {
     updated: "Folder: {{folder}} • {{parts}} • {{seconds}}s",
     added: "Added: {{count}}",
     removed: "Removed: {{count}}",
+  },
+  multiSelect: {
+    toggleOn: "Enable multi-select",
+    toggleOff: "Disable multi-select",
+    delete: "Delete",
+    selectedCount: "Selected: {{count}} card",
+    selectedCount_other: "Selected: {{count}} cards",
+    confirmDeleteTitle: "Delete selected cards?",
+    confirmDeleteText: "This action cannot be undone.",
+    confirmDeleteOk: "Delete",
+    deleteOk: "Deleted {{count}} card",
+    deleteOk_other: "Deleted {{count}} cards",
+  },
+  cardsImport: {
+    openTooltip: "Import cards",
+    openAria: "Open cards import",
+    title: "Cards import",
+    description:
+      "Imports PNG cards from another folder into your library (cardsFolderPath). Cards are processed from oldest to newest. Invalid cards are skipped.",
+
+    sourceFolderLabel: "Source folder",
+    sourceFolderPlaceholder: "C:\\path\\to\\cards-to-import",
+    sourceFolderRequired: "Source folder is required",
+    cardsFolderNotConfigured:
+      "Library folder is not configured (cardsFolderPath). Open Settings.",
+
+    pickFolderAria: "Pick source folder",
+    pickFolderTooltip: "Pick folder",
+    pickFolderDialogTitle: "Pick a folder to import from",
+
+    importModeLabel: "Import strategy",
+    importModeCopy: "Import (copy)",
+    importModeMove: "Import + delete originals",
+    moveWarningTitle: "Be careful",
+    moveWarningText:
+      "Original cards will be deleted from the source folder after successful copy. This action cannot be undone.",
+
+    duplicatesModeLabel: "Duplicates (by content_hash)",
+    duplicatesModeSkip: "Skip",
+    duplicatesModeCopy: "Copy anyway",
+
+    importButton: "Import",
+    importStartedTitle: "Cards import",
+    importStartedMessage: "Import started. Progress will appear in notifications.",
+    importFinishedTitle: "Cards import finished",
+    importFinishedMessage:
+      "Imported: {{imported}} • Duplicates skipped: {{skippedDuplicates}} • Parse errors: {{skippedParseErrors}} • Copy errors: {{copyFailed}} • Originals deleted: {{deletedOriginals}} • Delete errors: {{deleteFailed}} • {{seconds}}s",
+  },
+  patternRules: {
+    openTooltip: "Rules/Patterns",
+    openAria: "Open pattern rules",
+    title: "Pattern rules",
+    description:
+      "Define regular expressions to find problematic constructs in card texts. Search runs manually and results are cached.",
+    searchModeHint:
+      "Tip: you can enter a plain string (it will work as a substring match) or a full regex. Use Flags to control case sensitivity (e.g. add “i”).",
+    addRule: "Add rule",
+    run: "Run search",
+    runConfirm: "Search can take time on large libraries. Start now?",
+    noRulesHint: "No rules yet. Add at least one.",
+    lastReady: "Last successful run: {{createdAt}}",
+    ruleLabel: "Rule #{{index}}",
+    deleteRuleAria: "Delete rule",
+    enabled: "Enabled",
+    pattern: "Regex",
+    patternPlaceholder: "Example: \\{\\{\\{char\\}\\}\\}",
+    flags: "Flags",
+    savedTitle: "Pattern rules",
+    savedMessage: "Rules saved",
+    runStartedTitle: "Patterns search",
+    runPendingMessage: "Starting…",
+    runStartedMessage: "Started. Progress will appear in notifications.",
+    progressTitle: "Patterns search",
+    progressStart: "0/{{total}} (0%)",
+    progress: "{{done}}/{{total}} ({{percent}}%)",
+    doneTitle: "Patterns search finished",
+    doneMessage: "Cards matched: {{matched}}",
+    failedTitle: "Patterns search",
+    failedMessage: "Error: {{error}}",
+    validation: {
+      patternRequired: "Enter a regex (for enabled rule)",
+      flagsInvalid: "Invalid flags (allowed: d g i m s u v y)",
+      fixErrors: "Fix rules errors before saving",
+    },
+  },
+  tagsBulkEdit: {
+    openTooltip: "Tags editor",
+    openAria: "Open tags editor",
+    title: "Tags editor",
+    description:
+      "A tool to normalize tags: select garbage tags and replace them with one valid tag, or delete them without replacement.",
+
+    tabs: {
+      replace: "Replace",
+      delete: "Delete",
+    },
+
+    fromLabel: "Tags to replace/delete",
+    fromPlaceholder: "Select tags…",
+    nothingFound: "Nothing found",
+
+    replaceMode: {
+      existing: "Replace with existing",
+      new: "Create new tag",
+    },
+
+    toExistingLabel: "Replace with tag",
+    toExistingPlaceholder: "Select tag…",
+    toNewLabel: "New tag",
+    toNewPlaceholder: "Enter tag name…",
+
+    deleteWarning:
+      "Warning: selected tags will be removed from cards. Unused tags will be removed from the tags list.",
+
+    validation: {
+      fillRequired: "Fill required fields",
+    },
+
+    startedTitle: "Tags editor",
+    startedMessage: "Operation started. Completion will arrive via notification.",
+
+    doneTitle: "Tags edit finished",
+    doneMessage: "Cards updated: {{count}}",
+
+    failedTitle: "Tags editor",
+    failedMessage: "Error: {{error}}",
   },
 } as const;
 

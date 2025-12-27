@@ -9,15 +9,22 @@ import { debounce } from "patronum/debounce";
 import { getCardsFilters } from "@/shared/api/cards";
 import type { CardsFiltersResponse } from "@/shared/types/cards-filters";
 import type {
+  CardsFtsField,
   CardsQuery,
   CardsSort,
+  CardsTextSearchMode,
   TriState,
 } from "@/shared/types/cards-query";
+import type { PatternRulesStatus } from "@/shared/types/pattern-rules-status";
+import { getPatternRulesStatus } from "@/shared/api/pattern-rules";
 import { loadCards, loadCardsSilent } from "@/entities/cards";
 
 export interface CardsFiltersState {
   sort: CardsSort;
   name: string;
+  q: string;
+  q_mode: CardsTextSearchMode;
+  q_fields: CardsFtsField[];
   creator: string[];
   spec_version: string[];
   tags: string[];
@@ -34,11 +41,26 @@ export interface CardsFiltersState {
   has_character_book: TriState;
   has_alternate_greetings: TriState;
   alternate_greetings_min: number;
+  patterns: TriState;
 }
 
 const DEFAULT_FILTERS: CardsFiltersState = {
   sort: "created_at_desc",
   name: "",
+  q: "",
+  q_mode: "like",
+  q_fields: [
+    "description",
+    "personality",
+    "scenario",
+    "first_mes",
+    "mes_example",
+    "creator_notes",
+    "system_prompt",
+    "post_history_instructions",
+    "alternate_greetings",
+    "group_only_greetings",
+  ],
   creator: [],
   spec_version: [],
   tags: [],
@@ -55,6 +77,7 @@ const DEFAULT_FILTERS: CardsFiltersState = {
   has_character_book: "any",
   has_alternate_greetings: "any",
   alternate_greetings_min: 0,
+  patterns: "any",
 };
 
 function toLocalDayStartMs(dateStr: string): number | undefined {
@@ -77,6 +100,16 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     ? toLocalDayEndMs(state.created_to)
     : undefined;
 
+  const q = state.q.trim();
+  const hasQ = q.length > 0;
+  const q_fields =
+    hasQ && state.q_fields.length > 0 ? state.q_fields : undefined;
+
+  // UX rule: if user selected "relevance" without q, keep UI selection but
+  // fall back to default server sort.
+  const sort: CardsSort | undefined =
+    state.sort === "relevance" && !hasQ ? "created_at_desc" : state.sort;
+
   const min = state.alternate_greetings_min;
   const hasAlt = state.has_alternate_greetings;
   // Логика:
@@ -87,8 +120,11 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     hasAlt === "1" ? Math.max(1, min) : hasAlt === "0" ? 0 : min;
 
   const query: CardsQuery = {
-    sort: state.sort,
+    sort,
     name: state.name,
+    q: hasQ ? q : undefined,
+    q_mode: state.q_mode,
+    q_fields,
     creator: state.creator,
     spec_version: state.spec_version,
     tags: state.tags,
@@ -108,6 +144,7 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     has_alternate_greetings: state.has_alternate_greetings,
     alternate_greetings_min:
       hasAlt === "0" ? undefined : effectiveMin > 0 ? effectiveMin : undefined,
+    patterns: state.patterns,
   };
 
   return query;
@@ -122,6 +159,14 @@ export const loadCardsFiltersFx = createEffect<
   return await getCardsFilters();
 });
 
+export const loadPatternRulesStatusFx = createEffect<
+  void,
+  PatternRulesStatus,
+  Error
+>(async () => {
+  return await getPatternRulesStatus();
+});
+
 // Stores
 export const $filters = createStore<CardsFiltersState>(DEFAULT_FILTERS);
 export const $filtersData = createStore<CardsFiltersResponse>({
@@ -131,10 +176,19 @@ export const $filtersData = createStore<CardsFiltersResponse>({
 });
 export const $filtersError = createStore<string | null>(null);
 export const $filtersLoading = combine(loadCardsFiltersFx.pending, (p) => p);
+export const $patternRulesStatus = createStore<PatternRulesStatus | null>(
+  null
+).on(loadPatternRulesStatusFx.doneData, (_, s) => s);
+export const $patternRulesStatusError = createStore<string | null>(null)
+  .on(loadPatternRulesStatusFx.doneData, () => null)
+  .on(loadPatternRulesStatusFx.failData, (_, e) => e.message);
 
 // Events
 export const setSort = createEvent<CardsSort>();
 export const setName = createEvent<string>();
+export const setQ = createEvent<string>();
+export const setQMode = createEvent<CardsTextSearchMode>();
+export const setQFields = createEvent<CardsFtsField[]>();
 export const setCreators = createEvent<string[]>();
 export const setSpecVersions = createEvent<string[]>();
 export const setTags = createEvent<string[]>();
@@ -151,13 +205,22 @@ export const setHasMesExample = createEvent<TriState>();
 export const setHasCharacterBook = createEvent<TriState>();
 export const setHasAlternateGreetings = createEvent<TriState>();
 export const setAlternateGreetingsMin = createEvent<number>();
+export const setPatterns = createEvent<TriState>();
 export const resetFilters = createEvent<void>();
 export const applyFilters = createEvent<void>();
 export const applyFiltersSilent = createEvent<void>();
+export const applyTagsBulkEditToSelectedTags = createEvent<{
+  action: "replace" | "delete";
+  from_raw: string[]; // rawName (normalized)
+  to_name?: string | null; // display name to add (optional, for replace)
+}>();
 
 $filters
   .on(setSort, (s, sort) => ({ ...s, sort }))
   .on(setName, (s, name) => ({ ...s, name }))
+  .on(setQ, (s, q) => ({ ...s, q }))
+  .on(setQMode, (s, q_mode) => ({ ...s, q_mode }))
+  .on(setQFields, (s, q_fields) => ({ ...s, q_fields }))
   .on(setCreators, (s, creator) => ({ ...s, creator }))
   .on(setSpecVersions, (s, spec_version) => ({ ...s, spec_version }))
   .on(setTags, (s, tags) => ({ ...s, tags }))
@@ -212,12 +275,63 @@ $filters
       ? Math.max(0, alternate_greetings_min)
       : 0,
   }))
+  .on(setPatterns, (s, patterns) => ({ ...s, patterns }))
+  .on(applyTagsBulkEditToSelectedTags, (s, payload) => {
+    const normalize = (x: string) => x.trim().toLowerCase();
+    const fromSet = new Set(payload.from_raw.map((x) => normalize(String(x))));
+
+    const hasIntersection = (s.tags ?? []).some((t) =>
+      fromSet.has(normalize(t))
+    );
+    if (!hasIntersection) {
+      // Do not change user's tag filters unless they actually depended on edited tags.
+      return s;
+    }
+
+    const kept = (s.tags ?? []).filter((t) => !fromSet.has(normalize(t)));
+
+    if (payload.action !== "replace") {
+      return { ...s, tags: kept };
+    }
+
+    const toName = (payload.to_name ?? "").trim();
+    if (!toName) {
+      return { ...s, tags: kept };
+    }
+
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const t of [...kept, toName]) {
+      const key = normalize(t);
+      if (!key) continue;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(t.trim());
+    }
+
+    return { ...s, tags: out };
+  })
   .on(resetFilters, () => DEFAULT_FILTERS);
 
 // sync filters response
 sample({
   clock: loadCardsFiltersFx.doneData,
   target: $filtersData,
+});
+
+// When lists are refreshed, drop selected tags that no longer exist in backend options.
+sample({
+  clock: loadCardsFiltersFx.doneData,
+  source: $filters,
+  fn: (filters, data) => {
+    const normalize = (x: string) => x.trim().toLowerCase();
+    const existing = new Set(data.tags.map((t) => normalize(t.value)));
+    const nextTags = (filters.tags ?? []).filter((t) =>
+      existing.has(normalize(t))
+    );
+    return nextTags;
+  },
+  target: setTags,
 });
 
 sample({
@@ -232,13 +346,20 @@ sample({
   target: $filtersError,
 });
 
+// Keep patterns status fresh when filters lists are refreshed
+sample({ clock: loadCardsFiltersFx, target: loadPatternRulesStatusFx });
+
 // Auto-apply:
 // - name changes are debounced
+// - q changes are debounced
 // - other changes apply immediately
 const nameDebounced = debounce({ source: setName, timeout: 450 });
+const qDebounced = debounce({ source: setQ, timeout: 450 });
 
 const immediateApplyClock = [
   setSort,
+  setQMode,
+  setQFields,
   setCreators,
   setSpecVersions,
   setTags,
@@ -255,6 +376,7 @@ const immediateApplyClock = [
   setHasCharacterBook,
   setHasAlternateGreetings,
   setAlternateGreetingsMin,
+  setPatterns,
 ];
 
 sample({
@@ -266,6 +388,13 @@ sample({
 
 sample({
   clock: nameDebounced,
+  source: $filters,
+  fn: (state) => toQuery(state),
+  target: loadCards,
+});
+
+sample({
+  clock: qDebounced,
   source: $filters,
   fn: (state) => toQuery(state),
   target: loadCards,

@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import { createDatabaseService, DatabaseService } from "./database";
+import { AppError } from "../errors/app-error";
 
 export interface CardListItem {
   id: string;
@@ -21,12 +22,32 @@ export type CardsSort =
   | "created_at_desc"
   | "created_at_asc"
   | "name_asc"
-  | "name_desc";
+  | "name_desc"
+  | "prompt_tokens_desc"
+  | "prompt_tokens_asc"
+  | "relevance";
+
+export type CardsFtsField =
+  | "description"
+  | "personality"
+  | "scenario"
+  | "first_mes"
+  | "mes_example"
+  | "creator_notes"
+  | "system_prompt"
+  | "post_history_instructions"
+  | "alternate_greetings"
+  | "group_only_greetings";
+
+export type CardsTextSearchMode = "like" | "fts";
 
 export interface SearchCardsParams {
   library_id?: string;
   sort?: CardsSort;
   name?: string;
+  q?: string;
+  q_mode?: CardsTextSearchMode;
+  q_fields?: CardsFtsField[];
   creators?: string[];
   spec_versions?: string[];
   tags?: string[]; // rawName (normalized)
@@ -43,6 +64,7 @@ export interface SearchCardsParams {
   alternate_greetings_min?: number;
   prompt_tokens_min?: number;
   prompt_tokens_max?: number;
+  patterns?: TriState;
 }
 
 /**
@@ -66,7 +88,14 @@ export class CardsService {
     const where: string[] = [];
     const sqlParams: unknown[] = [];
 
+    const qRaw = typeof params.q === "string" ? params.q.trim() : "";
+    const hasQ = qRaw.length > 0;
+    const qMode: CardsTextSearchMode =
+      params.q_mode === "fts" ? "fts" : "like";
+
     const sort = params.sort ?? "created_at_desc";
+    const effectiveSort: Exclude<CardsSort, "relevance"> | "relevance" =
+      sort === "relevance" && (!hasQ || qMode !== "fts") ? "created_at_desc" : sort;
 
     if (params.library_id && params.library_id.trim().length > 0) {
       where.push(`c.library_id = ?`);
@@ -177,16 +206,174 @@ export class CardsService {
       sqlParams.push(tokensMax);
     }
 
+    // pattern matches filter (cached)
+    const patterns = params.patterns ?? "any";
+    if (patterns !== "any") {
+      const lastReady = this.dbService.queryOne<{ rules_hash: string }>(
+        `
+        SELECT rules_hash
+        FROM pattern_rules_cache
+        WHERE status = 'ready'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `
+      );
+      const rulesHash =
+        typeof lastReady?.rules_hash === "string" && lastReady.rules_hash.trim().length > 0
+          ? lastReady.rules_hash.trim()
+          : null;
+
+      if (!rulesHash) {
+        if (patterns === "1") return [];
+        // patterns === "0": if no cache exists yet, treat as "no matches known" and return all.
+      } else if (patterns === "1") {
+        where.push(
+          `EXISTS (SELECT 1 FROM pattern_matches pm WHERE pm.rules_hash = ? AND pm.card_id = c.id)`
+        );
+        sqlParams.push(rulesHash);
+      } else if (patterns === "0") {
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM pattern_matches pm WHERE pm.rules_hash = ? AND pm.card_id = c.id)`
+        );
+        sqlParams.push(rulesHash);
+      }
+    }
+
+    const joinSql = (() => {
+      if (!hasQ || qMode !== "fts") return "";
+      const exists = this.dbService.queryOne<{ ok: number }>(
+        `SELECT 1 as ok FROM sqlite_master WHERE type='table' AND name='cards_fts' LIMIT 1`
+      );
+      if (!exists?.ok) {
+        throw new AppError({ status: 500, code: "api.db.fts5_not_available" });
+      }
+      return `JOIN cards_fts ON cards_fts.rowid = c.rowid`;
+    })();
+
+    if (hasQ) {
+      const requestedFields = Array.isArray(params.q_fields)
+        ? (params.q_fields as CardsFtsField[]).filter((f) => typeof f === "string")
+        : [];
+
+      const fieldToColumn = (f: CardsFtsField): string => {
+        if (f === "alternate_greetings") return "alternate_greetings_text";
+        if (f === "group_only_greetings") return "group_only_greetings_text";
+        return f;
+      };
+
+      if (qMode === "fts") {
+        const maxLen = 200;
+        if (qRaw.length > maxLen) {
+          throw new AppError({
+            status: 400,
+            code: "api.cards.invalid_search_query",
+          });
+        }
+
+        const extractSearchTokens = (input: string): string[] => {
+          return input
+            .trim()
+            .split(/[^\p{L}\p{N}]+/gu)
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0);
+        };
+
+        const tokens = extractSearchTokens(qRaw).slice(0, 12);
+
+        if (tokens.length === 0) {
+          throw new AppError({
+            status: 400,
+            code: "api.cards.invalid_search_query",
+          });
+        }
+
+        // Quote each token to avoid treating keywords like OR/NOT as operators
+        // and reduce "fts syntax error" surface.
+        const terms = tokens.map((t) => `"${t}*"`).join(" ");
+
+        const matchQuery = (() => {
+          if (!requestedFields || requestedFields.length === 0) {
+            return terms;
+          }
+          const cols = requestedFields.map((f) => fieldToColumn(f));
+          return cols.map((c) => `${c}:(${terms})`).join(" OR ");
+        })();
+
+        where.push(`cards_fts MATCH ?`);
+        sqlParams.push(matchQuery);
+      } else {
+        // LIKE mode: literal substring search across selected columns
+        const maxLen = 1000;
+        if (qRaw.length > maxLen) {
+          throw new AppError({
+            status: 400,
+            code: "api.cards.invalid_search_query",
+          });
+        }
+
+        const escapeLike = (input: string): string => {
+          // Escape order matters: backslash first.
+          return input.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+        };
+
+        const allColumns: string[] = [
+          "description",
+          "personality",
+          "scenario",
+          "first_mes",
+          "mes_example",
+          "creator_notes",
+          "system_prompt",
+          "post_history_instructions",
+          "alternate_greetings_text",
+          "group_only_greetings_text",
+        ];
+
+        const cols = (() => {
+          if (!requestedFields || requestedFields.length === 0) return allColumns;
+          const mapped = requestedFields.map((f) => fieldToColumn(f));
+          // Keep unique and stable order.
+          const seen = new Set<string>();
+          const out: string[] = [];
+          for (const c of mapped) {
+            if (seen.has(c)) continue;
+            seen.add(c);
+            out.push(c);
+          }
+          return out.length > 0 ? out : allColumns;
+        })();
+
+        const pattern = `%${escapeLike(qRaw)}%`;
+        const orSql = cols
+          .map((c) => `c.${c} LIKE ? ESCAPE '\\' COLLATE NOCASE`)
+          .join(" OR ");
+        where.push(`(${orSql})`);
+        for (let i = 0; i < cols.length; i++) sqlParams.push(pattern);
+      }
+    }
+
     const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
     const orderBy = (() => {
-      switch (sort) {
+      if (
+        qMode === "fts" &&
+        hasQ &&
+        (effectiveSort === "relevance" || params.sort == null)
+      ) {
+        return `ORDER BY bm25(cards_fts) ASC`;
+      }
+
+      switch (effectiveSort) {
         case "created_at_asc":
           return `ORDER BY c.created_at ASC`;
         case "name_asc":
           return `ORDER BY c.name COLLATE NOCASE ASC, c.created_at DESC`;
         case "name_desc":
           return `ORDER BY c.name COLLATE NOCASE DESC, c.created_at DESC`;
+        case "prompt_tokens_asc":
+          return `ORDER BY c.prompt_tokens_est ASC, c.created_at DESC`;
+        case "prompt_tokens_desc":
+          return `ORDER BY c.prompt_tokens_est DESC, c.created_at DESC`;
         case "created_at_desc":
         default:
           return `ORDER BY c.created_at DESC`;
@@ -220,6 +407,7 @@ export class CardsService {
           )
         ) as file_path
       FROM cards c
+      ${joinSql}
       ${whereSql}
       ${orderBy}
     `;

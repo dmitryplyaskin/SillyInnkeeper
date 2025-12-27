@@ -59,6 +59,16 @@ const ru = {
   "api.settings.get_failed": "Не удалось получить настройки",
   "api.settings.update_failed": "Не удалось обновить настройки",
 
+  "api.importSettings.invalid_format":
+    "Неверный формат данных. Ожидается объект с полями sourceFolderPath, importMode, duplicatesMode",
+  "api.importSettings.get_failed": "Не удалось получить настройки импорта",
+  "api.importSettings.update_failed": "Не удалось обновить настройки импорта",
+  "api.importSettings.invalid_import_mode":
+    "Некорректная стратегия импорта: {importMode}",
+  "api.importSettings.invalid_duplicates_mode":
+    "Некорректная стратегия дубликатов: {duplicatesMode}",
+  "api.importSettings.not_a_directory": "Путь не является директорией: {path}",
+
   "api.viewSettings.invalid_format":
     "Неверный формат данных. columnsCount должен быть 3, 5 или 7, isCensored должен быть boolean",
   "api.viewSettings.get_failed": "Не удалось получить настройки отображения",
@@ -74,8 +84,25 @@ const ru = {
   "api.tags.update_failed": "Не удалось обновить тег",
   "api.tags.delete_failed": "Не удалось удалить тег",
 
+  "api.tags.bulk_edit.invalid_format":
+    "Неверный формат данных для массового редактирования тегов",
+  "api.tags.bulk_edit.no_tags_selected":
+    "Не выбраны теги для массового редактирования",
+  "api.tags.bulk_edit.target_required":
+    "Не указан целевой тег для замены",
+  "api.tags.bulk_edit.target_invalid": "Некорректный целевой тег для замены",
+  "api.tags.bulk_edit.target_not_found":
+    "Целевой тег не найден: {rawName}",
+  "api.tags.bulk_edit.already_running":
+    "Массовое редактирование тегов уже выполняется",
+  "api.tags.bulk_edit.cardsFolderPath_not_set":
+    "Папка библиотеки не настроена (cardsFolderPath)",
+  "api.tags.bulk_edit.start_failed":
+    "Не удалось запустить массовое редактирование тегов",
+
   "api.cards.invalid_created_from": "Некорректный created_from",
   "api.cards.invalid_created_to": "Некорректный created_to",
+  "api.cards.invalid_search_query": "Некорректный поисковый запрос",
   "api.cards.list_failed": "Не удалось получить список карточек",
   "api.cards.get_failed": "Не удалось получить карточку",
   "api.cards.not_found": "Карточка не найдена",
@@ -83,7 +110,32 @@ const ru = {
   "api.cards.export_failed": "Не удалось экспортировать PNG карточки",
   "api.cards.invalid_card_json": "Некорректные данные карточки для сохранения",
   "api.cards.save_failed": "Не удалось сохранить карточку",
+
+  "api.cardsImport.invalid_format":
+    "Неверный формат данных. Ожидается объект с полями sourceFolderPath, importMode, duplicatesMode",
+  "api.cardsImport.already_running": "Импорт уже выполняется",
+  "api.cardsImport.path_not_exists": "Путь не существует: {path}",
+  "api.cardsImport.not_a_directory": "Путь не является директорией: {path}",
+  "api.cardsImport.cardsFolderPath_not_set":
+    "Папка библиотеки не настроена (cardsFolderPath)",
+  "api.cardsImport.start_failed": "Не удалось запустить импорт",
+  "api.cards.invalid_card_ids":
+    "Некорректный card_ids (ожидается непустой массив ID карточек)",
+  "api.cards.some_not_found": "Некоторые карточки не найдены",
+  "api.cards.bulk_delete_failed": "Не удалось удалить выбранные карточки",
   "api.export.invalid_data_json": "Некорректные данные карточки для экспорта",
+
+  "api.db.fts5_not_available":
+    "Полнотекстовый поиск недоступен (FTS5 отсутствует в сборке SQLite)",
+
+  // pattern rules API
+  "api.pattern_rules.invalid_rules": "Некорректные правила паттернов",
+  "api.pattern_rules.get_failed": "Не удалось получить правила паттернов",
+  "api.pattern_rules.update_failed": "Не удалось сохранить правила паттернов",
+  "api.pattern_rules.status_failed":
+    "Не удалось получить статус поиска по паттернам",
+  "api.pattern_rules.run_failed": "Не удалось запустить поиск по паттернам",
+  "api.pattern_rules.already_running": "Поиск по паттернам уже выполняется",
 
   // lorebooks API
   "api.lorebooks.list_failed": "Не удалось получить список лорбуков",
@@ -159,6 +211,21 @@ const ru = {
   "log.cardsSync.resynced":
     "cards:resynced rev={revision} origin={origin} +{added} -{removed} ({durationMs}ms)",
   "error.cardsSync.failed": "Ошибка в CardsSyncOrchestrator",
+
+  "error.cardsImport.copyFailed":
+    "Не удалось скопировать файл (source={source}, target={target})",
+  "error.cardsImport.deleteSourceFailed":
+    "Не удалось удалить исходный файл: {source}",
+  "error.cardsImport.requestScanFailed":
+    "Ошибка при запуске сканирования после импорта",
+  "error.cardsImport.failed": "Ошибка при импорте карточек",
+
+  "warn.pattern_rules.regex_runtime_error":
+    "Ошибка выполнения regex во время поиска по паттернам (ruleId={ruleId})",
+  "error.pattern_rules.cache_update_failed":
+    "Не удалось обновить статус поиска по паттернам в БД",
+
+  "error.tags.bulk_edit_failed": "Ошибка при массовом редактировании тегов",
 
   "log.scanner.autoStart": "Автозапуск сканирования папки: {folderPath}",
   "warn.scanner.deprecatedInitializeScanner":

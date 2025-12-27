@@ -4,11 +4,31 @@ export type CardsSort =
   | "created_at_desc"
   | "created_at_asc"
   | "name_asc"
-  | "name_desc";
+  | "name_desc"
+  | "prompt_tokens_desc"
+  | "prompt_tokens_asc"
+  | "relevance";
+
+export type CardsFtsField =
+  | "description"
+  | "personality"
+  | "scenario"
+  | "first_mes"
+  | "mes_example"
+  | "creator_notes"
+  | "system_prompt"
+  | "post_history_instructions"
+  | "alternate_greetings"
+  | "group_only_greetings";
+
+export type CardsTextSearchMode = "like" | "fts";
 
 export interface CardsQuery {
   sort?: CardsSort;
   name?: string;
+  q?: string;
+  q_mode?: CardsTextSearchMode;
+  q_fields?: CardsFtsField[];
   creator?: string[];
   spec_version?: string[];
   tags?: string[];
@@ -25,4 +45,5 @@ export interface CardsQuery {
   alternate_greetings_min?: number;
   prompt_tokens_min?: number;
   prompt_tokens_max?: number;
+  patterns?: TriState;
 }

@@ -5,12 +5,20 @@ import type {
   CardsScanFinishedEvent,
   CardsScanProgressEvent,
   CardsScanStartedEvent,
+  CardsImportFinishedEvent,
   StImportResultEvent,
+  PatternsProgressEvent,
+  PatternsRunDoneEvent,
+  PatternsRunFailedEvent,
+  PatternsRunStartedEvent,
+  TagsBulkEditDoneEvent,
+  TagsBulkEditFailedEvent,
 } from "@/shared/types/events";
 import {
   applyFilters,
   applyFiltersSilent,
   loadCardsFiltersFx,
+  applyTagsBulkEditToSelectedTags,
 } from "@/features/cards-filters";
 import { notifications } from "@mantine/notifications";
 import i18n from "@/shared/i18n/i18n";
@@ -24,10 +32,18 @@ const scanProgress = createEvent<CardsScanProgressEvent>();
 const scanFinished = createEvent<CardsScanFinishedEvent>();
 const connected = createEvent<void>();
 const stImportResult = createEvent<StImportResultEvent>();
+const importFinished = createEvent<CardsImportFinishedEvent>();
+const patternsRunStarted = createEvent<PatternsRunStartedEvent>();
+const patternsProgress = createEvent<PatternsProgressEvent>();
+const patternsRunDone = createEvent<PatternsRunDoneEvent>();
+const patternsRunFailed = createEvent<PatternsRunFailedEvent>();
+const tagsBulkEditDone = createEvent<TagsBulkEditDoneEvent>();
+const tagsBulkEditFailed = createEvent<TagsBulkEditFailedEvent>();
 
 let client: EventsClient | null = null;
 
 const SCAN_NOTIFICATION_ID = "scan-status";
+const PATTERNS_NOTIFICATION_ID = "patterns-status";
 let scanPollTimer: ReturnType<typeof setInterval> | null = null;
 
 function shortFolderLabel(folderPath: string): string {
@@ -43,7 +59,14 @@ startLiveSync.watch(() => {
     onScanStarted: (evt) => scanStarted(evt),
     onScanProgress: (evt) => scanProgress(evt),
     onScanFinished: (evt) => scanFinished(evt),
+    onImportFinished: (evt) => importFinished(evt),
     onStImportResult: (evt) => stImportResult(evt),
+    onPatternsRunStarted: (evt) => patternsRunStarted(evt),
+    onPatternsProgress: (evt) => patternsProgress(evt),
+    onPatternsRunDone: (evt) => patternsRunDone(evt),
+    onPatternsRunFailed: (evt) => patternsRunFailed(evt),
+    onTagsBulkEditDone: (evt) => tagsBulkEditDone(evt),
+    onTagsBulkEditFailed: (evt) => tagsBulkEditFailed(evt),
     onError: () => {
       // браузер сам переподключается; лог/UX добавим позже при необходимости
     },
@@ -157,6 +180,107 @@ stImportResult.watch((evt) => {
         ? i18n.t("cardDetails.stImportOkMessage", { cardId: evt.cardId })
         : i18n.t("cardDetails.stImportFailMessage", { cardId: evt.cardId }),
     color: evt.ok ? "green" : "red",
+  });
+});
+
+importFinished.watch((evt) => {
+  const seconds = (evt.durationMs / 1000).toFixed(1);
+  notifications.show({
+    title: i18n.t("cardsImport.importFinishedTitle"),
+    message: i18n.t("cardsImport.importFinishedMessage", {
+      imported: evt.importedFiles,
+      skippedDuplicates: evt.skippedDuplicates,
+      skippedParseErrors: evt.skippedParseErrors,
+      copyFailed: evt.copyFailed,
+      deletedOriginals: evt.deletedOriginals,
+      deleteFailed: evt.deleteFailed,
+      seconds,
+    }),
+    color: evt.copyFailed > 0 || evt.deleteFailed > 0 ? "yellow" : "green",
+  });
+
+  // Make sure UI refreshes soon even if scan events are delayed.
+  applyFiltersSilent();
+});
+
+// Patterns scan progress (via Notifications)
+patternsRunStarted.watch((evt) => {
+  const total = Math.max(0, evt.total_cards);
+  notifications.show({
+    id: PATTERNS_NOTIFICATION_ID,
+    title: i18n.t("patternRules.progressTitle"),
+    message: i18n.t("patternRules.progressStart", { done: 0, total }),
+    loading: true,
+    autoClose: false,
+    withCloseButton: false,
+  });
+});
+
+patternsProgress.watch((evt) => {
+  const total = Math.max(0, evt.total_cards);
+  const done = Math.min(Math.max(0, evt.processed_cards), total || evt.processed_cards);
+  const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+  notifications.update({
+    id: PATTERNS_NOTIFICATION_ID,
+    title: i18n.t("patternRules.progressTitle"),
+    message: i18n.t("patternRules.progress", { done, total, percent }),
+    loading: true,
+    autoClose: false,
+    withCloseButton: false,
+  });
+});
+
+patternsRunDone.watch((evt) => {
+  notifications.update({
+    id: PATTERNS_NOTIFICATION_ID,
+    title: i18n.t("patternRules.doneTitle"),
+    message: i18n.t("patternRules.doneMessage", { matched: evt.matched_cards }),
+    loading: false,
+    autoClose: 3500,
+    withCloseButton: true,
+    color: "green",
+  });
+  applyFiltersSilent();
+});
+
+patternsRunFailed.watch((evt) => {
+  notifications.update({
+    id: PATTERNS_NOTIFICATION_ID,
+    title: i18n.t("patternRules.failedTitle"),
+    message: i18n.t("patternRules.failedMessage", { error: evt.error }),
+    loading: false,
+    autoClose: 6000,
+    withCloseButton: true,
+    color: "red",
+  });
+});
+
+tagsBulkEditDone.watch((evt) => {
+  notifications.show({
+    title: i18n.t("tagsBulkEdit.doneTitle"),
+    message: i18n.t("tagsBulkEdit.doneMessage", {
+      count: evt.affected_cards,
+    }),
+    color: "green",
+  });
+
+  // If user had deleted/replaced tags selected in filters, update selection to avoid empty results.
+  applyTagsBulkEditToSelectedTags({
+    action: evt.action,
+    from_raw: evt.from,
+    to_name: evt.action === "replace" ? evt.to?.name ?? null : null,
+  });
+
+  // Refresh filters and cards list to reflect updated tags.
+  loadCardsFiltersFx();
+  applyFiltersSilent();
+});
+
+tagsBulkEditFailed.watch((evt) => {
+  notifications.show({
+    title: i18n.t("tagsBulkEdit.failedTitle"),
+    message: i18n.t("tagsBulkEdit.failedMessage", { error: evt.error }),
+    color: "red",
   });
 });
 

@@ -18,6 +18,7 @@ const ru = {
     copied: "Скопировано",
     cancel: "Отмена",
     close: "Закрыть",
+    apply: "Применить",
     zoomIn: "Увеличить",
   },
   theme: {
@@ -42,6 +43,10 @@ const ru = {
     loadLorebook: "Ошибка загрузки лорбука",
     saveLorebook: "Ошибка сохранения лорбука",
     deleteLorebook: "Ошибка удаления лорбука",
+    loadPatternRules: "Ошибка загрузки правил паттернов",
+    savePatternRules: "Ошибка сохранения правил паттернов",
+    loadPatternRulesStatus: "Ошибка загрузки статуса поиска по паттернам",
+    runPatternRules: "Ошибка запуска поиска по паттернам",
   },
   empty: {
     dash: "—",
@@ -52,6 +57,14 @@ const ru = {
     settingsButton: "Настройки",
     filtersButton: "Фильтры",
     filtersDrawerTitle: "Фильтры",
+  },
+  sidebar: {
+    title: "Меню",
+    collapse: "Свернуть меню",
+    expand: "Развернуть меню",
+    importDescription: "Импорт PNG-карточек из другой папки",
+    patternsDescription: "Правила и запуск поиска по паттернам",
+    tagsBulkEditDescription: "Массовая замена/удаление тегов в карточках",
   },
   setup: {
     firstRunTitle: "Первый запуск",
@@ -105,10 +118,36 @@ const ru = {
       "«Есть» — минимум 1 (или больше, если задано «Минимум»). «Нет» — строго 0. «Не важно» — учитывается только «Минимум».",
     fieldsPresence: "Наличие полей",
     noteFts:
-      "Примечание: полнотекстовый поиск по description/first_mes будет добавлен позже через FTS5.",
+      "Примечание: FTS ищет по словам (по началу слова), а не по точной фразе.",
+    noteLike:
+      "Примечание: обычный поиск ищет буквальную подстроку (как введено), регистр не важен.",
     name: "Имя",
     namePlaceholder: "Поиск по имени…",
     sort: "Сортировка",
+    sortRelevance: "Релевантность",
+    relevanceNeedsQuery:
+      "Релевантность работает только при заполненном «Поиск по тексту». Сейчас применена сортировка по умолчанию.",
+    relevanceNeedsFts:
+      "Релевантность доступна только в режиме FTS. Сейчас применена сортировка по умолчанию.",
+    textSearch: "Поиск по тексту",
+    searchModeLike: "Обычный",
+    searchModeFts: "FTS",
+    textSearchPlaceholder: "Искать в длинных полях…",
+    textSearchTip:
+      "FTS (полнотекстовый) ищет по словам и по началу слов: \"dragon\" найдёт \"dragon*\" (dragon, dragons, dragonborn…). Это НЕ поиск точной фразы: пунктуация и порядок слов не важны (например, 18-year-old → 18 year old). Берутся первые ~12 слов запроса, поиск идёт только по выбранным полям ниже. Если нужно найти точную строку/шаблон (например, с {{char}} и кавычками) — переключитесь на «Обычный».",
+    textSearchTipLike:
+      "Обычный поиск: ищет буквальную подстроку (как введено), по выбранным полям ниже. Пунктуация и пробелы учитываются. Регистр не важен.",
+    textSearchFields: "Искать по полям",
+    qFieldDescription: "Описание",
+    qFieldPersonality: "Личность",
+    qFieldScenario: "Сценарий",
+    qFieldFirstMes: "Первое сообщение",
+    qFieldMesExample: "Пример сообщений",
+    qFieldCreatorNotes: "Заметки автора",
+    qFieldSystemPrompt: "Системный промпт",
+    qFieldPostHistoryInstructions: "Инструкции истории",
+    qFieldAlternateGreetings: "Альтернативные приветствия",
+    qFieldGroupOnlyGreetings: "Приветствия (только группа)",
     creator: "Создатель",
     specVersion: "Версия спеки",
     tags: "Теги",
@@ -121,6 +160,8 @@ const ru = {
     sortOldFirst: "Сначала старые",
     sortNameAsc: "Имя: А → Я",
     sortNameDesc: "Имя: Я → А",
+    sortTokensDesc: "Токены: больше → меньше",
+    sortTokensAsc: "Токены: меньше → больше",
     hasCreatorNotes: "Заметки автора",
     hasSystemPrompt: "Системный промпт",
     hasPostHistoryInstructions: "Инструкции истории",
@@ -128,6 +169,14 @@ const ru = {
     hasScenario: "Сценарий",
     hasMesExample: "Пример сообщений",
     hasCharacterBook: "Лорбук",
+    patterns: "Фильтр по паттернам",
+    openPatternRulesAria: "Открыть правила паттернов",
+    openPatternRules: "Правила",
+    patternsDisabled: "Добавьте и включите хотя бы одно правило",
+    patternsNeedsRun: "Поиск по паттернам ещё не запускался — нажмите «Запустить поиск» в правилах",
+    patternsHint: "Показывает только карточки, где есть совпадения по последнему успешному запуску",
+    patternsTip:
+      "Работает по результату последнего успешного запуска (кэш). Откройте правила, добавьте/отредактируйте regex и нажмите «Запустить поиск».",
   },
   card: {
     thumbnailAltFallback: "Миниатюра карточки",
@@ -400,6 +449,137 @@ const ru = {
     updated: "Папка: {{folder}} • {{parts}} • {{seconds}}с",
     added: "Добавлено: {{count}}",
     removed: "Удалено: {{count}}",
+  },
+  multiSelect: {
+    toggleOn: "Включить мультивыбор",
+    toggleOff: "Выключить мультивыбор",
+    delete: "Удалить",
+    selectedCount_one: "Выбрано: {{count}} карточка",
+    selectedCount_few: "Выбрано: {{count}} карточки",
+    selectedCount_many: "Выбрано: {{count}} карточек",
+    selectedCount_other: "Выбрано: {{count}} карточек",
+    confirmDeleteTitle: "Удалить выбранные карточки?",
+    confirmDeleteText: "Это действие нельзя отменить.",
+    confirmDeleteOk: "Удалить",
+    deleteOk_one: "Удалена {{count}} карточка",
+    deleteOk_few: "Удалены {{count}} карточки",
+    deleteOk_many: "Удалены {{count}} карточек",
+    deleteOk_other: "Удалены {{count}} карточек",
+  },
+  cardsImport: {
+    openTooltip: "Импорт карточек",
+    openAria: "Открыть импорт карточек",
+    title: "Импорт карточек",
+    description:
+      "Импортирует PNG-карточки из другой папки в вашу библиотеку (cardsFolderPath). Карточки обрабатываются от старых к новым. Некорректные карточки пропускаются.",
+
+    sourceFolderLabel: "Папка-источник",
+    sourceFolderPlaceholder: "C:\\path\\to\\cards-to-import",
+    sourceFolderRequired: "Папка-источник обязательна",
+    cardsFolderNotConfigured:
+      "Папка библиотеки не настроена (cardsFolderPath). Откройте «Настройки».",
+
+    pickFolderAria: "Выбрать папку-источник",
+    pickFolderTooltip: "Выбрать папку",
+    pickFolderDialogTitle: "Выберите папку для импорта",
+
+    importModeLabel: "Стратегия импорта",
+    importModeCopy: "Импорт (копировать)",
+    importModeMove: "Импорт + удалить оригиналы",
+    moveWarningTitle: "Осторожно",
+    moveWarningText:
+      "Оригинальные карточки будут удалены из папки-источника после успешного копирования. Это действие нельзя отменить.",
+
+    duplicatesModeLabel: "Дубликаты (по content_hash)",
+    duplicatesModeSkip: "Пропускать",
+    duplicatesModeCopy: "Копировать всё равно",
+
+    importButton: "Импортировать",
+    importStartedTitle: "Импорт карточек",
+    importStartedMessage: "Импорт запущен. Прогресс появится в уведомлениях.",
+    importFinishedTitle: "Импорт карточек завершён",
+    importFinishedMessage:
+      "Импортировано: {{imported}} • Дубли пропущены: {{skippedDuplicates}} • Ошибки парсинга: {{skippedParseErrors}} • Ошибки копирования: {{copyFailed}} • Удалено оригиналов: {{deletedOriginals}} • Ошибки удаления: {{deleteFailed}} • {{seconds}}с",
+  },
+  patternRules: {
+    openTooltip: "Правила/Паттерны",
+    openAria: "Открыть правила паттернов",
+    title: "Правила паттернов",
+    description:
+      "Задайте регулярные выражения для поиска проблемных конструкций в тексте карточек. Поиск запускается вручную и кэшируется.",
+    searchModeHint:
+      "Подсказка: можно ввести обычную строку (сработает как поиск по подстроке) или полноценный regex. Регистр настраивается флагами (например, добавьте “i”).",
+    addRule: "Добавить правило",
+    run: "Запустить поиск",
+    runConfirm:
+      "Поиск может занять время на больших библиотеках. Запустить пересчёт?",
+    noRulesHint: "Правил пока нет. Добавьте хотя бы одно.",
+    lastReady: "Последний успешный запуск: {{createdAt}}",
+    ruleLabel: "Правило #{{index}}",
+    deleteRuleAria: "Удалить правило",
+    enabled: "Включено",
+    pattern: "Regex",
+    patternPlaceholder: "Например: \\{\\{\\{char\\}\\}\\}",
+    flags: "Флаги",
+    savedTitle: "Правила паттернов",
+    savedMessage: "Правила сохранены",
+    runStartedTitle: "Поиск по паттернам",
+    runPendingMessage: "Запускаем…",
+    runStartedMessage: "Запущен. Прогресс появится в уведомлениях.",
+    progressTitle: "Поиск по паттернам",
+    progressStart: "0/{{total}} (0%)",
+    progress: "{{done}}/{{total}} ({{percent}}%)",
+    doneTitle: "Поиск по паттернам завершён",
+    doneMessage: "Совпадений найдено у карточек: {{matched}}",
+    failedTitle: "Поиск по паттернам",
+    failedMessage: "Ошибка: {{error}}",
+    validation: {
+      patternRequired: "Укажите regex (для включённого правила)",
+      flagsInvalid: "Некорректные флаги (допустимы: d g i m s u v y)",
+      fixErrors: "Исправьте ошибки в правилах перед сохранением",
+    },
+  },
+  tagsBulkEdit: {
+    openTooltip: "Редактирование тегов",
+    openAria: "Открыть редактирование тегов",
+    title: "Редактирование тегов",
+    description:
+      "Инструмент для приведения тегов к единообразию: выберите мусорные теги и замените их на один валидный тег или удалите без замены.",
+
+    tabs: {
+      replace: "Заменить",
+      delete: "Удалить",
+    },
+
+    fromLabel: "Какие теги заменить/удалить",
+    fromPlaceholder: "Выберите теги…",
+    nothingFound: "Ничего не найдено",
+
+    replaceMode: {
+      existing: "Заменить на существующий",
+      new: "Создать новый тег",
+    },
+
+    toExistingLabel: "Заменить на тег",
+    toExistingPlaceholder: "Выберите тег…",
+    toNewLabel: "Новый тег",
+    toNewPlaceholder: "Введите название тега…",
+
+    deleteWarning:
+      "Внимание: выбранные теги будут удалены из карточек. Неиспользуемые теги будут удалены из списка тегов.",
+
+    validation: {
+      fillRequired: "Заполните обязательные поля",
+    },
+
+    startedTitle: "Редактирование тегов",
+    startedMessage: "Операция запущена. Завершение придёт через уведомление.",
+
+    doneTitle: "Редактирование тегов завершено",
+    doneMessage: "Обновлено карточек: {{count}}",
+
+    failedTitle: "Редактирование тегов",
+    failedMessage: "Ошибка: {{error}}",
   },
 } as const;
 

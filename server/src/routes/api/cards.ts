@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { createCardsService } from "../../services/cards";
 import { logger } from "../../utils/logger";
 import type {
+  CardsFtsField,
   CardsSort,
   SearchCardsParams,
   TriState,
@@ -112,11 +113,95 @@ router.get("/cards", async (req: Request, res: Response) => {
       sortRaw === "created_at_desc" ||
       sortRaw === "created_at_asc" ||
       sortRaw === "name_asc" ||
-      sortRaw === "name_desc"
+      sortRaw === "name_desc" ||
+      sortRaw === "prompt_tokens_desc" ||
+      sortRaw === "prompt_tokens_asc" ||
+      sortRaw === "relevance"
         ? sortRaw
         : undefined;
 
     const name = parseString(req.query.name);
+    const q = parseString((req.query as any).q);
+
+    const qModeRaw = parseString((req.query as any).q_mode);
+    if (qModeRaw && qModeRaw !== "like" && qModeRaw !== "fts") {
+      throw new AppError({
+        status: 400,
+        code: "api.cards.invalid_search_query",
+      });
+    }
+    const q_mode: "like" | "fts" = qModeRaw === "fts" ? "fts" : "like";
+
+    const qFieldsRaw = parseStringArray(req.query, "q_fields");
+
+    let q_fields: CardsFtsField[] | undefined;
+    if (q) {
+      const allowed: ReadonlySet<string> = new Set([
+        "description",
+        "personality",
+        "scenario",
+        "first_mes",
+        "mes_example",
+        "creator_notes",
+        "system_prompt",
+        "post_history_instructions",
+        "alternate_greetings",
+        "group_only_greetings",
+      ]);
+
+      if (q_mode === "fts") {
+        if (q.length > 200) {
+          throw new AppError({
+            status: 400,
+            code: "api.cards.invalid_search_query",
+          });
+        }
+
+        const extractSearchTokens = (input: string): string[] => {
+          // Split by any non-letter/non-number to align with FTS tokenization (unicode61).
+          // Example: "18-year-old" -> ["18", "year", "old"]
+          return input
+            .trim()
+            .split(/[^\p{L}\p{N}]+/gu)
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0);
+        };
+
+        const tokens = extractSearchTokens(q);
+        if (tokens.length === 0) {
+          throw new AppError({
+            status: 400,
+            code: "api.cards.invalid_search_query",
+          });
+        }
+      } else {
+        // LIKE mode: allow longer literal strings (e.g. full sentence / template)
+        if (q.length > 1000) {
+          throw new AppError({
+            status: 400,
+            code: "api.cards.invalid_search_query",
+          });
+        }
+      }
+
+      const normalizedFields = qFieldsRaw
+        .map((f) => f.trim())
+        .filter((f) => f.length > 0);
+
+      if (normalizedFields.length > 0) {
+        for (const f of normalizedFields) {
+          if (!allowed.has(f)) {
+            throw new AppError({
+              status: 400,
+              code: "api.cards.invalid_search_query",
+            });
+          }
+        }
+        q_fields = normalizedFields as CardsFtsField[];
+      } else {
+        q_fields = undefined; // means \"all\"
+      }
+    }
     const creators = parseStringArray(req.query, "creator");
     const spec_versions = parseStringArray(req.query, "spec_version");
     const tags = parseStringArray(req.query, "tags").map((t) =>
@@ -168,6 +253,9 @@ router.get("/cards", async (req: Request, res: Response) => {
       library_id: libraryId,
       sort,
       name,
+      q,
+      q_mode,
+      q_fields,
       creators: creators.length > 0 ? creators : undefined,
       spec_versions: spec_versions.length > 0 ? spec_versions : undefined,
       tags: tags.length > 0 ? tags : undefined,
@@ -185,6 +273,7 @@ router.get("/cards", async (req: Request, res: Response) => {
       has_alternate_greetings: parseTriState(
         (req.query as any).has_alternate_greetings
       ),
+      patterns: parseTriState((req.query as any).patterns),
       alternate_greetings_min:
         typeof alternateGreetingsMin === "number" && alternateGreetingsMin >= 0
           ? alternateGreetingsMin
@@ -892,6 +981,94 @@ router.delete("/cards/:id/files", async (req: Request, res: Response) => {
     return sendError(res, error, {
       status: 500,
       code: "api.cards.delete_file_failed",
+    });
+  }
+});
+
+// POST /api/cards/bulk-delete - удаление карточек списком (все файлы + БД)
+// IMPORTANT: keep this route before `/cards/:id` to avoid param match.
+router.post("/cards/bulk-delete", async (req: Request, res: Response) => {
+  try {
+    const raw = (req.body as unknown as { card_ids?: unknown } | null)
+      ?.card_ids;
+    const card_ids = Array.from(new Set(normalizeStringArray(raw)));
+
+    if (card_ids.length === 0) {
+      throw new AppError({ status: 400, code: "api.cards.invalid_card_ids" });
+    }
+
+    const db = getDb(req);
+
+    const placeholders = card_ids.map(() => "?").join(", ");
+
+    const cardRows = db
+      .prepare(
+        `
+        SELECT id, avatar_path
+        FROM cards
+        WHERE id IN (${placeholders})
+      `
+      )
+      .all(...card_ids) as Array<{ id: string; avatar_path: string | null }>;
+
+    if (cardRows.length !== card_ids.length) {
+      throw new AppError({ status: 404, code: "api.cards.some_not_found" });
+    }
+
+    const fileRows = db
+      .prepare(
+        `
+        SELECT card_id, file_path
+        FROM card_files
+        WHERE card_id IN (${placeholders})
+        ORDER BY file_birthtime ASC, file_path ASC
+      `
+      )
+      .all(...card_ids) as Array<{ card_id: string; file_path: string }>;
+
+    const filesByCardId = new Map<string, string[]>();
+    for (const id of card_ids) filesByCardId.set(id, []);
+    for (const r of fileRows) {
+      const p = typeof r.file_path === "string" ? r.file_path.trim() : "";
+      if (!p) continue;
+      const list = filesByCardId.get(r.card_id);
+      if (list) list.push(p);
+    }
+
+    // 1) Delete files first. If a critical filesystem error happens, do not touch DB.
+    for (const id of card_ids) {
+      const files = filesByCardId.get(id) ?? [];
+      for (const p of files) {
+        await unlink(p).catch((e: unknown) => {
+          const err = e as { code?: unknown } | null;
+          const code = typeof err?.code === "string" ? err.code : "";
+          if (code === "ENOENT" || code === "ENOTDIR") return;
+          throw e;
+        });
+      }
+    }
+
+    // 2) Remove cards from DB (card_files/card_tags are removed via cascade)
+    db.transaction(() => {
+      db.prepare(`DELETE FROM cards WHERE id IN (${placeholders})`).run(
+        ...card_ids
+      );
+    })();
+
+    // 3) Cleanup thumbnails (best-effort)
+    for (const row of cardRows) {
+      if (!row.avatar_path) continue;
+      const uuid = row.avatar_path.split("/").pop()?.replace(".webp", "");
+      if (!uuid) continue;
+      await deleteThumbnail(uuid).catch(() => undefined);
+    }
+
+    res.json({ ok: true, deleted: card_ids.length, deleted_ids: card_ids });
+  } catch (error) {
+    logger.errorKey(error, "api.cards.bulk_delete_failed");
+    return sendError(res, error, {
+      status: 500,
+      code: "api.cards.bulk_delete_failed",
     });
   }
 });

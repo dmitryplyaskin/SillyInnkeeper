@@ -2,6 +2,7 @@ import { useUnit } from "effector-react";
 import {
   Alert,
   Button,
+  Checkbox,
   Divider,
   Group,
   NumberInput,
@@ -13,6 +14,7 @@ import {
   MultiSelect,
   Tooltip,
   ActionIcon,
+  SegmentedControl,
 } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import {
@@ -20,6 +22,7 @@ import {
   $filtersData,
   $filtersError,
   $filtersLoading,
+  $patternRulesStatus,
   loadCardsFiltersFx,
   resetFilters,
   setAlternateGreetingsMin,
@@ -35,13 +38,18 @@ import {
   setHasSystemPrompt,
   setHasAlternateGreetings,
   setName,
+  setQ,
+  setQMode,
+  setQFields,
   setPromptTokensMax,
   setPromptTokensMin,
   setSort,
   setSpecVersions,
   setTags,
+  setPatterns,
 } from "../model";
-import type { TriState } from "@/shared/types/cards-query";
+import type { CardsFtsField, TriState } from "@/shared/types/cards-query";
+import { openPatternRulesModal } from "@/features/pattern-rules";
 
 function InfoTip({ text }: { text: string }) {
   const { t } = useTranslation();
@@ -67,9 +75,14 @@ export function CardsFiltersPanel() {
     filtersData,
     filtersError,
     filtersLoading,
+    patternRulesStatus,
     loadFilters,
+    onOpenPatternRules,
     onSetSort,
     onSetName,
+    onSetQ,
+    onSetQMode,
+    onSetQFields,
     onSetCreators,
     onSetSpecVersions,
     onSetTags,
@@ -86,15 +99,21 @@ export function CardsFiltersPanel() {
     onSetHasCharacterBook,
     onSetHasAlternateGreetings,
     onSetAlternateGreetingsMin,
+    onSetPatterns,
     onReset,
   ] = useUnit([
     $filters,
     $filtersData,
     $filtersError,
     $filtersLoading,
+    $patternRulesStatus,
     loadCardsFiltersFx,
+    openPatternRulesModal,
     setSort,
     setName,
+    setQ,
+    setQMode,
+    setQFields,
     setCreators,
     setSpecVersions,
     setTags,
@@ -111,6 +130,7 @@ export function CardsFiltersPanel() {
     setHasCharacterBook,
     setHasAlternateGreetings,
     setAlternateGreetingsMin,
+    setPatterns,
     resetFilters,
   ]);
 
@@ -125,7 +145,40 @@ export function CardsFiltersPanel() {
     { value: "created_at_asc", label: t("filters.sortOldFirst") },
     { value: "name_asc", label: t("filters.sortNameAsc") },
     { value: "name_desc", label: t("filters.sortNameDesc") },
+    { value: "prompt_tokens_desc", label: t("filters.sortTokensDesc") },
+    { value: "prompt_tokens_asc", label: t("filters.sortTokensAsc") },
+    { value: "relevance", label: t("filters.sortRelevance") },
   ] as const;
+
+  const isRelevanceWithoutQuery =
+    filters.sort === "relevance" && filters.q.trim().length === 0;
+
+  const isRelevanceInLikeMode =
+    filters.sort === "relevance" &&
+    filters.q.trim().length > 0 &&
+    filters.q_mode !== "fts";
+
+  const FTS_FIELDS: Array<{ value: CardsFtsField; label: string }> = [
+    { value: "description", label: t("filters.qFieldDescription") },
+    { value: "personality", label: t("filters.qFieldPersonality") },
+    { value: "scenario", label: t("filters.qFieldScenario") },
+    { value: "first_mes", label: t("filters.qFieldFirstMes") },
+    { value: "mes_example", label: t("filters.qFieldMesExample") },
+    { value: "creator_notes", label: t("filters.qFieldCreatorNotes") },
+    { value: "system_prompt", label: t("filters.qFieldSystemPrompt") },
+    {
+      value: "post_history_instructions",
+      label: t("filters.qFieldPostHistoryInstructions"),
+    },
+    {
+      value: "alternate_greetings",
+      label: t("filters.qFieldAlternateGreetings"),
+    },
+    {
+      value: "group_only_greetings",
+      label: t("filters.qFieldGroupOnlyGreetings"),
+    },
+  ];
 
   function mergeOptions(
     selected: string[],
@@ -148,6 +201,15 @@ export function CardsFiltersPanel() {
     filtersData.spec_versions
   );
   const tagOptions = mergeOptions(filters.tags, filtersData.tags);
+
+  const patternsEnabled = filters.patterns === "1";
+  const patternsAvailable =
+    patternRulesStatus == null ? true : patternRulesStatus.hasEnabledRules;
+  const patternsDisabled = !patternsAvailable;
+  const patternsNeedsRun =
+    patternsEnabled &&
+    patternRulesStatus != null &&
+    patternRulesStatus.lastReady == null;
 
   return (
     <Stack gap="md">
@@ -199,6 +261,57 @@ export function CardsFiltersPanel() {
         />
       </SimpleGrid>
 
+      {isRelevanceWithoutQuery && (
+        <Text size="sm" c="dimmed">
+          {t("filters.relevanceNeedsQuery")}
+        </Text>
+      )}
+
+      {isRelevanceInLikeMode && (
+        <Text size="sm" c="dimmed">
+          {t("filters.relevanceNeedsFts")}
+        </Text>
+      )}
+
+      <TextInput
+        label={
+          <Group gap={6}>
+            <Text size="sm">{t("filters.textSearch")}</Text>
+            <SegmentedControl
+              size="xs"
+              value={filters.q_mode}
+              onChange={(v) => onSetQMode((v as any) ?? "like")}
+              data={[
+                { value: "like", label: t("filters.searchModeLike") },
+                { value: "fts", label: t("filters.searchModeFts") },
+              ]}
+            />
+            <InfoTip
+              text={
+                filters.q_mode === "fts"
+                  ? t("filters.textSearchTip")
+                  : t("filters.textSearchTipLike")
+              }
+            />
+          </Group>
+        }
+        placeholder={t("filters.textSearchPlaceholder")}
+        value={filters.q}
+        onChange={(e) => onSetQ(e.currentTarget.value)}
+      />
+
+      <Checkbox.Group
+        label={t("filters.textSearchFields")}
+        value={filters.q_fields as string[]}
+        onChange={(values) => onSetQFields(values as CardsFtsField[])}
+      >
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
+          {FTS_FIELDS.map((f) => (
+            <Checkbox key={f.value} value={f.value} label={f.label} />
+          ))}
+        </SimpleGrid>
+      </Checkbox.Group>
+
       <Divider
         label={
           <Group gap={6}>
@@ -206,6 +319,31 @@ export function CardsFiltersPanel() {
           </Group>
         }
       />
+
+      <Group gap="xs" align="center" wrap="wrap">
+        <Checkbox
+          label={t("filters.patterns")}
+          checked={patternsEnabled}
+          disabled={patternsDisabled}
+          onChange={(e) => onSetPatterns(e.currentTarget.checked ? "1" : "any")}
+        />
+        <InfoTip text={t("filters.patternsTip")} />
+        <Button
+          variant="subtle"
+          size="xs"
+          onClick={() => onOpenPatternRules()}
+          aria-label={t("filters.openPatternRulesAria")}
+        >
+          {t("filters.openPatternRules")}
+        </Button>
+      </Group>
+      <Text size="sm" c="dimmed">
+        {patternsDisabled
+          ? t("filters.patternsDisabled")
+          : patternsNeedsRun
+          ? t("filters.patternsNeedsRun")
+          : t("filters.patternsHint")}
+      </Text>
 
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <MultiSelect
@@ -410,7 +548,9 @@ export function CardsFiltersPanel() {
       </SimpleGrid>
 
       <Text size="sm" c="dimmed">
-        {t("filters.noteFts")}
+        {filters.q_mode === "fts"
+          ? t("filters.noteFts")
+          : t("filters.noteLike")}
       </Text>
     </Stack>
   );
