@@ -5,7 +5,8 @@ async function readErrorText(response: Response): Promise<string> {
   try {
     const data = (await response.json().catch(() => null)) as any;
     if (data && typeof data === "object") {
-      if (typeof data.error === "string" && data.error.trim()) return data.error;
+      if (typeof data.error === "string" && data.error.trim())
+        return data.error;
       if (typeof data.message === "string" && data.message.trim())
         return data.message;
     }
@@ -40,5 +41,3 @@ export async function updateImportSettings(
   }
   return response.json();
 }
-
-
