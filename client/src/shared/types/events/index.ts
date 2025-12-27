@@ -43,6 +43,24 @@ export type CardsScanFinishedEvent = {
   durationMs: number;
 };
 
+export type CardsImportFinishedEvent = {
+  sourceFolderPath: string;
+  targetFolderPath: string;
+  importMode: "copy" | "move";
+  duplicatesMode: "skip" | "copy";
+  totalFiles: number;
+  processedFiles: number;
+  importedFiles: number;
+  skippedParseErrors: number;
+  skippedDuplicates: number;
+  copyFailed: number;
+  deletedOriginals: number;
+  deleteFailed: number;
+  startedAt: number;
+  finishedAt: number;
+  durationMs: number;
+};
+
 export type StImportResultEvent = {
   type: "st:import_result";
   ts: number;

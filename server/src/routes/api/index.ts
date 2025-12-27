@@ -6,6 +6,7 @@ import {
 } from "express";
 import settings from "./settings";
 import viewSettings from "./view-settings";
+import cardsImport from "./cards-import";
 import cards from "./cards";
 import tags from "./tags";
 import thumbnail from "./thumbnail";
@@ -14,6 +15,7 @@ import events from "./events";
 import st from "./st";
 import explorer from "./explorer";
 import lorebooks from "./lorebooks";
+import importSettings from "./import-settings";
 
 const router = Router();
 
@@ -75,6 +77,7 @@ function stCorsMiddleware(
 router.use(stCorsMiddleware);
 router.use(settings);
 router.use(viewSettings);
+router.use(cardsImport);
 router.use(cards);
 router.use(tags);
 router.use(thumbnail);
@@ -83,5 +86,6 @@ router.use(events);
 router.use(st);
 router.use(explorer);
 router.use(lorebooks);
+router.use(importSettings);
 
 export default router;

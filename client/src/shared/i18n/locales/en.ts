@@ -409,6 +409,41 @@ const en = {
     deleteOk: "Deleted {{count}} card",
     deleteOk_other: "Deleted {{count}} cards",
   },
+  cardsImport: {
+    openTooltip: "Import cards",
+    openAria: "Open cards import",
+    title: "Cards import",
+    description:
+      "Imports PNG cards from another folder into your library (cardsFolderPath). Cards are processed from oldest to newest. Invalid cards are skipped.",
+
+    sourceFolderLabel: "Source folder",
+    sourceFolderPlaceholder: "C:\\path\\to\\cards-to-import",
+    sourceFolderRequired: "Source folder is required",
+    cardsFolderNotConfigured:
+      "Library folder is not configured (cardsFolderPath). Open Settings.",
+
+    pickFolderAria: "Pick source folder",
+    pickFolderTooltip: "Pick folder",
+    pickFolderDialogTitle: "Pick a folder to import from",
+
+    importModeLabel: "Import strategy",
+    importModeCopy: "Import (copy)",
+    importModeMove: "Import + delete originals",
+    moveWarningTitle: "Be careful",
+    moveWarningText:
+      "Original cards will be deleted from the source folder after successful copy. This action cannot be undone.",
+
+    duplicatesModeLabel: "Duplicates (by content_hash)",
+    duplicatesModeSkip: "Skip",
+    duplicatesModeCopy: "Copy anyway",
+
+    importButton: "Import",
+    importStartedTitle: "Cards import",
+    importStartedMessage: "Import started. Progress will appear in notifications.",
+    importFinishedTitle: "Cards import finished",
+    importFinishedMessage:
+      "Imported: {{imported}} • Duplicates skipped: {{skippedDuplicates}} • Parse errors: {{skippedParseErrors}} • Copy errors: {{copyFailed}} • Originals deleted: {{deletedOriginals}} • Delete errors: {{deleteFailed}} • {{seconds}}s",
+  },
 } as const;
 
 export default en;
