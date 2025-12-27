@@ -103,17 +103,25 @@ const en = {
       "“Has” — at least 1 (or more, if “Minimum” is set). “Has not” — strictly 0. “Any” — only “Minimum” is considered.",
     fieldsPresence: "Fields presence",
     noteFts:
-      "Note: text search works as a word prefix search (e.g. dragon matches dragon*).",
+      "Note: FTS searches by words (word prefixes), not an exact phrase.",
+    noteLike:
+      "Note: normal search finds a literal substring (as typed), case-insensitive.",
     name: "Name",
     namePlaceholder: "Search by name…",
     sort: "Sorting",
     sortRelevance: "Relevance",
     relevanceNeedsQuery:
       "Relevance works only when “Text search” is filled. Default sorting is applied now.",
+    relevanceNeedsFts:
+      "Relevance is available only in FTS mode. Default sorting is applied now.",
     textSearch: "Text search",
+    searchModeLike: "Normal",
+    searchModeFts: "FTS",
     textSearchPlaceholder: "Search in long fields…",
     textSearchTip:
-      "Search by words (prefixes), not an exact phrase: use 2–6 keywords. Punctuation is ignored (e.g. 18-year-old → 18 year old). Only the first ~12 words are used. Search applies only to the selected fields below.",
+      'FTS (full-text) searches by words and word prefixes: "dragon" matches "dragon*" (dragon, dragons, dragonborn…). This is NOT an exact phrase search: punctuation and word order do not matter (e.g. 18-year-old → 18 year old). Only the first ~12 words are used. Search applies only to the selected fields below. If you need to match a literal string/template (e.g. with {{char}} and quotes) — switch to "Normal".',
+    textSearchTipLike:
+      "Normal search: finds a literal substring (as typed) in the selected fields below. Punctuation and spaces are respected. Case-insensitive.",
     textSearchFields: "Search in fields",
     qFieldDescription: "Description",
     qFieldPersonality: "Personality",

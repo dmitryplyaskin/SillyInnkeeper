@@ -12,6 +12,7 @@ import type {
   CardsFtsField,
   CardsQuery,
   CardsSort,
+  CardsTextSearchMode,
   TriState,
 } from "@/shared/types/cards-query";
 import { loadCards, loadCardsSilent } from "@/entities/cards";
@@ -20,6 +21,7 @@ export interface CardsFiltersState {
   sort: CardsSort;
   name: string;
   q: string;
+  q_mode: CardsTextSearchMode;
   q_fields: CardsFtsField[];
   creator: string[];
   spec_version: string[];
@@ -43,6 +45,7 @@ const DEFAULT_FILTERS: CardsFiltersState = {
   sort: "created_at_desc",
   name: "",
   q: "",
+  q_mode: "like",
   q_fields: [
     "description",
     "personality",
@@ -116,6 +119,7 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     sort,
     name: state.name,
     q: hasQ ? q : undefined,
+    q_mode: state.q_mode,
     q_fields,
     creator: state.creator,
     spec_version: state.spec_version,
@@ -164,6 +168,7 @@ export const $filtersLoading = combine(loadCardsFiltersFx.pending, (p) => p);
 export const setSort = createEvent<CardsSort>();
 export const setName = createEvent<string>();
 export const setQ = createEvent<string>();
+export const setQMode = createEvent<CardsTextSearchMode>();
 export const setQFields = createEvent<CardsFtsField[]>();
 export const setCreators = createEvent<string[]>();
 export const setSpecVersions = createEvent<string[]>();
@@ -189,6 +194,7 @@ $filters
   .on(setSort, (s, sort) => ({ ...s, sort }))
   .on(setName, (s, name) => ({ ...s, name }))
   .on(setQ, (s, q) => ({ ...s, q }))
+  .on(setQMode, (s, q_mode) => ({ ...s, q_mode }))
   .on(setQFields, (s, q_fields) => ({ ...s, q_fields }))
   .on(setCreators, (s, creator) => ({ ...s, creator }))
   .on(setSpecVersions, (s, spec_version) => ({ ...s, spec_version }))
@@ -273,6 +279,7 @@ const qDebounced = debounce({ source: setQ, timeout: 450 });
 
 const immediateApplyClock = [
   setSort,
+  setQMode,
   setQFields,
   setCreators,
   setSpecVersions,

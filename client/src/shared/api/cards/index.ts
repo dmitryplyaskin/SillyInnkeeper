@@ -22,6 +22,7 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
   if (query?.name && query.name.trim().length > 0)
     params.set("name", query.name.trim());
   if (query?.q && query.q.trim().length > 0) params.set("q", query.q.trim());
+  if (query?.q_mode) params.set("q_mode", query.q_mode);
   appendMany(params, "q_fields", query?.q_fields);
 
   appendMany(params, "creator", query?.creator);

@@ -120,29 +120,17 @@ router.get("/cards", async (req: Request, res: Response) => {
 
     const name = parseString(req.query.name);
     const q = parseString((req.query as any).q);
-    const qFieldsRaw = parseStringArray(req.query, "q_fields");
 
-    const extractSearchTokens = (input: string): string[] => {
-      // Split by any non-letter/non-number to align with FTS tokenization (unicode61).
-      // Example: "18-year-old" -> ["18", "year", "old"]
-      return input
-        .trim()
-        .split(/[^\p{L}\p{N}]+/gu)
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0);
-    };
+    const qModeRaw = parseString((req.query as any).q_mode);
+    if (qModeRaw && qModeRaw !== "like" && qModeRaw !== "fts") {
+      throw new AppError({ status: 400, code: "api.cards.invalid_search_query" });
+    }
+    const q_mode: "like" | "fts" = qModeRaw === "fts" ? "fts" : "like";
+
+    const qFieldsRaw = parseStringArray(req.query, "q_fields");
 
     let q_fields: CardsFtsField[] | undefined;
     if (q) {
-      if (q.length > 200) {
-        throw new AppError({ status: 400, code: "api.cards.invalid_search_query" });
-      }
-
-      const tokens = extractSearchTokens(q);
-      if (tokens.length === 0) {
-        throw new AppError({ status: 400, code: "api.cards.invalid_search_query" });
-      }
-
       const allowed: ReadonlySet<string> = new Set([
         "description",
         "personality",
@@ -155,6 +143,41 @@ router.get("/cards", async (req: Request, res: Response) => {
         "alternate_greetings",
         "group_only_greetings",
       ]);
+
+      if (q_mode === "fts") {
+        if (q.length > 200) {
+          throw new AppError({
+            status: 400,
+            code: "api.cards.invalid_search_query",
+          });
+        }
+
+        const extractSearchTokens = (input: string): string[] => {
+          // Split by any non-letter/non-number to align with FTS tokenization (unicode61).
+          // Example: "18-year-old" -> ["18", "year", "old"]
+          return input
+            .trim()
+            .split(/[^\p{L}\p{N}]+/gu)
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0);
+        };
+
+        const tokens = extractSearchTokens(q);
+        if (tokens.length === 0) {
+          throw new AppError({
+            status: 400,
+            code: "api.cards.invalid_search_query",
+          });
+        }
+      } else {
+        // LIKE mode: allow longer literal strings (e.g. full sentence / template)
+        if (q.length > 1000) {
+          throw new AppError({
+            status: 400,
+            code: "api.cards.invalid_search_query",
+          });
+        }
+      }
 
       const normalizedFields = qFieldsRaw
         .map((f) => f.trim())
@@ -226,6 +249,7 @@ router.get("/cards", async (req: Request, res: Response) => {
       sort,
       name,
       q,
+      q_mode,
       q_fields,
       creators: creators.length > 0 ? creators : undefined,
       spec_versions: spec_versions.length > 0 ? spec_versions : undefined,

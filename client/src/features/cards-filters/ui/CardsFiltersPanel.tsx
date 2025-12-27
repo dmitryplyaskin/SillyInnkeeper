@@ -14,6 +14,7 @@ import {
   MultiSelect,
   Tooltip,
   ActionIcon,
+  SegmentedControl,
 } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import {
@@ -37,6 +38,7 @@ import {
   setHasAlternateGreetings,
   setName,
   setQ,
+  setQMode,
   setQFields,
   setPromptTokensMax,
   setPromptTokensMin,
@@ -74,6 +76,7 @@ export function CardsFiltersPanel() {
     onSetSort,
     onSetName,
     onSetQ,
+    onSetQMode,
     onSetQFields,
     onSetCreators,
     onSetSpecVersions,
@@ -101,6 +104,7 @@ export function CardsFiltersPanel() {
     setSort,
     setName,
     setQ,
+    setQMode,
     setQFields,
     setCreators,
     setSpecVersions,
@@ -137,6 +141,11 @@ export function CardsFiltersPanel() {
 
   const isRelevanceWithoutQuery =
     filters.sort === "relevance" && filters.q.trim().length === 0;
+
+  const isRelevanceInLikeMode =
+    filters.sort === "relevance" &&
+    filters.q.trim().length > 0 &&
+    filters.q_mode !== "fts";
 
   const FTS_FIELDS: Array<{ value: CardsFtsField; label: string }> = [
     { value: "description", label: t("filters.qFieldDescription") },
@@ -238,11 +247,32 @@ export function CardsFiltersPanel() {
         </Text>
       )}
 
+      {isRelevanceInLikeMode && (
+        <Text size="sm" c="dimmed">
+          {t("filters.relevanceNeedsFts")}
+        </Text>
+      )}
+
       <TextInput
         label={
           <Group gap={6}>
             <Text size="sm">{t("filters.textSearch")}</Text>
-            <InfoTip text={t("filters.textSearchTip")} />
+            <SegmentedControl
+              size="xs"
+              value={filters.q_mode}
+              onChange={(v) => onSetQMode((v as any) ?? "like")}
+              data={[
+                { value: "like", label: t("filters.searchModeLike") },
+                { value: "fts", label: t("filters.searchModeFts") },
+              ]}
+            />
+            <InfoTip
+              text={
+                filters.q_mode === "fts"
+                  ? t("filters.textSearchTip")
+                  : t("filters.textSearchTipLike")
+              }
+            />
           </Group>
         }
         placeholder={t("filters.textSearchPlaceholder")}
@@ -473,7 +503,9 @@ export function CardsFiltersPanel() {
       </SimpleGrid>
 
       <Text size="sm" c="dimmed">
-        {t("filters.noteFts")}
+        {filters.q_mode === "fts"
+          ? t("filters.noteFts")
+          : t("filters.noteLike")}
       </Text>
     </Stack>
   );

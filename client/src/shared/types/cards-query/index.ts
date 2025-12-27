@@ -19,10 +19,13 @@ export type CardsFtsField =
   | "alternate_greetings"
   | "group_only_greetings";
 
+export type CardsTextSearchMode = "like" | "fts";
+
 export interface CardsQuery {
   sort?: CardsSort;
   name?: string;
   q?: string;
+  q_mode?: CardsTextSearchMode;
   q_fields?: CardsFtsField[];
   creator?: string[];
   spec_version?: string[];
