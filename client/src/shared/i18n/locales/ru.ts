@@ -18,6 +18,7 @@ const ru = {
     copied: "Скопировано",
     cancel: "Отмена",
     close: "Закрыть",
+    apply: "Применить",
     zoomIn: "Увеличить",
   },
   theme: {
@@ -63,6 +64,7 @@ const ru = {
     expand: "Развернуть меню",
     importDescription: "Импорт PNG-карточек из другой папки",
     patternsDescription: "Правила и запуск поиска по паттернам",
+    tagsBulkEditDescription: "Массовая замена/удаление тегов в карточках",
   },
   setup: {
     firstRunTitle: "Первый запуск",
@@ -534,6 +536,48 @@ const ru = {
       flagsInvalid: "Некорректные флаги (допустимы: d g i m s u v y)",
       fixErrors: "Исправьте ошибки в правилах перед сохранением",
     },
+  },
+  tagsBulkEdit: {
+    openTooltip: "Редактирование тегов",
+    openAria: "Открыть редактирование тегов",
+    title: "Редактирование тегов",
+    description:
+      "Инструмент для приведения тегов к единообразию: выберите мусорные теги и замените их на один валидный тег или удалите без замены.",
+
+    tabs: {
+      replace: "Заменить",
+      delete: "Удалить",
+    },
+
+    fromLabel: "Какие теги заменить/удалить",
+    fromPlaceholder: "Выберите теги…",
+    nothingFound: "Ничего не найдено",
+
+    replaceMode: {
+      existing: "Заменить на существующий",
+      new: "Создать новый тег",
+    },
+
+    toExistingLabel: "Заменить на тег",
+    toExistingPlaceholder: "Выберите тег…",
+    toNewLabel: "Новый тег",
+    toNewPlaceholder: "Введите название тега…",
+
+    deleteWarning:
+      "Внимание: выбранные теги будут удалены из карточек. Неиспользуемые теги будут удалены из списка тегов.",
+
+    validation: {
+      fillRequired: "Заполните обязательные поля",
+    },
+
+    startedTitle: "Редактирование тегов",
+    startedMessage: "Операция запущена. Завершение придёт через уведомление.",
+
+    doneTitle: "Редактирование тегов завершено",
+    doneMessage: "Обновлено карточек: {{count}}",
+
+    failedTitle: "Редактирование тегов",
+    failedMessage: "Ошибка: {{error}}",
   },
 } as const;
 

@@ -84,6 +84,22 @@ const ru = {
   "api.tags.update_failed": "Не удалось обновить тег",
   "api.tags.delete_failed": "Не удалось удалить тег",
 
+  "api.tags.bulk_edit.invalid_format":
+    "Неверный формат данных для массового редактирования тегов",
+  "api.tags.bulk_edit.no_tags_selected":
+    "Не выбраны теги для массового редактирования",
+  "api.tags.bulk_edit.target_required":
+    "Не указан целевой тег для замены",
+  "api.tags.bulk_edit.target_invalid": "Некорректный целевой тег для замены",
+  "api.tags.bulk_edit.target_not_found":
+    "Целевой тег не найден: {rawName}",
+  "api.tags.bulk_edit.already_running":
+    "Массовое редактирование тегов уже выполняется",
+  "api.tags.bulk_edit.cardsFolderPath_not_set":
+    "Папка библиотеки не настроена (cardsFolderPath)",
+  "api.tags.bulk_edit.start_failed":
+    "Не удалось запустить массовое редактирование тегов",
+
   "api.cards.invalid_created_from": "Некорректный created_from",
   "api.cards.invalid_created_to": "Некорректный created_to",
   "api.cards.invalid_search_query": "Некорректный поисковый запрос",
@@ -208,6 +224,8 @@ const ru = {
     "Ошибка выполнения regex во время поиска по паттернам (ruleId={ruleId})",
   "error.pattern_rules.cache_update_failed":
     "Не удалось обновить статус поиска по паттернам в БД",
+
+  "error.tags.bulk_edit_failed": "Ошибка при массовом редактировании тегов",
 
   "log.scanner.autoStart": "Автозапуск сканирования папки: {folderPath}",
   "warn.scanner.deprecatedInitializeScanner":

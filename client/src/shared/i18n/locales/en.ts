@@ -18,6 +18,7 @@ const en = {
     copied: "Copied",
     cancel: "Cancel",
     close: "Close",
+    apply: "Apply",
     zoomIn: "Zoom in",
   },
   theme: {
@@ -63,6 +64,7 @@ const en = {
     expand: "Expand menu",
     importDescription: "Import PNG cards from another folder",
     patternsDescription: "Rules and run patterns search",
+    tagsBulkEditDescription: "Bulk replace/delete tags in cards",
   },
   setup: {
     firstRunTitle: "First launch",
@@ -525,6 +527,48 @@ const en = {
       flagsInvalid: "Invalid flags (allowed: d g i m s u v y)",
       fixErrors: "Fix rules errors before saving",
     },
+  },
+  tagsBulkEdit: {
+    openTooltip: "Tags editor",
+    openAria: "Open tags editor",
+    title: "Tags editor",
+    description:
+      "A tool to normalize tags: select garbage tags and replace them with one valid tag, or delete them without replacement.",
+
+    tabs: {
+      replace: "Replace",
+      delete: "Delete",
+    },
+
+    fromLabel: "Tags to replace/delete",
+    fromPlaceholder: "Select tags…",
+    nothingFound: "Nothing found",
+
+    replaceMode: {
+      existing: "Replace with existing",
+      new: "Create new tag",
+    },
+
+    toExistingLabel: "Replace with tag",
+    toExistingPlaceholder: "Select tag…",
+    toNewLabel: "New tag",
+    toNewPlaceholder: "Enter tag name…",
+
+    deleteWarning:
+      "Warning: selected tags will be removed from cards. Unused tags will be removed from the tags list.",
+
+    validation: {
+      fillRequired: "Fill required fields",
+    },
+
+    startedTitle: "Tags editor",
+    startedMessage: "Operation started. Completion will arrive via notification.",
+
+    doneTitle: "Tags edit finished",
+    doneMessage: "Cards updated: {{count}}",
+
+    failedTitle: "Tags editor",
+    failedMessage: "Error: {{error}}",
   },
 } as const;
 

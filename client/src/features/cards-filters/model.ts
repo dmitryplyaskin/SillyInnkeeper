@@ -176,10 +176,9 @@ export const $filtersData = createStore<CardsFiltersResponse>({
 });
 export const $filtersError = createStore<string | null>(null);
 export const $filtersLoading = combine(loadCardsFiltersFx.pending, (p) => p);
-export const $patternRulesStatus = createStore<PatternRulesStatus | null>(null).on(
-  loadPatternRulesStatusFx.doneData,
-  (_, s) => s
-);
+export const $patternRulesStatus = createStore<PatternRulesStatus | null>(
+  null
+).on(loadPatternRulesStatusFx.doneData, (_, s) => s);
 export const $patternRulesStatusError = createStore<string | null>(null)
   .on(loadPatternRulesStatusFx.doneData, () => null)
   .on(loadPatternRulesStatusFx.failData, (_, e) => e.message);
@@ -210,6 +209,11 @@ export const setPatterns = createEvent<TriState>();
 export const resetFilters = createEvent<void>();
 export const applyFilters = createEvent<void>();
 export const applyFiltersSilent = createEvent<void>();
+export const applyTagsBulkEditToSelectedTags = createEvent<{
+  action: "replace" | "delete";
+  from_raw: string[]; // rawName (normalized)
+  to_name?: string | null; // display name to add (optional, for replace)
+}>();
 
 $filters
   .on(setSort, (s, sort) => ({ ...s, sort }))
@@ -272,12 +276,62 @@ $filters
       : 0,
   }))
   .on(setPatterns, (s, patterns) => ({ ...s, patterns }))
+  .on(applyTagsBulkEditToSelectedTags, (s, payload) => {
+    const normalize = (x: string) => x.trim().toLowerCase();
+    const fromSet = new Set(payload.from_raw.map((x) => normalize(String(x))));
+
+    const hasIntersection = (s.tags ?? []).some((t) =>
+      fromSet.has(normalize(t))
+    );
+    if (!hasIntersection) {
+      // Do not change user's tag filters unless they actually depended on edited tags.
+      return s;
+    }
+
+    const kept = (s.tags ?? []).filter((t) => !fromSet.has(normalize(t)));
+
+    if (payload.action !== "replace") {
+      return { ...s, tags: kept };
+    }
+
+    const toName = (payload.to_name ?? "").trim();
+    if (!toName) {
+      return { ...s, tags: kept };
+    }
+
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const t of [...kept, toName]) {
+      const key = normalize(t);
+      if (!key) continue;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(t.trim());
+    }
+
+    return { ...s, tags: out };
+  })
   .on(resetFilters, () => DEFAULT_FILTERS);
 
 // sync filters response
 sample({
   clock: loadCardsFiltersFx.doneData,
   target: $filtersData,
+});
+
+// When lists are refreshed, drop selected tags that no longer exist in backend options.
+sample({
+  clock: loadCardsFiltersFx.doneData,
+  source: $filters,
+  fn: (filters, data) => {
+    const normalize = (x: string) => x.trim().toLowerCase();
+    const existing = new Set(data.tags.map((t) => normalize(t.value)));
+    const nextTags = (filters.tags ?? []).filter((t) =>
+      existing.has(normalize(t))
+    );
+    return nextTags;
+  },
+  target: setTags,
 });
 
 sample({

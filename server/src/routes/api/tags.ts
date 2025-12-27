@@ -1,6 +1,13 @@
 import { Router, Request, Response } from "express";
 import Database from "better-sqlite3";
+import { randomUUID } from "node:crypto";
 import { createTagService } from "../../services/tags";
+import type { SseHub } from "../../services/sse-hub";
+import {
+  startTagsBulkEditRun,
+  type TagsBulkEditAction,
+  type TagsBulkEditTarget,
+} from "../../services/tags-bulk-edit";
 import { logger } from "../../utils/logger";
 import { AppError } from "../../errors/app-error";
 import { sendError } from "../../errors/http";
@@ -10,6 +17,20 @@ const router = Router();
 // Middleware для получения базы данных из app.locals
 function getDb(req: Request): Database.Database {
   return req.app.locals.db as Database.Database;
+}
+
+function getHub(req: Request): SseHub {
+  const hub = (req.app.locals as any).sseHub as SseHub | undefined;
+  if (!hub) throw new Error("SSE hub is not initialized");
+  return hub;
+}
+
+type TagsBulkEditState = { running: boolean };
+
+function getBulkEditState(req: Request): TagsBulkEditState {
+  const locals = req.app.locals as any;
+  if (!locals.tagsBulkEditState) locals.tagsBulkEditState = { running: false };
+  return locals.tagsBulkEditState as TagsBulkEditState;
 }
 
 // GET /api/tags - получение списка всех тегов
@@ -22,6 +43,73 @@ router.get("/tags", async (req: Request, res: Response) => {
   } catch (error) {
     logger.errorKey(error, "api.tags.list_failed");
     return sendError(res, error, { status: 500, code: "api.tags.list_failed" });
+  }
+});
+
+// POST /api/tags/bulk-edit - массовая замена/удаление тегов
+router.post("/tags/bulk-edit", async (req: Request, res: Response) => {
+  const state = getBulkEditState(req);
+  if (state.running) {
+    return sendError(
+      res,
+      new AppError({ status: 409, code: "api.tags.bulk_edit.already_running" })
+    );
+  }
+
+  try {
+    const body = req.body as any;
+
+    const actionRaw = typeof body?.action === "string" ? body.action : "";
+    const action: TagsBulkEditAction | null =
+      actionRaw === "replace" || actionRaw === "delete" ? actionRaw : null;
+
+    const from = body?.from;
+
+    const toRaw = body?.to;
+    const to: TagsBulkEditTarget | undefined =
+      toRaw && typeof toRaw === "object"
+        ? ({
+            kind: toRaw.kind,
+            rawName: toRaw.rawName,
+            name: toRaw.name,
+          } as TagsBulkEditTarget)
+        : undefined;
+
+    if (!action || !Array.isArray(from)) {
+      throw new AppError({ status: 400, code: "api.tags.bulk_edit.invalid_format" });
+    }
+
+    const db = getDb(req);
+    const hub = getHub(req);
+    const runId = randomUUID();
+
+    state.running = true;
+    const { job } = await startTagsBulkEditRun({
+      db,
+      hub,
+      runId,
+      action,
+      from,
+      to,
+    });
+
+    void job
+      .catch((error) => {
+        // Errors are broadcasted via SSE; do not crash process.
+        logger.errorKey(error, "api.tags.bulk_edit.run_failed");
+      })
+      .finally(() => {
+        state.running = false;
+      });
+
+    res.status(202).json({ run_id: runId });
+  } catch (error) {
+    state.running = false;
+    logger.errorKey(error, "api.tags.bulk_edit.start_failed");
+    return sendError(res, error, {
+      status: 500,
+      code: "api.tags.bulk_edit.start_failed",
+    });
   }
 });
 
