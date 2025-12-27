@@ -5,6 +5,8 @@ export type CardsSort =
   | "created_at_asc"
   | "name_asc"
   | "name_desc"
+  | "prompt_tokens_desc"
+  | "prompt_tokens_asc"
   | "relevance";
 
 export type CardsFtsField =

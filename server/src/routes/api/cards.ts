@@ -114,6 +114,8 @@ router.get("/cards", async (req: Request, res: Response) => {
       sortRaw === "created_at_asc" ||
       sortRaw === "name_asc" ||
       sortRaw === "name_desc" ||
+      sortRaw === "prompt_tokens_desc" ||
+      sortRaw === "prompt_tokens_asc" ||
       sortRaw === "relevance"
         ? sortRaw
         : undefined;
@@ -123,7 +125,10 @@ router.get("/cards", async (req: Request, res: Response) => {
 
     const qModeRaw = parseString((req.query as any).q_mode);
     if (qModeRaw && qModeRaw !== "like" && qModeRaw !== "fts") {
-      throw new AppError({ status: 400, code: "api.cards.invalid_search_query" });
+      throw new AppError({
+        status: 400,
+        code: "api.cards.invalid_search_query",
+      });
     }
     const q_mode: "like" | "fts" = qModeRaw === "fts" ? "fts" : "like";
 
@@ -984,7 +989,8 @@ router.delete("/cards/:id/files", async (req: Request, res: Response) => {
 // IMPORTANT: keep this route before `/cards/:id` to avoid param match.
 router.post("/cards/bulk-delete", async (req: Request, res: Response) => {
   try {
-    const raw = (req.body as unknown as { card_ids?: unknown } | null)?.card_ids;
+    const raw = (req.body as unknown as { card_ids?: unknown } | null)
+      ?.card_ids;
     const card_ids = Array.from(new Set(normalizeStringArray(raw)));
 
     if (card_ids.length === 0) {

@@ -160,6 +160,8 @@ const ru = {
     sortOldFirst: "Сначала старые",
     sortNameAsc: "Имя: А → Я",
     sortNameDesc: "Имя: Я → А",
+    sortTokensDesc: "Токены: больше → меньше",
+    sortTokensAsc: "Токены: меньше → больше",
     hasCreatorNotes: "Заметки автора",
     hasSystemPrompt: "Системный промпт",
     hasPostHistoryInstructions: "Инструкции истории",

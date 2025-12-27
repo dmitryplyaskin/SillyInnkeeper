@@ -23,6 +23,8 @@ export type CardsSort =
   | "created_at_asc"
   | "name_asc"
   | "name_desc"
+  | "prompt_tokens_desc"
+  | "prompt_tokens_asc"
   | "relevance";
 
 export type CardsFtsField =
@@ -368,6 +370,10 @@ export class CardsService {
           return `ORDER BY c.name COLLATE NOCASE ASC, c.created_at DESC`;
         case "name_desc":
           return `ORDER BY c.name COLLATE NOCASE DESC, c.created_at DESC`;
+        case "prompt_tokens_asc":
+          return `ORDER BY c.prompt_tokens_est ASC, c.created_at DESC`;
+        case "prompt_tokens_desc":
+          return `ORDER BY c.prompt_tokens_est DESC, c.created_at DESC`;
         case "created_at_desc":
         default:
           return `ORDER BY c.created_at DESC`;

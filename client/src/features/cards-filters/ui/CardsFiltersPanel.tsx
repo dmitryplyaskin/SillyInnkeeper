@@ -145,6 +145,8 @@ export function CardsFiltersPanel() {
     { value: "created_at_asc", label: t("filters.sortOldFirst") },
     { value: "name_asc", label: t("filters.sortNameAsc") },
     { value: "name_desc", label: t("filters.sortNameDesc") },
+    { value: "prompt_tokens_desc", label: t("filters.sortTokensDesc") },
+    { value: "prompt_tokens_asc", label: t("filters.sortTokensAsc") },
     { value: "relevance", label: t("filters.sortRelevance") },
   ] as const;
 

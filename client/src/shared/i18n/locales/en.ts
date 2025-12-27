@@ -158,6 +158,8 @@ const en = {
     sortOldFirst: "Old first",
     sortNameAsc: "Name: A → Z",
     sortNameDesc: "Name: Z → A",
+    sortTokensDesc: "Tokens: high → low",
+    sortTokensAsc: "Tokens: low → high",
     hasCreatorNotes: "Creator notes",
     hasSystemPrompt: "System prompt",
     hasPostHistoryInstructions: "Post history instructions",
