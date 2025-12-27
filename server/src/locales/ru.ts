@@ -112,6 +112,15 @@ const ru = {
   "api.db.fts5_not_available":
     "Полнотекстовый поиск недоступен (FTS5 отсутствует в сборке SQLite)",
 
+  // pattern rules API
+  "api.pattern_rules.invalid_rules": "Некорректные правила паттернов",
+  "api.pattern_rules.get_failed": "Не удалось получить правила паттернов",
+  "api.pattern_rules.update_failed": "Не удалось сохранить правила паттернов",
+  "api.pattern_rules.status_failed":
+    "Не удалось получить статус поиска по паттернам",
+  "api.pattern_rules.run_failed": "Не удалось запустить поиск по паттернам",
+  "api.pattern_rules.already_running": "Поиск по паттернам уже выполняется",
+
   // lorebooks API
   "api.lorebooks.list_failed": "Не удалось получить список лорбуков",
   "api.lorebooks.get_failed": "Не удалось получить лорбук",
@@ -194,6 +203,11 @@ const ru = {
   "error.cardsImport.requestScanFailed":
     "Ошибка при запуске сканирования после импорта",
   "error.cardsImport.failed": "Ошибка при импорте карточек",
+
+  "warn.pattern_rules.regex_runtime_error":
+    "Ошибка выполнения regex во время поиска по паттернам (ruleId={ruleId})",
+  "error.pattern_rules.cache_update_failed":
+    "Не удалось обновить статус поиска по паттернам в БД",
 
   "log.scanner.autoStart": "Автозапуск сканирования папки: {folderPath}",
   "warn.scanner.deprecatedInitializeScanner":

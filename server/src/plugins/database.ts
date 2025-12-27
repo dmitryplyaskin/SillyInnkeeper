@@ -134,6 +134,32 @@ function initializeSchema(db: Database.Database): void {
     -- Уникальность по каноническому хэшу содержимого
     CREATE UNIQUE INDEX IF NOT EXISTS ux_lorebooks_content_hash
     ON lorebooks(content_hash);
+
+    -- Pattern rules cache (regex scan results)
+    CREATE TABLE IF NOT EXISTS pattern_rules_cache (
+      rules_hash TEXT PRIMARY KEY,
+      created_at INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      error TEXT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pattern_rules_cache_status_created_at
+    ON pattern_rules_cache(status, created_at);
+
+    CREATE TABLE IF NOT EXISTS pattern_matches (
+      rules_hash TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      matched_rules TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (rules_hash, card_id),
+      FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pattern_matches_rules_hash
+    ON pattern_matches(rules_hash);
+
+    CREATE INDEX IF NOT EXISTS idx_pattern_matches_card_id
+    ON pattern_matches(card_id);
   `);
 
   // Расширения схемы для поиска/фильтрации (безопасно для уже существующей БД)
@@ -361,12 +387,17 @@ function initializeSchema(db: Database.Database): void {
       ): { alt: string | null; group: string | null } => {
         try {
           const obj = JSON.parse(dataJson) as any;
-          const data = obj && typeof obj === "object" ? (obj as any).data : null;
+          const data =
+            obj && typeof obj === "object" ? (obj as any).data : null;
           const alt = normalizeStringArrayToText(
-            data && typeof data === "object" ? (data as any).alternate_greetings : null
+            data && typeof data === "object"
+              ? (data as any).alternate_greetings
+              : null
           );
           const group = normalizeStringArrayToText(
-            data && typeof data === "object" ? (data as any).group_only_greetings : null
+            data && typeof data === "object"
+              ? (data as any).group_only_greetings
+              : null
           );
           return { alt, group };
         } catch {
@@ -430,7 +461,10 @@ function initializeSchema(db: Database.Database): void {
     }
   } catch (e) {
     // eslint-disable-next-line no-console
-    console.warn("[db] FTS5 is not available; full-text search is disabled.", e);
+    console.warn(
+      "[db] FTS5 is not available; full-text search is disabled.",
+      e
+    );
   }
 
   // card_files: folder_path для фильтрации/группировки по папкам

@@ -14,6 +14,8 @@ import type {
   CardsSort,
   TriState,
 } from "@/shared/types/cards-query";
+import type { PatternRulesStatus } from "@/shared/types/pattern-rules-status";
+import { getPatternRulesStatus } from "@/shared/api/pattern-rules";
 import { loadCards, loadCardsSilent } from "@/entities/cards";
 
 export interface CardsFiltersState {
@@ -37,6 +39,7 @@ export interface CardsFiltersState {
   has_character_book: TriState;
   has_alternate_greetings: TriState;
   alternate_greetings_min: number;
+  patterns: TriState;
 }
 
 const DEFAULT_FILTERS: CardsFiltersState = {
@@ -71,6 +74,7 @@ const DEFAULT_FILTERS: CardsFiltersState = {
   has_character_book: "any",
   has_alternate_greetings: "any",
   alternate_greetings_min: 0,
+  patterns: "any",
 };
 
 function toLocalDayStartMs(dateStr: string): number | undefined {
@@ -136,6 +140,7 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     has_alternate_greetings: state.has_alternate_greetings,
     alternate_greetings_min:
       hasAlt === "0" ? undefined : effectiveMin > 0 ? effectiveMin : undefined,
+    patterns: state.patterns,
   };
 
   return query;
@@ -150,6 +155,14 @@ export const loadCardsFiltersFx = createEffect<
   return await getCardsFilters();
 });
 
+export const loadPatternRulesStatusFx = createEffect<
+  void,
+  PatternRulesStatus,
+  Error
+>(async () => {
+  return await getPatternRulesStatus();
+});
+
 // Stores
 export const $filters = createStore<CardsFiltersState>(DEFAULT_FILTERS);
 export const $filtersData = createStore<CardsFiltersResponse>({
@@ -159,6 +172,13 @@ export const $filtersData = createStore<CardsFiltersResponse>({
 });
 export const $filtersError = createStore<string | null>(null);
 export const $filtersLoading = combine(loadCardsFiltersFx.pending, (p) => p);
+export const $patternRulesStatus = createStore<PatternRulesStatus | null>(null).on(
+  loadPatternRulesStatusFx.doneData,
+  (_, s) => s
+);
+export const $patternRulesStatusError = createStore<string | null>(null)
+  .on(loadPatternRulesStatusFx.doneData, () => null)
+  .on(loadPatternRulesStatusFx.failData, (_, e) => e.message);
 
 // Events
 export const setSort = createEvent<CardsSort>();
@@ -181,6 +201,7 @@ export const setHasMesExample = createEvent<TriState>();
 export const setHasCharacterBook = createEvent<TriState>();
 export const setHasAlternateGreetings = createEvent<TriState>();
 export const setAlternateGreetingsMin = createEvent<number>();
+export const setPatterns = createEvent<TriState>();
 export const resetFilters = createEvent<void>();
 export const applyFilters = createEvent<void>();
 export const applyFiltersSilent = createEvent<void>();
@@ -244,6 +265,7 @@ $filters
       ? Math.max(0, alternate_greetings_min)
       : 0,
   }))
+  .on(setPatterns, (s, patterns) => ({ ...s, patterns }))
   .on(resetFilters, () => DEFAULT_FILTERS);
 
 // sync filters response
@@ -263,6 +285,9 @@ sample({
   fn: (e) => e.message,
   target: $filtersError,
 });
+
+// Keep patterns status fresh when filters lists are refreshed
+sample({ clock: loadCardsFiltersFx, target: loadPatternRulesStatusFx });
 
 // Auto-apply:
 // - name changes are debounced
@@ -290,6 +315,7 @@ const immediateApplyClock = [
   setHasCharacterBook,
   setHasAlternateGreetings,
   setAlternateGreetingsMin,
+  setPatterns,
 ];
 
 sample({

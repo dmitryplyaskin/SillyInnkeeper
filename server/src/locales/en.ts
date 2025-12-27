@@ -105,6 +105,14 @@ const en = {
   "api.db.fts5_not_available":
     "Full-text search is not available (FTS5 is missing in SQLite build)",
 
+  // pattern rules API
+  "api.pattern_rules.invalid_rules": "Invalid pattern rules",
+  "api.pattern_rules.get_failed": "Could not get pattern rules",
+  "api.pattern_rules.update_failed": "Could not save pattern rules",
+  "api.pattern_rules.status_failed": "Could not get patterns search status",
+  "api.pattern_rules.run_failed": "Could not start patterns search",
+  "api.pattern_rules.already_running": "Patterns search is already running",
+
   // lorebooks API
   "api.lorebooks.list_failed": "Could not get lorebooks list",
   "api.lorebooks.get_failed": "Could not get lorebook",
@@ -185,6 +193,11 @@ const en = {
   "error.cardsImport.deleteSourceFailed": "Failed to delete source file: {source}",
   "error.cardsImport.requestScanFailed": "Failed to start scan after import",
   "error.cardsImport.failed": "Cards import failed",
+
+  "warn.pattern_rules.regex_runtime_error":
+    "Regex runtime error during patterns search (ruleId={ruleId})",
+  "error.pattern_rules.cache_update_failed":
+    "Failed to update patterns search cache status in DB",
 
   "log.scanner.autoStart": "Auto-start scan folder: {folderPath}",
   "warn.scanner.deprecatedInitializeScanner":
