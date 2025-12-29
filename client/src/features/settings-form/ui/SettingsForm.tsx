@@ -63,6 +63,8 @@ export function SettingsForm({
     saveSettingsFx,
   ]);
   const [isPickingFolder, setIsPickingFolder] = useState(false);
+  const [isPickingSillyTavernFolder, setIsPickingSillyTavernFolder] =
+    useState(false);
 
   const FolderIcon = ({ size = 16 }: { size?: number }) => (
     <svg
@@ -213,6 +215,47 @@ export function SettingsForm({
         <TextInput
           label={t("settingsForm.sillyTavernPathLabel")}
           placeholder={t("settingsForm.sillyTavernPathPlaceholder")}
+          rightSectionWidth={42}
+          rightSection={
+            <Tooltip
+              label={t("settingsForm.pickFolderTooltip")}
+              withArrow
+              position="top"
+            >
+              <ActionIcon
+                variant="subtle"
+                onClick={() => {
+                  if (isLoading || isPickingSillyTavernFolder) return;
+                  setIsPickingSillyTavernFolder(true);
+                  void pickFolder(t("settingsForm.pickFolderDialogTitle"))
+                    .then((res) => {
+                      if (res.cancelled || !res.path) return;
+                      form.setFieldValue("sillytavenrPath", res.path);
+                    })
+                    .catch((e) => {
+                      const msg =
+                        e instanceof Error && e.message.trim()
+                          ? e.message
+                          : t("settingsForm.pickFolderFailed");
+                      notifications.show({
+                        title: t("settingsForm.sillyTavernPathLabel"),
+                        message: msg,
+                        color: "red",
+                      });
+                    })
+                    .finally(() => setIsPickingSillyTavernFolder(false));
+                }}
+                disabled={isLoading || isPickingSillyTavernFolder}
+                aria-label={t("settingsForm.pickFolderAria")}
+              >
+                {isPickingSillyTavernFolder ? (
+                  <Loader size={16} />
+                ) : (
+                  <FolderIcon />
+                )}
+              </ActionIcon>
+            </Tooltip>
+          }
           {...form.getInputProps("sillytavenrPath")}
         />
 
