@@ -13,6 +13,7 @@ import type { FsWatcherService } from "../../services/fs-watcher";
 import { setCurrentLanguage } from "../../i18n/language";
 import { AppError } from "../../errors/app-error";
 import { sendError } from "../../errors/http";
+import { buildWatchTargets } from "../../services/watch-targets";
 
 const router = Router();
 
@@ -85,18 +86,11 @@ router.put("/settings", async (req: Request, res: Response) => {
     const nextStPath = savedSettings.sillytavenrPath;
     const db = getDb(req);
 
-    // Перезапускаем watcher, если путь изменился
-    if (prevPath !== nextPath) {
-      try {
-        if (nextPath) {
-          const libraryId = getOrCreateLibraryId(db, nextPath);
-          getFsWatcher(req).restart(nextPath, libraryId);
-        } else {
-          getFsWatcher(req).restart(null);
-        }
-      } catch (error) {
-        logger.errorKey(error, "error.settings.restartFsWatcherFailed");
-      }
+    // Синхронизируем watcher'ы под актуальные настройки (cards + sillytavern)
+    try {
+      getFsWatcher(req).syncTargets(buildWatchTargets(savedSettings, db));
+    } catch (error) {
+      logger.errorKey(error, "error.settings.restartFsWatcherFailed");
     }
 
     // Запускаем scan через orchestrator (мгновенно, без debounce)

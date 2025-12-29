@@ -4,12 +4,11 @@ import { initializeScannerWithOrchestrator } from "./plugins/scanner";
 import { logger } from "./utils/logger";
 import Database from "better-sqlite3";
 import { getSettings } from "./services/settings";
-import { existsSync } from "node:fs";
-import { getOrCreateLibraryId } from "./services/libraries";
 import type { SseHub } from "./services/sse-hub";
 import type { FsWatcherService } from "./services/fs-watcher";
 import type { CardsSyncOrchestrator } from "./services/cards-sync-orchestrator";
 import { setCurrentLanguage } from "./i18n/language";
+import { buildWatchTargets } from "./services/watch-targets";
 
 function readPort(
   ...candidates: Array<string | undefined>
@@ -59,11 +58,7 @@ async function startServer(): Promise<void> {
       // Запускаем FS watcher (если cardsFolderPath указан)
       getSettings()
         .then((settings) => {
-          const p = settings.cardsFolderPath;
-          if (p && existsSync(p)) {
-            const libraryId = getOrCreateLibraryId(db, p);
-            fsWatcher.start(p, libraryId);
-          }
+          fsWatcher.syncTargets(buildWatchTargets(settings, db));
         })
         .catch((error) => {
           logger.errorKey(error, "log.server.startFsWatcherFailed");
@@ -79,7 +74,7 @@ async function startServer(): Promise<void> {
 
         // Закрываем SSE и watcher
         try {
-          fsWatcher.stop();
+          fsWatcher.stopAll();
           sseHub.closeAll();
         } catch (error) {
           logger.errorKey(error, "log.server.closeSseWatcherFailed");

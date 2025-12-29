@@ -13,22 +13,39 @@ import { createLorebooksService, LorebooksService } from "./lorebooks";
 import { logger } from "../utils/logger";
 import { listSillyTavernCharacterPngs } from "./sillytavern";
 
-const CONCURRENT_LIMIT = 5;
+const CONCURRENT_LIMIT_FOLDER = 5;
+// SillyTavern scan tends to create more pressure on the event loop (lots of sync IO + parsing).
+// Keep it lower to improve server responsiveness during startup/rescans.
+const CONCURRENT_LIMIT_SILLYTAVERN = 2;
+const YIELD_EVERY_FILES_FOLDER = 80;
+const YIELD_EVERY_FILES_SILLYTAVERN = 40;
+
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}
 
 /**
  * Сервис для сканирования папки с карточками и синхронизации с базой данных
  */
 export class ScanService {
-  private limit = pLimit(CONCURRENT_LIMIT);
+  private limit: ReturnType<typeof pLimit>;
   private scannedFiles = new Set<string>();
   private cardParser: CardParser;
   private lorebooksService: LorebooksService;
+  private yieldCounter = 0;
+  private yieldEvery: number;
 
   constructor(
     private dbService: DatabaseService,
     private libraryId: string = "cards",
     private isSillyTavern: boolean = false
   ) {
+    this.limit = pLimit(
+      this.isSillyTavern ? CONCURRENT_LIMIT_SILLYTAVERN : CONCURRENT_LIMIT_FOLDER
+    );
+    this.yieldEvery = this.isSillyTavern
+      ? YIELD_EVERY_FILES_SILLYTAVERN
+      : YIELD_EVERY_FILES_FOLDER;
     this.cardParser = new CardParser();
     this.lorebooksService = new LorebooksService(this.dbService);
   }
@@ -228,6 +245,13 @@ export class ScanService {
    */
   private async processFile(filePath: string): Promise<void> {
     try {
+      // Prevent long event-loop blocking during large scans.
+      // Most work below is sync-heavy (statSync, parsing), so we yield periodically.
+      this.yieldCounter += 1;
+      if (this.yieldEvery > 0 && this.yieldCounter % this.yieldEvery === 0) {
+        await yieldToEventLoop();
+      }
+
       // Отмечаем файл как обработанный
       this.scannedFiles.add(filePath);
 
