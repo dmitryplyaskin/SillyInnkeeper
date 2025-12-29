@@ -11,6 +11,7 @@ export interface CardListItem {
   file_path: string | null;
   spec_version: string | null;
   created_at: number;
+  is_sillytavern: boolean;
   alternate_greetings_count: number;
   has_character_book: boolean;
   prompt_tokens_est: number;
@@ -43,6 +44,8 @@ export type CardsTextSearchMode = "like" | "fts";
 
 export interface SearchCardsParams {
   library_id?: string;
+  library_ids?: string[];
+  is_sillytavern?: TriState;
   sort?: CardsSort;
   name?: string;
   q?: string;
@@ -97,7 +100,16 @@ export class CardsService {
     const effectiveSort: Exclude<CardsSort, "relevance"> | "relevance" =
       sort === "relevance" && (!hasQ || qMode !== "fts") ? "created_at_desc" : sort;
 
-    if (params.library_id && params.library_id.trim().length > 0) {
+    const libraryIds =
+      Array.isArray(params.library_ids) && params.library_ids.length > 0
+        ? params.library_ids.map((s) => String(s).trim()).filter((s) => s.length > 0)
+        : [];
+
+    if (libraryIds.length > 0) {
+      const placeholders = libraryIds.map(() => "?").join(", ");
+      where.push(`c.library_id IN (${placeholders})`);
+      sqlParams.push(...libraryIds);
+    } else if (params.library_id && params.library_id.trim().length > 0) {
       where.push(`c.library_id = ?`);
       sqlParams.push(params.library_id.trim());
     }
@@ -150,6 +162,7 @@ export class CardsService {
       sqlParams.push(value === "1" ? 1 : 0);
     };
 
+    addTriState("c.is_sillytavern", params.is_sillytavern);
     addTriState("c.has_creator_notes", params.has_creator_notes);
     addTriState("c.has_system_prompt", params.has_system_prompt);
     addTriState(
@@ -390,6 +403,7 @@ export class CardsService {
         c.creator,
         c.spec_version,
         c.created_at,
+        c.is_sillytavern,
         c.alternate_greetings_count,
         c.has_character_book,
         c.prompt_tokens_est,
@@ -419,6 +433,7 @@ export class CardsService {
       creator: string | null;
       spec_version: string | null;
       created_at: number;
+      is_sillytavern: number;
       alternate_greetings_count: number;
       has_character_book: number;
       prompt_tokens_est: number;
@@ -449,6 +464,7 @@ export class CardsService {
         file_path: row.file_path,
         spec_version: row.spec_version,
         created_at: row.created_at,
+        is_sillytavern: row.is_sillytavern === 1,
         alternate_greetings_count: Number.isFinite(
           row.alternate_greetings_count
         )

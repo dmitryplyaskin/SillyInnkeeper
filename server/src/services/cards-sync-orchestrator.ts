@@ -5,6 +5,7 @@ import { createDatabaseService } from "./database";
 import type { SseHub } from "./sse-hub";
 
 export type SyncOrigin = "fs" | "app";
+export type ScanMode = "folder" | "sillytavern";
 
 export type CardsResyncedPayload = {
   revision: number;
@@ -55,33 +56,38 @@ export class CardsSyncOrchestrator {
   private revision = 0;
   private lastFolderPath: string | null = null;
   private lastLibraryId: string | null = null;
+  private lastScanMode: ScanMode | null = null;
 
   constructor(private db: Database.Database, private hub: SseHub) {}
 
   requestScan(
     origin: SyncOrigin,
     folderPath: string,
-    libraryId: string = "cards"
+    libraryId: string = "cards",
+    scanMode: ScanMode = "folder"
   ): void {
     this.lastFolderPath = folderPath;
     this.lastLibraryId = libraryId;
+    this.lastScanMode = scanMode;
     if (this.running) {
       this.requestedAgain = true;
       return;
     }
-    void this.runLoop(origin, folderPath, libraryId);
+    void this.runLoop(origin, folderPath, libraryId, scanMode);
   }
 
   private async runLoop(
     origin: SyncOrigin,
     folderPath: string,
-    libraryId: string
+    libraryId: string,
+    scanMode: ScanMode
   ): Promise<void> {
     this.running = true;
     try {
       let currentOrigin: SyncOrigin = origin;
       let currentPath = folderPath;
       let currentLibraryId = libraryId;
+      let currentScanMode: ScanMode = scanMode;
 
       // loop if events arrived during scan
       // eslint-disable-next-line no-constant-condition
@@ -102,13 +108,12 @@ export class CardsSyncOrchestrator {
         );
         const before = beforeRow?.count ?? 0;
 
-        const scanService = createScanService(this.db, currentLibraryId);
         let totalFiles = 0;
         let processedFiles = 0;
         let startedSent = false;
 
-        const scanResult = await scanService.scanFolder(currentPath, {
-          onStart: (total) => {
+        const scanOpts = {
+          onStart: (total: number) => {
             totalFiles = total;
             startedSent = true;
             const payload: CardsScanStartedPayload = {
@@ -123,7 +128,7 @@ export class CardsSyncOrchestrator {
               id: `${scanRevision}:scan_started`,
             });
           },
-          onProgress: (processed, total) => {
+          onProgress: (processed: number, total: number) => {
             processedFiles = processed;
             totalFiles = total;
             const payload: CardsScanProgressPayload = {
@@ -139,7 +144,18 @@ export class CardsSyncOrchestrator {
               id: `${scanRevision}:scan_progress:${processed}`,
             });
           },
-        });
+        };
+
+        const scanService = createScanService(
+          this.db,
+          currentLibraryId,
+          currentScanMode === "sillytavern"
+        );
+
+        const scanResult =
+          currentScanMode === "sillytavern"
+            ? await scanService.scanSillyTavern(currentPath, scanOpts)
+            : await scanService.scanFolder(currentPath, scanOpts);
 
         // If folder had no PNG files, onStart might never fire (edge cases). Ensure we emit started at least once.
         if (!startedSent) {
@@ -221,6 +237,7 @@ export class CardsSyncOrchestrator {
         currentOrigin = "fs";
         currentPath = this.lastFolderPath ?? currentPath;
         currentLibraryId = this.lastLibraryId ?? currentLibraryId;
+        currentScanMode = this.lastScanMode ?? currentScanMode;
       }
     } catch (error) {
       logger.errorKey(error, "error.cardsSync.failed");

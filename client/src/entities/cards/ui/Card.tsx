@@ -71,6 +71,7 @@ export function Card({
   const greetingsCount = Number((card as any).alternate_greetings_count) || 0;
   const hasBook = Boolean((card as any).has_character_book);
   const tokensEstimate = formatTokensEstimate((card as any).prompt_tokens_est);
+  const isSillyTavern = Boolean((card as any).is_sillytavern);
 
   return (
     <>
@@ -202,6 +203,35 @@ export function Card({
               <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
             </svg>
           </ActionIcon>
+
+          {isSillyTavern && (
+            <Tooltip label={t("card.stBadgeTip")} withArrow>
+              <Box
+                style={{
+                  position: "absolute",
+                  top: "52px",
+                  right: "8px",
+                  zIndex: 9,
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "999px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  letterSpacing: "0.2px",
+                  background: theme.colors.orange[6],
+                  color: theme.white,
+                  border: `1px solid rgba(0,0,0,0.12)`,
+                  boxShadow: theme.shadows.xs,
+                }}
+                aria-label={t("card.stBadgeTip")}
+              >
+                ST
+              </Box>
+            </Tooltip>
+          )}
         </MantineCard.Section>
 
         <Stack gap={6} mt="sm" style={{ flex: 1, overflow: "hidden" }}>

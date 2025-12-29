@@ -7,6 +7,7 @@ export interface CardListItem {
   file_path: string | null;
   spec_version: string | null;
   created_at: number;
+  is_sillytavern: boolean;
   alternate_greetings_count: number;
   has_character_book: boolean;
   prompt_tokens_est: number;
@@ -19,6 +20,7 @@ export interface CardDetails {
   tags: string[] | null;
   spec_version: string | null;
   created_at: number;
+  is_sillytavern: boolean;
   file_path: string | null;
   file_paths?: string[];
   duplicates?: string[];

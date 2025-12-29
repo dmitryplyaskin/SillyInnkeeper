@@ -53,6 +53,8 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
   if (query?.has_alternate_greetings)
     params.set("has_alternate_greetings", query.has_alternate_greetings);
 
+  if (query?.is_sillytavern) params.set("is_sillytavern", query.is_sillytavern);
+
   if (query?.patterns) params.set("patterns", query.patterns);
 
   if (typeof query?.alternate_greetings_min === "number")

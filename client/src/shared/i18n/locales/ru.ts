@@ -153,6 +153,10 @@ const ru = {
     tags: "Теги",
     tagsTip: "Работает по AND: карточка должна содержать все выбранные теги.",
     localDayTip: "Фильтрация по суткам в локальном времени.",
+    source: "Источник",
+    sourceAll: "Все",
+    sourceOnlySt: "Только ST",
+    sourceOnlyFolder: "Только из папки",
     triAny: "Не важно",
     triHas: "Только с",
     triHasNot: "Только без",
@@ -187,6 +191,7 @@ const ru = {
     altGreetingsCount: "Альтернативные приветствия (кол-во)",
     tokensEstimateTip: "Оценка токенов (примерно)",
     createdAtTip: "Дата создания (по файлу)",
+    stBadgeTip: "Карточка из SillyTavern",
     imageTitleFallback: "Изображение карточки",
   },
   cardDetails: {

@@ -151,6 +151,10 @@ const en = {
     tags: "Tags",
     tagsTip: "Works as AND: a card must contain all selected tags.",
     localDayTip: "Filtering by days in local time.",
+    source: "Source",
+    sourceAll: "All",
+    sourceOnlySt: "Only ST",
+    sourceOnlyFolder: "Only from folder",
     triAny: "Any",
     triHas: "Has",
     triHasNot: "Has not",
@@ -185,6 +189,7 @@ const en = {
     altGreetingsCount: "Alternate greetings (count)",
     tokensEstimateTip: "Tokens estimate (approx.)",
     createdAtTip: "Created date (from file)",
+    stBadgeTip: "Card from SillyTavern",
     imageTitleFallback: "Card image",
   },
   cardDetails: {

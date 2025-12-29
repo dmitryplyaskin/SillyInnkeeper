@@ -11,6 +11,7 @@ import { createTagService } from "./tags";
 import { computeContentHash } from "./card-hash";
 import { createLorebooksService, LorebooksService } from "./lorebooks";
 import { logger } from "../utils/logger";
+import { listSillyTavernCharacterPngs } from "./sillytavern";
 
 const CONCURRENT_LIMIT = 5;
 
@@ -25,7 +26,8 @@ export class ScanService {
 
   constructor(
     private dbService: DatabaseService,
-    private libraryId: string = "cards"
+    private libraryId: string = "cards",
+    private isSillyTavern: boolean = false
   ) {
     this.cardParser = new CardParser();
     this.lorebooksService = new LorebooksService(this.dbService);
@@ -61,10 +63,11 @@ export class ScanService {
     try {
       // Рекурсивно получаем все файлы
       const files = await this.getAllPngFiles(folderPath);
-      logger.infoKey("log.scan.foundPngFiles", { count: files.length });
-      opts?.onStart?.(files.length);
+      const sortedFiles = this.sortFilesOldToNew(files);
+      logger.infoKey("log.scan.foundPngFiles", { count: sortedFiles.length });
+      opts?.onStart?.(sortedFiles.length);
 
-      const totalFiles = files.length;
+      const totalFiles = sortedFiles.length;
       let processedFiles = 0;
       let lastProgressAt = 0;
       const emitProgress = () => {
@@ -78,7 +81,7 @@ export class ScanService {
       };
 
       // Обрабатываем файлы с ограничением конкурентности
-      const promises = files.map((file) =>
+      const promises = sortedFiles.map((file) =>
         this.limit(async () => {
           try {
             await this.processFile(file);
@@ -108,6 +111,72 @@ export class ScanService {
   }
 
   /**
+   * Сканирует SillyTavern-карточки по структуре:
+   *   <sillytavenrPath>/data/<profile>/characters/*.png
+   *
+   * Подпапки внутри characters игнорируются (считаем их доп. изображениями).
+   */
+  async scanSillyTavern(
+    sillytavenrPath: string,
+    opts?: {
+      onStart?: (totalFiles: number) => void;
+      onProgress?: (processedFiles: number, totalFiles: number) => void;
+    }
+  ): Promise<{ totalFiles: number; processedFiles: number }> {
+    const root = String(sillytavenrPath ?? "").trim();
+    if (!root || !existsSync(root)) {
+      logger.errorMessageKey("error.scan.folderNotExists", { folderPath: root });
+      return { totalFiles: 0, processedFiles: 0 };
+    }
+
+    logger.infoKey("log.scan.start", { folderPath: root });
+    this.scannedFiles.clear();
+
+    try {
+      const files = await listSillyTavernCharacterPngs(root);
+      // listSillyTavernCharacterPngs already sorts old->new, but keep it explicit.
+      const sortedFiles = this.sortFilesOldToNew(files);
+      logger.infoKey("log.scan.foundPngFiles", { count: sortedFiles.length });
+      opts?.onStart?.(sortedFiles.length);
+
+      const totalFiles = sortedFiles.length;
+      let processedFiles = 0;
+      let lastProgressAt = 0;
+      const emitProgress = () => {
+        if (!opts?.onProgress) return;
+        const now = Date.now();
+        if (processedFiles >= totalFiles || now - lastProgressAt >= 300) {
+          lastProgressAt = now;
+          opts.onProgress(processedFiles, totalFiles);
+        }
+      };
+
+      const promises = sortedFiles.map((file) =>
+        this.limit(async () => {
+          try {
+            await this.processFile(file);
+          } finally {
+            processedFiles += 1;
+            emitProgress();
+          }
+        })
+      );
+      await Promise.all(promises);
+
+      await this.cleanupDeletedFiles();
+
+      logger.infoKey("log.scan.done", { count: sortedFiles.length });
+      if (processedFiles !== totalFiles) processedFiles = totalFiles;
+      opts?.onProgress?.(processedFiles, totalFiles);
+
+      return { totalFiles, processedFiles };
+    } catch (error) {
+      logger.errorKey(error, "error.scan.scanFolderFailed", { folderPath: root });
+      throw error;
+    }
+  }
+
+  /**
    * Рекурсивно получает все PNG файлы из папки
    */
   private async getAllPngFiles(dir: string): Promise<string[]> {
@@ -130,6 +199,27 @@ export class ScanService {
     }
 
     return files;
+  }
+
+  private sortFilesOldToNew(files: string[]): string[] {
+    const entries: Array<{ filePath: string; createdAtMs: number }> = [];
+    for (const p of files) {
+      try {
+        const st = statSync(p);
+        const birth = st.birthtimeMs;
+        const mtime = st.mtimeMs;
+        const createdAtMs =
+          Number.isFinite(birth) && birth > 0 ? birth : mtime;
+        entries.push({ filePath: p, createdAtMs });
+      } catch {
+        // If file disappears during listing, ignore.
+      }
+    }
+    entries.sort((a, b) => {
+      if (a.createdAtMs !== b.createdAtMs) return a.createdAtMs - b.createdAtMs;
+      return a.filePath.localeCompare(b.filePath);
+    });
+    return entries.map((e) => e.filePath);
   }
 
   /**
@@ -327,6 +417,7 @@ export class ScanService {
       // Сохраняем оригинальные данные для экспорта
       const dataJson = JSON.stringify(extractedData.original_data);
       const createdAt = fileCreatedAt;
+      const isSillyTavern = this.isSillyTavern ? 1 : 0;
 
       // Записываем в БД в транзакции
       this.dbService.transaction((db) => {
@@ -339,6 +430,7 @@ export class ScanService {
           dbService.execute(
             `UPDATE cards SET 
               library_id = ?,
+              is_sillytavern = ?,
               content_hash = ?,
               name = ?, 
               description = ?, 
@@ -369,6 +461,7 @@ export class ScanService {
             WHERE id = ?`,
             [
               this.libraryId,
+              isSillyTavern,
               contentHash,
               name,
               description,
@@ -429,6 +522,7 @@ export class ScanService {
                 `INSERT INTO cards (
                   id,
                   library_id,
+                  is_sillytavern,
                   content_hash,
                   name,
                   description,
@@ -456,10 +550,11 @@ export class ScanService {
                   has_mes_example,
                   has_character_book,
                   prompt_tokens_est
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                   cardId,
                   this.libraryId,
+                  isSillyTavern,
                   contentHash,
                   name,
                   description,
@@ -764,8 +859,9 @@ export class ScanService {
  */
 export function createScanService(
   db: Database.Database,
-  libraryId: string = "cards"
+  libraryId: string = "cards",
+  isSillyTavern: boolean = false
 ): ScanService {
   const dbService = createDatabaseService(db);
-  return new ScanService(dbService, libraryId);
+  return new ScanService(dbService, libraryId, isSillyTavern);
 }

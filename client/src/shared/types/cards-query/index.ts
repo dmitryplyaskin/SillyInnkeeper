@@ -34,6 +34,7 @@ export interface CardsQuery {
   tags?: string[];
   created_from_ms?: number;
   created_to_ms?: number;
+  is_sillytavern?: TriState;
   has_creator_notes?: TriState;
   has_system_prompt?: TriState;
   has_post_history_instructions?: TriState;

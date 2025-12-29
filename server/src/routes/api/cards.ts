@@ -101,12 +101,18 @@ router.get("/cards", async (req: Request, res: Response) => {
     const cardsService = createCardsService(db);
     const settings = await getSettings();
 
-    if (!settings.cardsFolderPath) {
+    const libraryIds: string[] = [];
+    if (settings.cardsFolderPath) {
+      libraryIds.push(getOrCreateLibraryId(db, settings.cardsFolderPath));
+    }
+    if (settings.sillytavenrPath) {
+      libraryIds.push(getOrCreateLibraryId(db, settings.sillytavenrPath));
+    }
+
+    if (libraryIds.length === 0) {
       res.json([]);
       return;
     }
-
-    const libraryId = getOrCreateLibraryId(db, settings.cardsFolderPath);
 
     const sortRaw = parseString(req.query.sort);
     const sort: CardsSort | undefined =
@@ -250,7 +256,7 @@ router.get("/cards", async (req: Request, res: Response) => {
     const promptTokensMax = parseNumber((req.query as any).prompt_tokens_max);
 
     const params: SearchCardsParams = {
-      library_id: libraryId,
+      library_ids: libraryIds,
       sort,
       name,
       q,
@@ -261,6 +267,7 @@ router.get("/cards", async (req: Request, res: Response) => {
       tags: tags.length > 0 ? tags : undefined,
       created_from_ms,
       created_to_ms,
+      is_sillytavern: parseTriState((req.query as any).is_sillytavern),
       has_creator_notes: parseTriState((req.query as any).has_creator_notes),
       has_system_prompt: parseTriState((req.query as any).has_system_prompt),
       has_post_history_instructions: parseTriState(
@@ -393,13 +400,20 @@ router.get("/cards/filters", async (req: Request, res: Response) => {
     const filtersService = createCardsFiltersService(db);
     const settings = await getSettings();
 
-    if (!settings.cardsFolderPath) {
+    const libraryIds: string[] = [];
+    if (settings.cardsFolderPath) {
+      libraryIds.push(getOrCreateLibraryId(db, settings.cardsFolderPath));
+    }
+    if (settings.sillytavenrPath) {
+      libraryIds.push(getOrCreateLibraryId(db, settings.sillytavenrPath));
+    }
+
+    if (libraryIds.length === 0) {
       res.json({ creators: [], spec_versions: [], tags: [] });
       return;
     }
 
-    const libraryId = getOrCreateLibraryId(db, settings.cardsFolderPath);
-    res.json(filtersService.getFilters(libraryId));
+    res.json(filtersService.getFilters(libraryIds));
   } catch (error) {
     logger.errorKey(error, "api.cards.filters_failed");
     return sendError(res, error, {
@@ -426,6 +440,7 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
           c.creator,
           c.spec_version,
           c.created_at,
+          c.is_sillytavern,
           c.avatar_path,
           c.data_json,
           c.primary_file_path,
@@ -466,6 +481,7 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
           creator: string | null;
           spec_version: string | null;
           created_at: number;
+          is_sillytavern: number;
           avatar_path: string | null;
           data_json: string;
           primary_file_path: string | null;
@@ -553,6 +569,7 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
       tags: tags ?? null,
       spec_version: row.spec_version,
       created_at: row.created_at,
+      is_sillytavern: row.is_sillytavern === 1,
       file_path: main_file_path,
       file_paths,
       duplicates,

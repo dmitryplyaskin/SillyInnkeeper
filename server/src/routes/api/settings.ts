@@ -81,6 +81,8 @@ router.put("/settings", async (req: Request, res: Response) => {
 
     const prevPath = prevSettings.cardsFolderPath;
     const nextPath = savedSettings.cardsFolderPath;
+    const prevStPath = prevSettings.sillytavenrPath;
+    const nextStPath = savedSettings.sillytavenrPath;
     const db = getDb(req);
 
     // Перезапускаем watcher, если путь изменился
@@ -102,6 +104,21 @@ router.put("/settings", async (req: Request, res: Response) => {
       try {
         const libraryId = getOrCreateLibraryId(db, nextPath);
         getOrchestrator(req).requestScan("app", nextPath, libraryId);
+      } catch (error) {
+        logger.errorKey(error, "error.settings.postSettingsSyncFailed");
+      }
+    }
+
+    // Запускаем SillyTavern scan, если путь изменился (или был установлен)
+    if (prevStPath !== nextStPath && nextStPath !== null) {
+      try {
+        const libraryId = getOrCreateLibraryId(db, nextStPath);
+        getOrchestrator(req).requestScan(
+          "app",
+          nextStPath,
+          libraryId,
+          "sillytavern"
+        );
       } catch (error) {
         logger.errorKey(error, "error.settings.postSettingsSyncFailed");
       }

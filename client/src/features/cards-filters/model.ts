@@ -32,6 +32,7 @@ export interface CardsFiltersState {
   created_to?: string; // YYYY-MM-DD
   prompt_tokens_min: number;
   prompt_tokens_max: number;
+  is_sillytavern: TriState;
   has_creator_notes: TriState;
   has_system_prompt: TriState;
   has_post_history_instructions: TriState;
@@ -68,6 +69,7 @@ const DEFAULT_FILTERS: CardsFiltersState = {
   created_to: undefined,
   prompt_tokens_min: 0,
   prompt_tokens_max: 0,
+  is_sillytavern: "any",
   has_creator_notes: "any",
   has_system_prompt: "any",
   has_post_history_instructions: "any",
@@ -130,6 +132,7 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     tags: state.tags,
     created_from_ms,
     created_to_ms,
+    is_sillytavern: state.is_sillytavern,
     prompt_tokens_min:
       state.prompt_tokens_min > 0 ? state.prompt_tokens_min : undefined,
     prompt_tokens_max:
@@ -196,6 +199,7 @@ export const setCreatedFrom = createEvent<string | undefined>();
 export const setCreatedTo = createEvent<string | undefined>();
 export const setPromptTokensMin = createEvent<number>();
 export const setPromptTokensMax = createEvent<number>();
+export const setIsSillyTavern = createEvent<TriState>();
 export const setHasCreatorNotes = createEvent<TriState>();
 export const setHasSystemPrompt = createEvent<TriState>();
 export const setHasPostHistoryInstructions = createEvent<TriState>();
@@ -226,6 +230,7 @@ $filters
   .on(setTags, (s, tags) => ({ ...s, tags }))
   .on(setCreatedFrom, (s, created_from) => ({ ...s, created_from }))
   .on(setCreatedTo, (s, created_to) => ({ ...s, created_to }))
+  .on(setIsSillyTavern, (s, is_sillytavern) => ({ ...s, is_sillytavern }))
   .on(setPromptTokensMin, (s, prompt_tokens_min) => {
     const min = Number.isFinite(prompt_tokens_min)
       ? Math.max(0, Math.floor(prompt_tokens_min))
@@ -367,6 +372,7 @@ const immediateApplyClock = [
   setCreatedTo,
   setPromptTokensMin,
   setPromptTokensMax,
+  setIsSillyTavern,
   setHasCreatorNotes,
   setHasSystemPrompt,
   setHasPostHistoryInstructions,

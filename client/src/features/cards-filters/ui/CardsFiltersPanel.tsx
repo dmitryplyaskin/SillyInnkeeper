@@ -37,6 +37,7 @@ import {
   setHasScenario,
   setHasSystemPrompt,
   setHasAlternateGreetings,
+  setIsSillyTavern,
   setName,
   setQ,
   setQMode,
@@ -90,6 +91,7 @@ export function CardsFiltersPanel() {
     onSetCreatedTo,
     onSetPromptTokensMin,
     onSetPromptTokensMax,
+    onSetIsSillyTavern,
     onSetHasCreatorNotes,
     onSetHasSystemPrompt,
     onSetHasPostHistoryInstructions,
@@ -121,6 +123,7 @@ export function CardsFiltersPanel() {
     setCreatedTo,
     setPromptTokensMin,
     setPromptTokensMax,
+    setIsSillyTavern,
     setHasCreatorNotes,
     setHasSystemPrompt,
     setHasPostHistoryInstructions,
@@ -260,6 +263,22 @@ export function CardsFiltersPanel() {
           }}
         />
       </SimpleGrid>
+
+      <Stack gap={4}>
+        <Text size="sm" fw={500}>
+          {t("filters.source")}
+        </Text>
+        <SegmentedControl
+          fullWidth
+          value={filters.is_sillytavern}
+          onChange={(value) => onSetIsSillyTavern(value as TriState)}
+          data={[
+            { value: "any", label: t("filters.sourceAll") },
+            { value: "1", label: t("filters.sourceOnlySt") },
+            { value: "0", label: t("filters.sourceOnlyFolder") },
+          ]}
+        />
+      </Stack>
 
       {isRelevanceWithoutQuery && (
         <Text size="sm" c="dimmed">

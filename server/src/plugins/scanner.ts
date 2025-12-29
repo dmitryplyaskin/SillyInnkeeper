@@ -51,6 +51,19 @@ export async function initializeScannerWithOrchestrator(
       const libraryId = getOrCreateLibraryId(db, settings.cardsFolderPath);
       orchestrator.requestScan("app", settings.cardsFolderPath, libraryId);
     }
+
+    if (settings.sillytavenrPath !== null && existsSync(settings.sillytavenrPath)) {
+      logger.infoKey("log.scanner.autoStart", {
+        folderPath: settings.sillytavenrPath,
+      });
+      const libraryId = getOrCreateLibraryId(db, settings.sillytavenrPath);
+      orchestrator.requestScan(
+        "app",
+        settings.sillytavenrPath,
+        libraryId,
+        "sillytavern"
+      );
+    }
   } catch (error) {
     logger.errorKey(error, "error.scanner.readSettingsFailed");
   }
