@@ -150,13 +150,11 @@ export class ScanService {
     this.scannedFiles.clear();
 
     try {
-      const files = await listSillyTavernCharacterPngs(root);
-      // listSillyTavernCharacterPngs already sorts old->new, but keep it explicit.
-      const sortedFiles = this.sortFilesOldToNew(files);
-      logger.infoKey("log.scan.foundPngFiles", { count: sortedFiles.length });
-      opts?.onStart?.(sortedFiles.length);
+      const entries = await listSillyTavernCharacterPngs(root);
+      logger.infoKey("log.scan.foundPngFiles", { count: entries.length });
+      opts?.onStart?.(entries.length);
 
-      const totalFiles = sortedFiles.length;
+      const totalFiles = entries.length;
       let processedFiles = 0;
       let lastProgressAt = 0;
       const emitProgress = () => {
@@ -168,10 +166,14 @@ export class ScanService {
         }
       };
 
-      const promises = sortedFiles.map((file) =>
+      const promises = entries.map((entry) =>
         this.limit(async () => {
           try {
-            await this.processFile(file);
+            await this.processFile(entry.filePath, {
+              stProfileHandle: entry.profileHandle,
+              stAvatarFile: entry.avatarFile,
+              stAvatarBase: entry.avatarBase,
+            });
           } finally {
             processedFiles += 1;
             emitProgress();
@@ -182,7 +184,7 @@ export class ScanService {
 
       await this.cleanupDeletedFiles();
 
-      logger.infoKey("log.scan.done", { count: sortedFiles.length });
+      logger.infoKey("log.scan.done", { count: entries.length });
       if (processedFiles !== totalFiles) processedFiles = totalFiles;
       opts?.onProgress?.(processedFiles, totalFiles);
 
@@ -243,7 +245,14 @@ export class ScanService {
    * Обрабатывает один PNG файл
    * @param filePath Путь к файлу
    */
-  private async processFile(filePath: string): Promise<void> {
+  private async processFile(
+    filePath: string,
+    stMeta?: {
+      stProfileHandle: string;
+      stAvatarFile: string;
+      stAvatarBase: string;
+    }
+  ): Promise<void> {
     try {
       // Prevent long event-loop blocking during large scans.
       // Most work below is sync-heavy (statSync, parsing), so we yield periodically.
@@ -274,12 +283,18 @@ export class ScanService {
         file_birthtime: number;
         file_size: number;
         prompt_tokens_est?: number;
+        st_profile_handle?: string | null;
+        st_avatar_file?: string | null;
+        st_avatar_base?: string | null;
       }>(
         `SELECT 
           cf.card_id,
           cf.file_mtime,
           cf.file_birthtime,
           cf.file_size,
+          cf.st_profile_handle,
+          cf.st_avatar_file,
+          cf.st_avatar_base,
           c.prompt_tokens_est as prompt_tokens_est
         FROM card_files cf
         LEFT JOIN cards c ON c.id = cf.card_id
@@ -287,7 +302,10 @@ export class ScanService {
         [filePath]
       );
 
-      // Если файл не изменился, пропускаем
+      const shouldSetStMeta = Boolean(this.isSillyTavern && stMeta);
+
+      // Если файл не изменился, обычно пропускаем.
+      // Но для SillyTavern после миграций нам важно проставить st_* поля даже без изменения PNG.
       if (
         existingFile &&
         existingFile.file_mtime === fileMtime &&
@@ -296,6 +314,29 @@ export class ScanService {
         // Если оценка токенов ещё не заполнена (0 по умолчанию после миграции), делаем перерасчёт.
         (existingFile.prompt_tokens_est ?? 0) > 0
       ) {
+        if (shouldSetStMeta) {
+          const needUpdate =
+            (existingFile.st_profile_handle ?? null) !==
+              (stMeta!.stProfileHandle ?? null) ||
+            (existingFile.st_avatar_file ?? null) !==
+              (stMeta!.stAvatarFile ?? null) ||
+            (existingFile.st_avatar_base ?? null) !==
+              (stMeta!.stAvatarBase ?? null);
+
+          if (needUpdate) {
+            this.dbService.execute(
+              `UPDATE card_files
+               SET st_profile_handle = ?, st_avatar_file = ?, st_avatar_base = ?
+               WHERE file_path = ?`,
+              [
+                stMeta!.stProfileHandle,
+                stMeta!.stAvatarFile,
+                stMeta!.stAvatarBase,
+                filePath,
+              ]
+            );
+          }
+        }
         return;
       }
 
@@ -534,9 +575,21 @@ export class ScanService {
               file_mtime = ?, 
               file_birthtime = ?,
               file_size = ?,
-              folder_path = ?
+              folder_path = ?,
+              st_profile_handle = ?,
+              st_avatar_file = ?,
+              st_avatar_base = ?
             WHERE file_path = ?`,
-            [fileMtime, createdAt, fileSize, dirname(filePath), filePath]
+            [
+              fileMtime,
+              createdAt,
+              fileSize,
+              dirname(filePath),
+              shouldSetStMeta ? stMeta!.stProfileHandle : null,
+              shouldSetStMeta ? stMeta!.stAvatarFile : null,
+              shouldSetStMeta ? stMeta!.stAvatarBase : null,
+              filePath,
+            ]
           );
         } else {
           // Для новых file_path: либо создаём карточку, либо привязываем к существующей по (library_id, content_hash).
@@ -668,8 +721,18 @@ export class ScanService {
 
           // Привязываем файл к cardId (и для новой карточки, и для дубля по хэшу)
           dbService.execute(
-            `INSERT INTO card_files (file_path, card_id, file_mtime, file_birthtime, file_size, folder_path)
-            VALUES (?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO card_files (
+              file_path,
+              card_id,
+              file_mtime,
+              file_birthtime,
+              file_size,
+              folder_path,
+              st_profile_handle,
+              st_avatar_file,
+              st_avatar_base
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               filePath,
               cardId,
@@ -677,6 +740,9 @@ export class ScanService {
               createdAt,
               fileSize,
               dirname(filePath),
+              shouldSetStMeta ? stMeta!.stProfileHandle : null,
+              shouldSetStMeta ? stMeta!.stAvatarFile : null,
+              shouldSetStMeta ? stMeta!.stAvatarBase : null,
             ]
           );
 

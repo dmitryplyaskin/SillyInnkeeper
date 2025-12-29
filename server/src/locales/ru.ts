@@ -192,6 +192,10 @@ const ru = {
 
   "api.st.invalid_cardId": "Некорректный cardId",
   "api.st.invalid_ok": "Некорректное поле ok (ожидается boolean)",
+  "api.st.missing_st_profile":
+    "Не хватает данных SillyTavern-профиля для запуска карточки (пересканируй библиотеку SillyTavern)",
+  "api.st.missing_st_avatar":
+    "Не хватает имени avatar-файла SillyTavern для запуска карточки (пересканируй библиотеку SillyTavern)",
   "api.st.play_failed": "Не удалось отправить команду Play в SillyTavern",
   "api.st.import_result_failed":
     "Не удалось принять результат импорта из SillyTavern",

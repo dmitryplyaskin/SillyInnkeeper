@@ -1,10 +1,13 @@
 import { existsSync, statSync } from "node:fs";
 import { readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, parse } from "node:path";
 
 type PngFileEntry = {
   filePath: string;
   createdAtMs: number;
+  profileHandle: string;
+  avatarFile: string;
+  avatarBase: string;
 };
 
 function isFinitePositive(n: unknown): n is number {
@@ -32,7 +35,7 @@ function getCreatedAtMs(filePath: string): number {
  */
 export async function listSillyTavernCharacterPngs(
   sillytavenrPath: string
-): Promise<string[]> {
+): Promise<PngFileEntry[]> {
   const root = String(sillytavenrPath ?? "").trim();
   if (!root) return [];
 
@@ -61,9 +64,13 @@ export async function listSillyTavernCharacterPngs(
         if (!name.toLowerCase().endsWith(".png")) continue;
         const fullPath = join(charactersDir, name);
         try {
+          const p = parse(name);
           pngEntries.push({
             filePath: fullPath,
             createdAtMs: getCreatedAtMs(fullPath),
+            profileHandle: profileName,
+            avatarFile: name,
+            avatarBase: p.name,
           });
         } catch {
           // If file disappears during listing, ignore.
@@ -79,7 +86,5 @@ export async function listSillyTavernCharacterPngs(
     return a.filePath.localeCompare(b.filePath);
   });
 
-  return pngEntries.map((e) => e.filePath);
+  return pngEntries;
 }
-
-

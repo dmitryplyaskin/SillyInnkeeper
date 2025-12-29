@@ -475,6 +475,15 @@ function initializeSchema(db: Database.Database): void {
 
   // card_files: folder_path для фильтрации/группировки по папкам
   addColumnIfMissing("card_files", "folder_path", "folder_path TEXT");
+  // card_files: SillyTavern metadata (для запуска/открытия в ST без импорта)
+  // Храним на уровне file_path (а не cards), т.к. одна и та же карточка может существовать в разных профилях.
+  addColumnIfMissing(
+    "card_files",
+    "st_profile_handle",
+    "st_profile_handle TEXT"
+  );
+  addColumnIfMissing("card_files", "st_avatar_file", "st_avatar_file TEXT");
+  addColumnIfMissing("card_files", "st_avatar_base", "st_avatar_base TEXT");
   // card_files: file_birthtime — время создания файла (нужно для корректного created_at карточки)
   // NOT NULL + DEFAULT нужен для старых БД.
   addColumnIfMissing(
@@ -484,6 +493,8 @@ function initializeSchema(db: Database.Database): void {
   );
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_card_files_folder_path ON card_files(folder_path);
+    CREATE INDEX IF NOT EXISTS idx_card_files_st_profile_handle ON card_files(st_profile_handle);
+    CREATE INDEX IF NOT EXISTS idx_card_files_st_avatar_file ON card_files(st_avatar_file);
   `);
 
   // Связь карточек и тегов для точной фильтрации

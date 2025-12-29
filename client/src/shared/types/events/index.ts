@@ -66,6 +66,7 @@ export type StImportResultEvent = {
   ts: number;
   cardId: string;
   ok: boolean;
+  action?: "import" | "open";
   message?: string;
   stCharacterId?: string;
 };

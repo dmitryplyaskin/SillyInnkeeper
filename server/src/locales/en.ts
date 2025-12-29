@@ -178,6 +178,10 @@ const en = {
 
   "api.st.invalid_cardId": "Invalid cardId",
   "api.st.invalid_ok": "Invalid ok field (expected boolean)",
+  "api.st.missing_st_profile":
+    "Missing SillyTavern profile data to open this card (re-scan SillyTavern library)",
+  "api.st.missing_st_avatar":
+    "Missing SillyTavern avatar filename to open this card (re-scan SillyTavern library)",
   "api.st.play_failed": "Could not send Play command to SillyTavern",
   "api.st.import_result_failed":
     "Could not accept import result from SillyTavern",
