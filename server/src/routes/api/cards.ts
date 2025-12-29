@@ -52,6 +52,19 @@ function normalizeStringArray(value: unknown): string[] {
     .filter((s) => s.length > 0);
 }
 
+function parseBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  return undefined;
+}
+
+function safeJsonStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return "{}";
+  }
+}
+
 function parseString(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const v = value.trim();
@@ -255,6 +268,11 @@ router.get("/cards", async (req: Request, res: Response) => {
     const promptTokensMin = parseNumber((req.query as any).prompt_tokens_min);
     const promptTokensMax = parseNumber((req.query as any).prompt_tokens_max);
 
+    // Default: hide hidden cards
+    const isHiddenRaw = (req.query as any).is_hidden;
+    const is_hidden: TriState =
+      typeof isHiddenRaw === "string" ? parseTriState(isHiddenRaw) : "0";
+
     const params: SearchCardsParams = {
       library_ids: libraryIds,
       sort,
@@ -268,6 +286,7 @@ router.get("/cards", async (req: Request, res: Response) => {
       created_from_ms,
       created_to_ms,
       is_sillytavern: parseTriState((req.query as any).is_sillytavern),
+      is_hidden,
       has_creator_notes: parseTriState((req.query as any).has_creator_notes),
       has_system_prompt: parseTriState((req.query as any).has_system_prompt),
       has_post_history_instructions: parseTriState(
@@ -441,6 +460,7 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
           c.spec_version,
           c.created_at,
           c.is_sillytavern,
+          c.is_hidden,
           c.avatar_path,
           c.data_json,
           c.primary_file_path,
@@ -482,6 +502,7 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
           spec_version: string | null;
           created_at: number;
           is_sillytavern: number;
+          is_hidden: number;
           avatar_path: string | null;
           data_json: string;
           primary_file_path: string | null;
@@ -600,6 +621,8 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
       has_scenario: row.has_scenario === 1,
       has_mes_example: row.has_mes_example === 1,
       has_character_book: row.has_character_book === 1,
+
+      innkeeperMeta: { isHidden: row.is_hidden === 1 },
 
       // extracted arrays (server-side)
       alternate_greetings,
@@ -998,6 +1021,121 @@ router.delete("/cards/:id/files", async (req: Request, res: Response) => {
     return sendError(res, error, {
       status: 500,
       code: "api.cards.delete_file_failed",
+    });
+  }
+});
+
+// PUT /api/cards/:id/hidden - скрыть/показать карточку
+router.put("/cards/:id/hidden", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const isHidden = parseBoolean((req.body as any)?.is_hidden);
+    if (typeof isHidden !== "boolean") {
+      throw new AppError({ status: 400, code: "api.cards.invalid_is_hidden" });
+    }
+
+    const db = getDb(req);
+
+    const row = db
+      .prepare(
+        `
+        SELECT innkeeper_meta_json
+        FROM cards
+        WHERE id = ?
+        LIMIT 1
+      `
+      )
+      .get(id) as { innkeeper_meta_json: string | null } | undefined;
+
+    if (!row) {
+      throw new AppError({ status: 404, code: "api.cards.not_found" });
+    }
+
+    const prev = safeJsonParse<Record<string, unknown>>(row.innkeeper_meta_json);
+    const next = {
+      ...(prev && typeof prev === "object" ? prev : {}),
+      isHidden,
+    };
+    const nextJson = safeJsonStringify(next);
+
+    db.transaction(() => {
+      db.prepare(
+        `
+        UPDATE cards
+        SET innkeeper_meta_json = ?, is_hidden = ?
+        WHERE id = ?
+      `
+      ).run(nextJson, isHidden ? 1 : 0, id);
+    })();
+
+    res.json({ ok: true, card_id: id, is_hidden: isHidden });
+  } catch (error) {
+    logger.errorKey(error, "api.cards.set_hidden_failed");
+    return sendError(res, error, {
+      status: 500,
+      code: "api.cards.set_hidden_failed",
+    });
+  }
+});
+
+// POST /api/cards/bulk-hidden - скрыть/показать карточки списком
+// IMPORTANT: keep this route before `/cards/:id` to avoid param match.
+router.post("/cards/bulk-hidden", async (req: Request, res: Response) => {
+  try {
+    const rawIds = (req.body as any)?.card_ids;
+    const isHidden = parseBoolean((req.body as any)?.is_hidden);
+    const card_ids = Array.from(new Set(normalizeStringArray(rawIds)));
+
+    if (card_ids.length === 0) {
+      throw new AppError({ status: 400, code: "api.cards.invalid_card_ids" });
+    }
+    if (typeof isHidden !== "boolean") {
+      throw new AppError({ status: 400, code: "api.cards.invalid_is_hidden" });
+    }
+
+    const db = getDb(req);
+    const placeholders = card_ids.map(() => "?").join(", ");
+
+    const rows = db
+      .prepare(
+        `
+        SELECT id, innkeeper_meta_json
+        FROM cards
+        WHERE id IN (${placeholders})
+      `
+      )
+      .all(...card_ids) as Array<{ id: string; innkeeper_meta_json: string | null }>;
+
+    if (rows.length !== card_ids.length) {
+      throw new AppError({ status: 404, code: "api.cards.some_not_found" });
+    }
+
+    const update = db.prepare(
+      `
+      UPDATE cards
+      SET innkeeper_meta_json = ?, is_hidden = ?
+      WHERE id = ?
+    `
+    );
+
+    db.transaction(() => {
+      for (const r of rows) {
+        const prev = safeJsonParse<Record<string, unknown>>(r.innkeeper_meta_json);
+        const next = {
+          ...(prev && typeof prev === "object" ? prev : {}),
+          isHidden,
+        };
+        const nextJson = safeJsonStringify(next);
+        update.run(nextJson, isHidden ? 1 : 0, r.id);
+      }
+    })();
+
+    res.json({ ok: true, updated: card_ids.length, updated_ids: card_ids });
+  } catch (error) {
+    logger.errorKey(error, "api.cards.bulk_set_hidden_failed");
+    return sendError(res, error, {
+      status: 500,
+      code: "api.cards.bulk_set_hidden_failed",
     });
   }
 });

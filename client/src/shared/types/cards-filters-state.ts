@@ -19,6 +19,7 @@ export interface CardsFiltersState {
   prompt_tokens_min: number;
   prompt_tokens_max: number;
   is_sillytavern: TriState;
+  is_hidden: TriState;
   has_creator_notes: TriState;
   has_system_prompt: TriState;
   has_post_history_instructions: TriState;

@@ -40,6 +40,7 @@ export interface CardsFiltersState {
   prompt_tokens_min: number;
   prompt_tokens_max: number;
   is_sillytavern: TriState;
+  is_hidden: TriState;
   has_creator_notes: TriState;
   has_system_prompt: TriState;
   has_post_history_instructions: TriState;
@@ -83,6 +84,7 @@ const DEFAULT_STATE: CardsFiltersState = {
   prompt_tokens_min: 0,
   prompt_tokens_max: 0,
   is_sillytavern: "any",
+  is_hidden: "0",
   has_creator_notes: "any",
   has_system_prompt: "any",
   has_post_history_instructions: "any",
@@ -203,6 +205,7 @@ function normalizeState(raw: unknown): CardsFiltersState {
     prompt_tokens_min: promptMin,
     prompt_tokens_max: promptMax,
     is_sillytavern: normalizeTriState(src.is_sillytavern, DEFAULT_STATE.is_sillytavern),
+    is_hidden: normalizeTriState(src.is_hidden, DEFAULT_STATE.is_hidden),
     has_creator_notes: normalizeTriState(
       src.has_creator_notes,
       DEFAULT_STATE.has_creator_notes

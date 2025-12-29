@@ -183,6 +183,18 @@ function initializeSchema(db: Database.Database): void {
     "library_id",
     "library_id TEXT NOT NULL DEFAULT 'cards'"
   );
+  // cards: metadata for SillyInnkeeper (app-specific)
+  addColumnIfMissing(
+    "cards",
+    "innkeeper_meta_json",
+    "innkeeper_meta_json TEXT NOT NULL DEFAULT '{}'"
+  );
+  // cards: helper column for fast filtering (mirrors innkeeperMeta.isHidden)
+  addColumnIfMissing(
+    "cards",
+    "is_hidden",
+    "is_hidden INTEGER NOT NULL DEFAULT 0"
+  );
   addColumnIfMissing(
     "cards",
     "is_sillytavern",
@@ -265,6 +277,7 @@ function initializeSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_cards_spec_version ON cards(spec_version);
     CREATE INDEX IF NOT EXISTS idx_cards_library_id ON cards(library_id);
     CREATE INDEX IF NOT EXISTS idx_cards_is_sillytavern ON cards(is_sillytavern);
+    CREATE INDEX IF NOT EXISTS idx_cards_is_hidden ON cards(is_hidden);
     CREATE INDEX IF NOT EXISTS idx_cards_content_hash ON cards(content_hash);
     CREATE INDEX IF NOT EXISTS idx_cards_has_creator_notes ON cards(has_creator_notes);
     CREATE INDEX IF NOT EXISTS idx_cards_has_system_prompt ON cards(has_system_prompt);

@@ -54,6 +54,7 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
     params.set("has_alternate_greetings", query.has_alternate_greetings);
 
   if (query?.is_sillytavern) params.set("is_sillytavern", query.is_sillytavern);
+  if (query?.is_hidden) params.set("is_hidden", query.is_hidden);
 
   if (query?.patterns) params.set("patterns", query.patterns);
 
@@ -85,6 +86,44 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
     const errorText = (await response.text().catch(() => "")).trim();
     if (errorText) throw new Error(errorText);
     throw new Error(`${i18n.t("errors.loadCards")}: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function setCardHidden(
+  cardId: string,
+  isHidden: boolean
+): Promise<{ ok: true; card_id: string; is_hidden: boolean }> {
+  const response = await fetch(`/api/cards/${encodeURIComponent(cardId)}/hidden`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ is_hidden: isHidden }),
+  });
+
+  if (!response.ok) {
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(response.statusText);
+  }
+
+  return response.json();
+}
+
+export async function setCardsHiddenBulk(
+  cardIds: string[],
+  isHidden: boolean
+): Promise<{ ok: true; updated: number; updated_ids: string[] }> {
+  const response = await fetch(`/api/cards/bulk-hidden`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ card_ids: cardIds, is_hidden: isHidden }),
+  });
+
+  if (!response.ok) {
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(response.statusText);
   }
 
   return response.json();

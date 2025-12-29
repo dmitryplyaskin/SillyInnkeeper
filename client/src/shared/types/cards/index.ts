@@ -11,6 +11,7 @@ export interface CardListItem {
   alternate_greetings_count: number;
   has_character_book: boolean;
   prompt_tokens_est: number;
+  innkeeperMeta?: { isHidden: boolean };
 }
 
 export interface CardDetails {
@@ -26,6 +27,7 @@ export interface CardDetails {
   duplicates?: string[];
   primary_file_path?: string | null;
   avatar_url: string;
+  innkeeperMeta?: { isHidden: boolean };
 
   description: string | null;
   personality: string | null;

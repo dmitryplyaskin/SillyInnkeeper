@@ -16,7 +16,7 @@ import { notifications } from "@mantine/notifications";
 import { useUnit } from "effector-react";
 import type { CardDetails } from "@/shared/types/cards";
 import i18n from "@/shared/i18n/i18n";
-import { deleteCard, deleteCardFileDuplicate } from "@/shared/api/cards";
+import { deleteCard, deleteCardFileDuplicate, setCardHidden } from "@/shared/api/cards";
 import {
   renameCardMainFile,
   saveCard,
@@ -24,6 +24,7 @@ import {
 } from "@/shared/api/cards";
 import { showFile } from "@/shared/api/explorer";
 import { CopyableTruncatedText } from "@/shared/ui/CopyableTruncatedText";
+import { refreshCardsSilent } from "@/entities/cards";
 import { closeCard, openCard } from "../../model";
 import {
   $altGreetingIds,
@@ -71,6 +72,7 @@ export function CardDetailsActionsPanel({
   const [saveOpened, setSaveOpened] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pendingCardJson, setPendingCardJson] = useState<unknown | null>(null);
+  const [isTogglingHidden, setIsTogglingHidden] = useState(false);
 
   const [draft, altIds, altValues, groupIds, groupValues, lorebook, markSaved] = useUnit([
     $draft,
@@ -188,6 +190,32 @@ export function CardDetailsActionsPanel({
   const exportPngUrl = details?.id
     ? `/api/cards/${encodeURIComponent(details.id)}/export.png?download=1`
     : undefined;
+
+  const isHidden = Boolean(details?.innkeeperMeta?.isHidden);
+
+  async function toggleHidden(): Promise<void> {
+    if (!details?.id) return;
+    if (isTogglingHidden) return;
+    setIsTogglingHidden(true);
+    try {
+      await setCardHidden(details.id, !isHidden);
+      notifications.show({
+        title: i18n.t("cardDetails.actions"),
+        message: !isHidden ? i18n.t("cardDetails.hideOk") : i18n.t("cardDetails.showOk"),
+        color: "green",
+      });
+      openCard(details.id);
+      refreshCardsSilent();
+    } catch {
+      notifications.show({
+        title: i18n.t("cardDetails.actions"),
+        message: i18n.t("cardDetails.hideFailed"),
+        color: "red",
+      });
+    } finally {
+      setIsTogglingHidden(false);
+    }
+  }
 
   async function playInSillyTavern(): Promise<void> {
     if (!details?.id) return;
@@ -477,6 +505,17 @@ export function CardDetailsActionsPanel({
             disabled={!details?.id}
           >
             {i18n.t("cardDetails.save")}
+          </Button>
+
+          <Button
+            fullWidth
+            variant={isHidden ? "light" : "subtle"}
+            color={isHidden ? "gray" : "orange"}
+            onClick={() => void toggleHidden()}
+            disabled={!details?.id}
+            loading={isTogglingHidden}
+          >
+            {isHidden ? i18n.t("cardDetails.show") : i18n.t("cardDetails.hide")}
           </Button>
 
           <Button

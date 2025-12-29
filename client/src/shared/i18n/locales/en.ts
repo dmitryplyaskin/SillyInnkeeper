@@ -157,6 +157,10 @@ const en = {
     sourceAll: "All",
     sourceOnlySt: "Only ST",
     sourceOnlyFolder: "Only from folder",
+    hidden: "Hidden",
+    hiddenExclude: "Exclude",
+    hiddenInclude: "Include",
+    hiddenOnly: "Only hidden",
     triAny: "Any",
     triHas: "Has",
     triHasNot: "Has not",
@@ -257,6 +261,11 @@ const en = {
       "The card will be deleted completely: all files (including duplicates) will be removed from disk and from the database. This action cannot be undone.",
     cardDeleted: "Card deleted",
     cardDeleteFailed: "Failed to delete card",
+    hide: "Hide",
+    show: "Show",
+    hideOk: "Card hidden",
+    showOk: "Card shown",
+    hideFailed: "Failed to change card visibility",
 
     renameMainFileTitle: "Rename file",
     renameMainFileHint:

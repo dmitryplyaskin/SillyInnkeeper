@@ -15,6 +15,7 @@ export interface CardListItem {
   alternate_greetings_count: number;
   has_character_book: boolean;
   prompt_tokens_est: number;
+  innkeeperMeta?: { isHidden: boolean };
 }
 
 export type TriState = "any" | "1" | "0";
@@ -46,6 +47,7 @@ export interface SearchCardsParams {
   library_id?: string;
   library_ids?: string[];
   is_sillytavern?: TriState;
+  is_hidden?: TriState;
   sort?: CardsSort;
   name?: string;
   q?: string;
@@ -93,16 +95,19 @@ export class CardsService {
 
     const qRaw = typeof params.q === "string" ? params.q.trim() : "";
     const hasQ = qRaw.length > 0;
-    const qMode: CardsTextSearchMode =
-      params.q_mode === "fts" ? "fts" : "like";
+    const qMode: CardsTextSearchMode = params.q_mode === "fts" ? "fts" : "like";
 
     const sort = params.sort ?? "created_at_desc";
     const effectiveSort: Exclude<CardsSort, "relevance"> | "relevance" =
-      sort === "relevance" && (!hasQ || qMode !== "fts") ? "created_at_desc" : sort;
+      sort === "relevance" && (!hasQ || qMode !== "fts")
+        ? "created_at_desc"
+        : sort;
 
     const libraryIds =
       Array.isArray(params.library_ids) && params.library_ids.length > 0
-        ? params.library_ids.map((s) => String(s).trim()).filter((s) => s.length > 0)
+        ? params.library_ids
+            .map((s) => String(s).trim())
+            .filter((s) => s.length > 0)
         : [];
 
     if (libraryIds.length > 0) {
@@ -163,6 +168,8 @@ export class CardsService {
     };
 
     addTriState("c.is_sillytavern", params.is_sillytavern);
+    // Default behavior should hide hidden cards; caller can pass "any" / "1".
+    addTriState("c.is_hidden", params.is_hidden);
     addTriState("c.has_creator_notes", params.has_creator_notes);
     addTriState("c.has_system_prompt", params.has_system_prompt);
     addTriState(
@@ -232,7 +239,8 @@ export class CardsService {
       `
       );
       const rulesHash =
-        typeof lastReady?.rules_hash === "string" && lastReady.rules_hash.trim().length > 0
+        typeof lastReady?.rules_hash === "string" &&
+        lastReady.rules_hash.trim().length > 0
           ? lastReady.rules_hash.trim()
           : null;
 
@@ -265,7 +273,9 @@ export class CardsService {
 
     if (hasQ) {
       const requestedFields = Array.isArray(params.q_fields)
-        ? (params.q_fields as CardsFtsField[]).filter((f) => typeof f === "string")
+        ? (params.q_fields as CardsFtsField[]).filter(
+            (f) => typeof f === "string"
+          )
         : [];
 
       const fieldToColumn = (f: CardsFtsField): string => {
@@ -326,7 +336,10 @@ export class CardsService {
 
         const escapeLike = (input: string): string => {
           // Escape order matters: backslash first.
-          return input.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+          return input
+            .replace(/\\/g, "\\\\")
+            .replace(/%/g, "\\%")
+            .replace(/_/g, "\\_");
         };
 
         const allColumns: string[] = [
@@ -343,7 +356,8 @@ export class CardsService {
         ];
 
         const cols = (() => {
-          if (!requestedFields || requestedFields.length === 0) return allColumns;
+          if (!requestedFields || requestedFields.length === 0)
+            return allColumns;
           const mapped = requestedFields.map((f) => fieldToColumn(f));
           // Keep unique and stable order.
           const seen = new Set<string>();
@@ -404,6 +418,7 @@ export class CardsService {
         c.spec_version,
         c.created_at,
         c.is_sillytavern,
+        c.is_hidden,
         c.alternate_greetings_count,
         c.has_character_book,
         c.prompt_tokens_est,
@@ -434,6 +449,7 @@ export class CardsService {
       spec_version: string | null;
       created_at: number;
       is_sillytavern: number;
+      is_hidden: number;
       alternate_greetings_count: number;
       has_character_book: number;
       prompt_tokens_est: number;
@@ -465,6 +481,7 @@ export class CardsService {
         spec_version: row.spec_version,
         created_at: row.created_at,
         is_sillytavern: row.is_sillytavern === 1,
+        innkeeperMeta: { isHidden: row.is_hidden === 1 },
         alternate_greetings_count: Number.isFinite(
           row.alternate_greetings_count
         )

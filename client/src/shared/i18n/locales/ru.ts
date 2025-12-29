@@ -159,6 +159,10 @@ const ru = {
     sourceAll: "Все",
     sourceOnlySt: "Только ST",
     sourceOnlyFolder: "Только из папки",
+    hidden: "Скрытые",
+    hiddenExclude: "Не показывать",
+    hiddenInclude: "Показывать",
+    hiddenOnly: "Только скрытые",
     triAny: "Не важно",
     triHas: "Только с",
     triHasNot: "Только без",
@@ -260,6 +264,11 @@ const ru = {
       "Карточка будет удалена полностью: все файлы (включая дубликаты) будут удалены с диска и из базы данных. Это действие нельзя отменить.",
     cardDeleted: "Карточка удалена",
     cardDeleteFailed: "Не удалось удалить карточку",
+    hide: "Скрыть",
+    show: "Показать",
+    hideOk: "Карточка скрыта",
+    showOk: "Карточка показана",
+    hideFailed: "Не удалось изменить видимость карточки",
 
     renameMainFileTitle: "Переименовать файл",
     renameMainFileHint:
