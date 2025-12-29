@@ -35,6 +35,8 @@ const en = {
     loadCards: "Failed to load cards",
     loadCard: "Failed to load card",
     loadFiltersTitle: "Failed to load filters",
+    loadFiltersStateTitle: "Failed to load saved filters",
+    saveFiltersStateTitle: "Failed to save filters",
     loadViewSettings: "Failed to load view settings",
     saveViewSettings: "Failed to save view settings",
     loadTags: "Failed to load tags",

@@ -35,6 +35,8 @@ const ru = {
     loadCards: "Ошибка загрузки карточек",
     loadCard: "Ошибка загрузки карточки",
     loadFiltersTitle: "Ошибка загрузки фильтров",
+    loadFiltersStateTitle: "Ошибка загрузки сохранённых фильтров",
+    saveFiltersStateTitle: "Ошибка сохранения фильтров",
     loadViewSettings: "Ошибка загрузки настроек отображения",
     saveViewSettings: "Ошибка сохранения настроек отображения",
     loadTags: "Ошибка загрузки тегов",

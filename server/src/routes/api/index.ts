@@ -17,6 +17,7 @@ import explorer from "./explorer";
 import lorebooks from "./lorebooks";
 import importSettings from "./import-settings";
 import patternRules from "./pattern-rules";
+import cardsFiltersState from "./cards-filters-state";
 
 const router = Router();
 
@@ -89,5 +90,6 @@ router.use(explorer);
 router.use(lorebooks);
 router.use(importSettings);
 router.use(patternRules);
+router.use(cardsFiltersState);
 
 export default router;

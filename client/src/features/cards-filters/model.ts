@@ -4,10 +4,16 @@ import {
   createStore,
   sample,
   combine,
+  merge,
 } from "effector";
 import { debounce } from "patronum/debounce";
 import { getCardsFilters } from "@/shared/api/cards";
+import {
+  getCardsFiltersState,
+  updateCardsFiltersState,
+} from "@/shared/api/cards-filters-state";
 import type { CardsFiltersResponse } from "@/shared/types/cards-filters";
+import type { CardsFiltersState } from "@/shared/types/cards-filters-state";
 import type {
   CardsFtsField,
   CardsQuery,
@@ -18,32 +24,6 @@ import type {
 import type { PatternRulesStatus } from "@/shared/types/pattern-rules-status";
 import { getPatternRulesStatus } from "@/shared/api/pattern-rules";
 import { loadCards, loadCardsSilent } from "@/entities/cards";
-
-export interface CardsFiltersState {
-  sort: CardsSort;
-  name: string;
-  q: string;
-  q_mode: CardsTextSearchMode;
-  q_fields: CardsFtsField[];
-  creator: string[];
-  spec_version: string[];
-  tags: string[];
-  created_from?: string; // YYYY-MM-DD
-  created_to?: string; // YYYY-MM-DD
-  prompt_tokens_min: number;
-  prompt_tokens_max: number;
-  is_sillytavern: TriState;
-  has_creator_notes: TriState;
-  has_system_prompt: TriState;
-  has_post_history_instructions: TriState;
-  has_personality: TriState;
-  has_scenario: TriState;
-  has_mes_example: TriState;
-  has_character_book: TriState;
-  has_alternate_greetings: TriState;
-  alternate_greetings_min: number;
-  patterns: TriState;
-}
 
 const DEFAULT_FILTERS: CardsFiltersState = {
   sort: "created_at_desc",
@@ -170,8 +150,40 @@ export const loadPatternRulesStatusFx = createEffect<
   return await getPatternRulesStatus();
 });
 
+export const loadCardsFiltersStateFx = createEffect<
+  void,
+  CardsFiltersState,
+  Error
+>(async () => {
+  return await getCardsFiltersState();
+});
+
+export const saveCardsFiltersStateFx = createEffect<
+  CardsFiltersState,
+  CardsFiltersState,
+  Error
+>(async (state) => {
+  return await updateCardsFiltersState(state);
+});
+
+// Kick-off init sequence (hydrate + then allow auto-apply)
+export const initCardsFiltersFx = createEffect<void, void, Error>(async () => {
+  // fire-and-forget; store graph handles success/fail
+  try {
+    void loadCardsFiltersFx();
+  } catch {
+    // ignore
+  }
+  try {
+    void loadCardsFiltersStateFx();
+  } catch {
+    // ignore
+  }
+});
+
 // Stores
 export const $filters = createStore<CardsFiltersState>(DEFAULT_FILTERS);
+export const $filtersReady = createStore<boolean>(false);
 export const $filtersData = createStore<CardsFiltersResponse>({
   creators: [],
   spec_versions: [],
@@ -213,6 +225,9 @@ export const setPatterns = createEvent<TriState>();
 export const resetFilters = createEvent<void>();
 export const applyFilters = createEvent<void>();
 export const applyFiltersSilent = createEvent<void>();
+const hydrateFilters = createEvent<CardsFiltersState>();
+const hydrationFinished = createEvent<void>();
+const setFiltersReady = createEvent<boolean>();
 export const applyTagsBulkEditToSelectedTags = createEvent<{
   action: "replace" | "delete";
   from_raw: string[]; // rawName (normalized)
@@ -318,6 +333,9 @@ $filters
   })
   .on(resetFilters, () => DEFAULT_FILTERS);
 
+$filters.on(hydrateFilters, (_, next) => next);
+$filtersReady.on(setFiltersReady, (_, v) => v);
+
 // sync filters response
 sample({
   clock: loadCardsFiltersFx.doneData,
@@ -354,12 +372,33 @@ sample({
 // Keep patterns status fresh when filters lists are refreshed
 sample({ clock: loadCardsFiltersFx, target: loadPatternRulesStatusFx });
 
+// Hydrate from persisted state on startup.
+sample({ clock: loadCardsFiltersStateFx.doneData, target: hydrateFilters });
+sample({
+  clock: loadCardsFiltersStateFx.failData,
+  fn: () => DEFAULT_FILTERS,
+  target: hydrateFilters,
+});
+
+sample({ clock: hydrateFilters, target: hydrationFinished });
+
+// Allow auto-apply only after hydration is finished (even if we fell back to defaults)
+sample({ clock: hydrationFinished, fn: () => true, target: setFiltersReady });
+
+// First load: only after filters are hydrated
+sample({
+  clock: hydrationFinished,
+  source: $filters,
+  fn: (state) => toQuery(state),
+  target: loadCards,
+});
+
 // Auto-apply:
 // - name changes are debounced
 // - q changes are debounced
 // - other changes apply immediately
-const nameDebounced = debounce({ source: setName, timeout: 450 });
-const qDebounced = debounce({ source: setQ, timeout: 450 });
+const nameDebounced = debounce({ source: setName, timeout: 500 });
+const qDebounced = debounce({ source: setQ, timeout: 500 });
 
 const immediateApplyClock = [
   setSort,
@@ -387,42 +426,97 @@ const immediateApplyClock = [
 
 sample({
   clock: immediateApplyClock,
-  source: $filters,
-  fn: (state) => toQuery(state),
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => toQuery(state),
   target: loadCards,
 });
 
 sample({
   clock: nameDebounced,
-  source: $filters,
-  fn: (state) => toQuery(state),
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => toQuery(state),
   target: loadCards,
 });
 
 sample({
   clock: qDebounced,
-  source: $filters,
-  fn: (state) => toQuery(state),
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => toQuery(state),
   target: loadCards,
 });
 
 sample({
   clock: applyFilters,
-  source: $filters,
-  fn: (state) => toQuery(state),
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => toQuery(state),
   target: loadCards,
 });
 
 sample({
   clock: applyFiltersSilent,
-  source: $filters,
-  fn: (state) => toQuery(state),
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => toQuery(state),
   target: loadCardsSilent,
 });
 
 // Reset should deterministically apply defaults
 sample({
   clock: resetFilters,
+  source: $filtersReady,
+  filter: (ready) => ready,
   fn: () => toQuery(DEFAULT_FILTERS),
   target: loadCards,
+});
+
+// Persist filters state to backend with debounce (500ms).
+// Important: for text inputs (name/q) we persist only after their own debounce
+// to avoid save request per keystroke.
+const persistNonTextChanged = merge([
+  setSort,
+  setQMode,
+  setQFields,
+  setCreators,
+  setSpecVersions,
+  setTags,
+  setCreatedFrom,
+  setCreatedTo,
+  setPromptTokensMin,
+  setPromptTokensMax,
+  setIsSillyTavern,
+  setHasCreatorNotes,
+  setHasSystemPrompt,
+  setHasPostHistoryInstructions,
+  setHasPersonality,
+  setHasScenario,
+  setHasMesExample,
+  setHasCharacterBook,
+  setHasAlternateGreetings,
+  setAlternateGreetingsMin,
+  setPatterns,
+  applyTagsBulkEditToSelectedTags,
+  resetFilters,
+]);
+
+const persistNonTextDebounced = debounce({
+  source: persistNonTextChanged,
+  timeout: 500,
+});
+
+const persistClock = merge([
+  persistNonTextDebounced,
+  nameDebounced,
+  qDebounced,
+]);
+
+sample({
+  clock: persistClock,
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => state,
+  target: saveCardsFiltersStateFx,
 });
