@@ -195,6 +195,7 @@ function initializeSchema(db: Database.Database): void {
     "is_hidden",
     "is_hidden INTEGER NOT NULL DEFAULT 0"
   );
+  addColumnIfMissing("cards", "is_fav", "is_fav INTEGER NOT NULL DEFAULT 0");
   addColumnIfMissing(
     "cards",
     "is_sillytavern",
@@ -278,6 +279,7 @@ function initializeSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_cards_library_id ON cards(library_id);
     CREATE INDEX IF NOT EXISTS idx_cards_is_sillytavern ON cards(is_sillytavern);
     CREATE INDEX IF NOT EXISTS idx_cards_is_hidden ON cards(is_hidden);
+    CREATE INDEX IF NOT EXISTS idx_cards_is_fav ON cards(is_fav);
     CREATE INDEX IF NOT EXISTS idx_cards_content_hash ON cards(content_hash);
     CREATE INDEX IF NOT EXISTS idx_cards_has_creator_notes ON cards(has_creator_notes);
     CREATE INDEX IF NOT EXISTS idx_cards_has_system_prompt ON cards(has_system_prompt);

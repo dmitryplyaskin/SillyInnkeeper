@@ -7,6 +7,7 @@ export interface CardListItem {
   name: string | null;
   tags: string[] | null;
   creator: string | null;
+  fav: boolean;
   avatar_url: string;
   file_path: string | null;
   spec_version: string | null;
@@ -48,6 +49,7 @@ export interface SearchCardsParams {
   library_ids?: string[];
   is_sillytavern?: TriState;
   is_hidden?: TriState;
+  fav?: TriState;
   sort?: CardsSort;
   name?: string;
   q?: string;
@@ -170,6 +172,7 @@ export class CardsService {
     addTriState("c.is_sillytavern", params.is_sillytavern);
     // Default behavior should hide hidden cards; caller can pass "any" / "1".
     addTriState("c.is_hidden", params.is_hidden);
+    addTriState("c.is_fav", params.fav);
     addTriState("c.has_creator_notes", params.has_creator_notes);
     addTriState("c.has_system_prompt", params.has_system_prompt);
     addTriState(
@@ -419,6 +422,7 @@ export class CardsService {
         c.created_at,
         c.is_sillytavern,
         c.is_hidden,
+        c.is_fav,
         c.alternate_greetings_count,
         c.has_character_book,
         c.prompt_tokens_est,
@@ -450,6 +454,7 @@ export class CardsService {
       created_at: number;
       is_sillytavern: number;
       is_hidden: number;
+      is_fav: number;
       alternate_greetings_count: number;
       has_character_book: number;
       prompt_tokens_est: number;
@@ -476,6 +481,7 @@ export class CardsService {
         name: row.name,
         tags,
         creator: row.creator,
+        fav: row.is_fav === 1,
         avatar_url: avatarUrl,
         file_path: row.file_path,
         spec_version: row.spec_version,

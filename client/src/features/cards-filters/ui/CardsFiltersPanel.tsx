@@ -6,6 +6,7 @@ import { ActionsSection } from "./sections/ActionsSection";
 import { SearchAndSortSection } from "./sections/SearchAndSortSection";
 import { SourceSection } from "./sections/SourceSection";
 import { HiddenSection } from "./sections/HiddenSection";
+import { FavoritesSection } from "./sections/FavoritesSection";
 import { TextSearchSection } from "./sections/TextSearchSection";
 import { MetaSection } from "./sections/MetaSection";
 import { CreatedAtSection } from "./sections/CreatedAtSection";
@@ -30,6 +31,7 @@ export function CardsFiltersPanel() {
       <SearchAndSortSection />
       <SourceSection />
       <HiddenSection />
+      <FavoritesSection />
       <TextSearchSection />
       <MetaSection />
       <CreatedAtSection />

@@ -41,7 +41,9 @@ export class ScanService {
     private isSillyTavern: boolean = false
   ) {
     this.limit = pLimit(
-      this.isSillyTavern ? CONCURRENT_LIMIT_SILLYTAVERN : CONCURRENT_LIMIT_FOLDER
+      this.isSillyTavern
+        ? CONCURRENT_LIMIT_SILLYTAVERN
+        : CONCURRENT_LIMIT_FOLDER
     );
     this.yieldEvery = this.isSillyTavern
       ? YIELD_EVERY_FILES_SILLYTAVERN
@@ -142,7 +144,9 @@ export class ScanService {
   ): Promise<{ totalFiles: number; processedFiles: number }> {
     const root = String(sillytavenrPath ?? "").trim();
     if (!root || !existsSync(root)) {
-      logger.errorMessageKey("error.scan.folderNotExists", { folderPath: root });
+      logger.errorMessageKey("error.scan.folderNotExists", {
+        folderPath: root,
+      });
       return { totalFiles: 0, processedFiles: 0 };
     }
 
@@ -190,7 +194,9 @@ export class ScanService {
 
       return { totalFiles, processedFiles };
     } catch (error) {
-      logger.errorKey(error, "error.scan.scanFolderFailed", { folderPath: root });
+      logger.errorKey(error, "error.scan.scanFolderFailed", {
+        folderPath: root,
+      });
       throw error;
     }
   }
@@ -227,8 +233,7 @@ export class ScanService {
         const st = statSync(p);
         const birth = st.birthtimeMs;
         const mtime = st.mtimeMs;
-        const createdAtMs =
-          Number.isFinite(birth) && birth > 0 ? birth : mtime;
+        const createdAtMs = Number.isFinite(birth) && birth > 0 ? birth : mtime;
         entries.push({ filePath: p, createdAtMs });
       } catch {
         // If file disappears during listing, ignore.
@@ -483,6 +488,7 @@ export class ScanService {
       const dataJson = JSON.stringify(extractedData.original_data);
       const createdAt = fileCreatedAt;
       const isSillyTavern = this.isSillyTavern ? 1 : 0;
+      const isFav = extractedData.fav ? 1 : 0;
 
       // Записываем в БД в транзакции
       this.dbService.transaction((db) => {
@@ -496,6 +502,7 @@ export class ScanService {
             `UPDATE cards SET 
               library_id = ?,
               is_sillytavern = ?,
+              is_fav = ?,
               content_hash = ?,
               name = ?, 
               description = ?, 
@@ -527,6 +534,7 @@ export class ScanService {
             [
               this.libraryId,
               isSillyTavern,
+              isFav,
               contentHash,
               name,
               description,
@@ -600,6 +608,7 @@ export class ScanService {
                   id,
                   library_id,
                   is_sillytavern,
+                  is_fav,
                   content_hash,
                   name,
                   description,
@@ -627,11 +636,12 @@ export class ScanService {
                   has_mes_example,
                   has_character_book,
                   prompt_tokens_est
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                   cardId,
                   this.libraryId,
                   isSillyTavern,
+                  isFav,
                   contentHash,
                   name,
                   description,

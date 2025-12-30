@@ -55,6 +55,7 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
 
   if (query?.is_sillytavern) params.set("is_sillytavern", query.is_sillytavern);
   if (query?.is_hidden) params.set("is_hidden", query.is_hidden);
+  if (query?.fav) params.set("fav", query.fav);
 
   if (query?.patterns) params.set("patterns", query.patterns);
 

@@ -51,6 +51,7 @@ const DEFAULT_FILTERS: CardsFiltersState = {
   prompt_tokens_max: 0,
   is_sillytavern: "any",
   is_hidden: "0",
+  fav: "any",
   has_creator_notes: "any",
   has_system_prompt: "any",
   has_post_history_instructions: "any",
@@ -115,6 +116,7 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     created_to_ms,
     is_sillytavern: state.is_sillytavern,
     is_hidden: state.is_hidden,
+    fav: state.fav,
     prompt_tokens_min:
       state.prompt_tokens_min > 0 ? state.prompt_tokens_min : undefined,
     prompt_tokens_max:
@@ -215,6 +217,7 @@ export const setPromptTokensMin = createEvent<number>();
 export const setPromptTokensMax = createEvent<number>();
 export const setIsSillyTavern = createEvent<TriState>();
 export const setIsHidden = createEvent<TriState>();
+export const setFav = createEvent<TriState>();
 export const setHasCreatorNotes = createEvent<TriState>();
 export const setHasSystemPrompt = createEvent<TriState>();
 export const setHasPostHistoryInstructions = createEvent<TriState>();
@@ -250,6 +253,7 @@ $filters
   .on(setCreatedTo, (s, created_to) => ({ ...s, created_to }))
   .on(setIsSillyTavern, (s, is_sillytavern) => ({ ...s, is_sillytavern }))
   .on(setIsHidden, (s, is_hidden) => ({ ...s, is_hidden }))
+  .on(setFav, (s, fav) => ({ ...s, fav }))
   .on(setPromptTokensMin, (s, prompt_tokens_min) => {
     const min = Number.isFinite(prompt_tokens_min)
       ? Math.max(0, Math.floor(prompt_tokens_min))
@@ -417,6 +421,7 @@ const immediateApplyClock = [
   setPromptTokensMax,
   setIsSillyTavern,
   setIsHidden,
+  setFav,
   setHasCreatorNotes,
   setHasSystemPrompt,
   setHasPostHistoryInstructions,
@@ -494,6 +499,7 @@ const persistNonTextChanged = merge([
   setPromptTokensMax,
   setIsSillyTavern,
   setIsHidden,
+  setFav,
   setHasCreatorNotes,
   setHasSystemPrompt,
   setHasPostHistoryInstructions,

@@ -41,6 +41,7 @@ export interface CardsFiltersState {
   prompt_tokens_max: number;
   is_sillytavern: TriState;
   is_hidden: TriState;
+  fav: TriState;
   has_creator_notes: TriState;
   has_system_prompt: TriState;
   has_post_history_instructions: TriState;
@@ -85,6 +86,7 @@ const DEFAULT_STATE: CardsFiltersState = {
   prompt_tokens_max: 0,
   is_sillytavern: "any",
   is_hidden: "0",
+  fav: "any",
   has_creator_notes: "any",
   has_system_prompt: "any",
   has_post_history_instructions: "any",
@@ -181,7 +183,10 @@ function normalizeFtsFields(value: unknown): CardsFtsField[] | undefined {
 function normalizeState(raw: unknown): CardsFiltersState {
   const src = (typeof raw === "object" && raw !== null ? raw : {}) as any;
 
-  const promptMin = normalizeInt(src.prompt_tokens_min, DEFAULT_STATE.prompt_tokens_min);
+  const promptMin = normalizeInt(
+    src.prompt_tokens_min,
+    DEFAULT_STATE.prompt_tokens_min
+  );
   const promptMaxRaw = normalizeInt(
     src.prompt_tokens_max,
     DEFAULT_STATE.prompt_tokens_max
@@ -200,12 +205,18 @@ function normalizeState(raw: unknown): CardsFiltersState {
     creator: normalizeStringArray(src.creator),
     spec_version: normalizeStringArray(src.spec_version),
     tags: normalizeStringArray(src.tags),
-    created_from: isIsoDate(src.created_from) ? src.created_from.trim() : undefined,
+    created_from: isIsoDate(src.created_from)
+      ? src.created_from.trim()
+      : undefined,
     created_to: isIsoDate(src.created_to) ? src.created_to.trim() : undefined,
     prompt_tokens_min: promptMin,
     prompt_tokens_max: promptMax,
-    is_sillytavern: normalizeTriState(src.is_sillytavern, DEFAULT_STATE.is_sillytavern),
+    is_sillytavern: normalizeTriState(
+      src.is_sillytavern,
+      DEFAULT_STATE.is_sillytavern
+    ),
     is_hidden: normalizeTriState(src.is_hidden, DEFAULT_STATE.is_hidden),
+    fav: normalizeTriState(src.fav, DEFAULT_STATE.fav),
     has_creator_notes: normalizeTriState(
       src.has_creator_notes,
       DEFAULT_STATE.has_creator_notes
@@ -222,7 +233,10 @@ function normalizeState(raw: unknown): CardsFiltersState {
       src.has_personality,
       DEFAULT_STATE.has_personality
     ),
-    has_scenario: normalizeTriState(src.has_scenario, DEFAULT_STATE.has_scenario),
+    has_scenario: normalizeTriState(
+      src.has_scenario,
+      DEFAULT_STATE.has_scenario
+    ),
     has_mes_example: normalizeTriState(
       src.has_mes_example,
       DEFAULT_STATE.has_mes_example
@@ -284,5 +298,3 @@ export async function updateCardsFiltersState(
 
   return normalized;
 }
-
-

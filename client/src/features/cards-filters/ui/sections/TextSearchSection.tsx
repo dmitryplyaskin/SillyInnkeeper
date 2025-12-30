@@ -8,10 +8,7 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useTranslation } from "react-i18next";
-import type {
-  CardsFtsField,
-  CardsTextSearchMode,
-} from "@/shared/types/cards-query";
+import type { CardsFtsField } from "@/shared/types/cards-query";
 import { InfoTip } from "../shared/InfoTip";
 import { $filters, setQ, setQFields, setQMode } from "../../model";
 

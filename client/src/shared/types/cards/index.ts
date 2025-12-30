@@ -3,6 +3,7 @@ export interface CardListItem {
   name: string | null;
   tags: string[] | null;
   creator: string | null;
+  fav: boolean;
   avatar_url: string;
   file_path: string | null;
   spec_version: string | null;
@@ -22,6 +23,7 @@ export interface CardDetails {
   spec_version: string | null;
   created_at: number;
   is_sillytavern: boolean;
+  fav: boolean;
   file_path: string | null;
   file_paths?: string[];
   duplicates?: string[];

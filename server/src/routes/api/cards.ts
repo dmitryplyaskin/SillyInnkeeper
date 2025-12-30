@@ -287,6 +287,7 @@ router.get("/cards", async (req: Request, res: Response) => {
       created_to_ms,
       is_sillytavern: parseTriState((req.query as any).is_sillytavern),
       is_hidden,
+      fav: parseTriState((req.query as any).fav),
       has_creator_notes: parseTriState((req.query as any).has_creator_notes),
       has_system_prompt: parseTriState((req.query as any).has_system_prompt),
       has_post_history_instructions: parseTriState(
@@ -461,6 +462,7 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
           c.created_at,
           c.is_sillytavern,
           c.is_hidden,
+          c.is_fav,
           c.avatar_path,
           c.data_json,
           c.primary_file_path,
@@ -503,6 +505,7 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
           created_at: number;
           is_sillytavern: number;
           is_hidden: number;
+          is_fav: number;
           avatar_path: string | null;
           data_json: string;
           primary_file_path: string | null;
@@ -591,6 +594,7 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
       spec_version: row.spec_version,
       created_at: row.created_at,
       is_sillytavern: row.is_sillytavern === 1,
+      fav: row.is_fav === 1,
       file_path: main_file_path,
       file_paths,
       duplicates,
@@ -1051,7 +1055,9 @@ router.put("/cards/:id/hidden", async (req: Request, res: Response) => {
       throw new AppError({ status: 404, code: "api.cards.not_found" });
     }
 
-    const prev = safeJsonParse<Record<string, unknown>>(row.innkeeper_meta_json);
+    const prev = safeJsonParse<Record<string, unknown>>(
+      row.innkeeper_meta_json
+    );
     const next = {
       ...(prev && typeof prev === "object" ? prev : {}),
       isHidden,
@@ -1104,7 +1110,10 @@ router.post("/cards/bulk-hidden", async (req: Request, res: Response) => {
         WHERE id IN (${placeholders})
       `
       )
-      .all(...card_ids) as Array<{ id: string; innkeeper_meta_json: string | null }>;
+      .all(...card_ids) as Array<{
+      id: string;
+      innkeeper_meta_json: string | null;
+    }>;
 
     if (rows.length !== card_ids.length) {
       throw new AppError({ status: 404, code: "api.cards.some_not_found" });
@@ -1120,7 +1129,9 @@ router.post("/cards/bulk-hidden", async (req: Request, res: Response) => {
 
     db.transaction(() => {
       for (const r of rows) {
-        const prev = safeJsonParse<Record<string, unknown>>(r.innkeeper_meta_json);
+        const prev = safeJsonParse<Record<string, unknown>>(
+          r.innkeeper_meta_json
+        );
         const next = {
           ...(prev && typeof prev === "object" ? prev : {}),
           isHidden,
