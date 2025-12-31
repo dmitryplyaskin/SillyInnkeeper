@@ -15,6 +15,7 @@ import {
 import { IconStarFilled } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { CardListItem } from "@/shared/types/cards";
+import { CardActionsMenu } from "./card-actions-menu";
 
 interface CardProps {
   card: CardListItem;
@@ -267,9 +268,16 @@ export function Card({
         </MantineCard.Section>
 
         <Stack gap={6} mt="sm" style={{ flex: 1, overflow: "hidden" }}>
-          <Text fw={600} size="lg" lineClamp={1}>
-            {card.name || t("card.untitled")}
-          </Text>
+          <Group gap={6} wrap="nowrap" justify="space-between" align="center">
+            <Text fw={600} size="lg" lineClamp={1} style={{ flex: 1 }}>
+              {card.name || t("card.untitled")}
+            </Text>
+            <CardActionsMenu
+              cardId={card.id}
+              filePath={card.file_path}
+              isHidden={Boolean(card.innkeeperMeta?.isHidden)}
+            />
+          </Group>
 
           {card.creator && (
             <Text size="sm" c="dimmed" lineClamp={1}>

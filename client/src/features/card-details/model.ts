@@ -3,6 +3,7 @@ import { getCardDetails } from "@/shared/api/cards";
 import { getLorebooks, getLorebook } from "@/shared/api/lorebooks";
 import type { CardDetails } from "@/shared/types/cards";
 import type { LorebookDetails } from "@/shared/types/lorebooks";
+import { cardDeleted, cardUpdated } from "@/entities/cards";
 
 type LoadParams = { requestId: number; id: string };
 type LoadResult = { requestId: number; details: CardDetails };
@@ -41,6 +42,24 @@ sample({
   source: $lastRequestId,
   fn: (lastId, id): LoadParams => ({ requestId: lastId + 1, id }),
   target: loadDetailsInternalFx,
+});
+
+// Refresh currently opened details if the card was updated elsewhere (grid menu, etc.)
+sample({
+  clock: cardUpdated,
+  source: $openedId,
+  filter: (openedId, id) => Boolean(openedId && openedId === id),
+  fn: (_, id) => id,
+  target: openCard,
+});
+
+// Close drawer if the currently opened card was deleted.
+sample({
+  clock: cardDeleted,
+  source: $openedId,
+  filter: (openedId, id) => Boolean(openedId && openedId === id),
+  fn: () => undefined,
+  target: closeCard,
 });
 
 sample({

@@ -9,23 +9,28 @@ import {
   Paper,
   Stack,
   Text,
-  TextInput,
   Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useUnit } from "effector-react";
+import { IconFolder, IconStar, IconTrash } from "@tabler/icons-react";
 import type { CardDetails } from "@/shared/types/cards";
 import i18n from "@/shared/i18n/i18n";
-import { deleteCard, deleteCardFileDuplicate, setCardHidden } from "@/shared/api/cards";
-import {
-  renameCardMainFile,
-  saveCard,
-  setCardMainFile,
-} from "@/shared/api/cards";
+import { deleteCardFileDuplicate } from "@/shared/api/cards";
+import { saveCard, setCardMainFile } from "@/shared/api/cards";
 import { showFile } from "@/shared/api/explorer";
 import { CopyableTruncatedText } from "@/shared/ui/CopyableTruncatedText";
-import { refreshCardsSilent } from "@/entities/cards";
-import { closeCard, openCard } from "../../model";
+import {
+  $isOpeningInExplorer,
+  $isPlayingInSillyTavern,
+  $isTogglingHidden,
+  openDeleteCardModal,
+  openInExplorerRequested,
+  openRenameMainFileModal,
+  playInSillyTavernRequested,
+  toggleHiddenRequested,
+} from "@/entities/cards";
+import { openCard } from "../../model";
 import {
   $altGreetingIds,
   $altGreetingValues,
@@ -43,46 +48,54 @@ function getFilenameFromPath(filePath: string | null | undefined): string {
   return parts[parts.length - 1] || i18n.t("empty.dash");
 }
 
-function stripPngExt(name: string): string {
-  return name.replace(/\.png$/i, "");
-}
-
 export function CardDetailsActionsPanel({
   details,
 }: {
   details: CardDetails | null;
 }) {
-  const [isSendingPlay, setIsSendingPlay] = useState(false);
   const [confirmDeleteDuplicateOpened, setConfirmDeleteDuplicateOpened] =
     useState(false);
-  const [confirmDeleteCardOpened, setConfirmDeleteCardOpened] = useState(false);
-  const [renameOpened, setRenameOpened] = useState(false);
-  const [renameValue, setRenameValue] = useState("");
   const [selectedDuplicatePath, setSelectedDuplicatePath] = useState<
     string | null
   >(null);
   const [isDeletingDuplicate, setIsDeletingDuplicate] = useState(false);
-  const [isDeletingCard, setIsDeletingCard] = useState(false);
   const [isSettingMainFile, setIsSettingMainFile] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [isOpeningInExplorer, setIsOpeningInExplorer] = useState(false);
   const [openingDuplicatePath, setOpeningDuplicatePath] = useState<
     string | null
   >(null);
   const [saveOpened, setSaveOpened] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pendingCardJson, setPendingCardJson] = useState<unknown | null>(null);
-  const [isTogglingHidden, setIsTogglingHidden] = useState(false);
 
-  const [draft, altIds, altValues, groupIds, groupValues, lorebook, markSaved] = useUnit([
-    $draft,
-    $altGreetingIds,
-    $altGreetingValues,
-    $groupGreetingIds,
-    $groupGreetingValues,
-    $lorebook,
-    draftSaved,
+  const [isSendingPlay, isTogglingHidden, isOpeningInExplorer] = useUnit([
+    $isPlayingInSillyTavern,
+    $isTogglingHidden,
+    $isOpeningInExplorer,
   ]);
+  const [
+    onPlay,
+    onToggleHidden,
+    onOpenInExplorer,
+    onOpenRenameModal,
+    onOpenDeleteModal,
+  ] = useUnit([
+    playInSillyTavernRequested,
+    toggleHiddenRequested,
+    openInExplorerRequested,
+    openRenameMainFileModal,
+    openDeleteCardModal,
+  ]);
+
+  const [draft, altIds, altValues, groupIds, groupValues, lorebook, markSaved] =
+    useUnit([
+      $draft,
+      $altGreetingIds,
+      $altGreetingValues,
+      $groupGreetingIds,
+      $groupGreetingValues,
+      $lorebook,
+      draftSaved,
+    ]);
 
   function canonicalizeForCompare(value: unknown): unknown {
     if (value === null || value === undefined) return null;
@@ -193,60 +206,6 @@ export function CardDetailsActionsPanel({
 
   const isHidden = Boolean(details?.innkeeperMeta?.isHidden);
 
-  async function toggleHidden(): Promise<void> {
-    if (!details?.id) return;
-    if (isTogglingHidden) return;
-    setIsTogglingHidden(true);
-    try {
-      await setCardHidden(details.id, !isHidden);
-      notifications.show({
-        title: i18n.t("cardDetails.actions"),
-        message: !isHidden ? i18n.t("cardDetails.hideOk") : i18n.t("cardDetails.showOk"),
-        color: "green",
-      });
-      openCard(details.id);
-      refreshCardsSilent();
-    } catch {
-      notifications.show({
-        title: i18n.t("cardDetails.actions"),
-        message: i18n.t("cardDetails.hideFailed"),
-        color: "red",
-      });
-    } finally {
-      setIsTogglingHidden(false);
-    }
-  }
-
-  async function playInSillyTavern(): Promise<void> {
-    if (!details?.id) return;
-    if (isSendingPlay) return;
-    setIsSendingPlay(true);
-    try {
-      const res = await fetch("/api/st/play", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId: details.id }),
-      });
-      if (!res.ok) {
-        const errText = (await res.text().catch(() => "")).trim();
-        throw new Error(errText || res.statusText);
-      }
-      notifications.show({
-        title: i18n.t("cardDetails.playInSillyTavern"),
-        message: i18n.t("cardDetails.playSent"),
-        color: "green",
-      });
-    } catch (e) {
-      notifications.show({
-        title: i18n.t("cardDetails.playInSillyTavern"),
-        message: i18n.t("cardDetails.playFailed"),
-        color: "red",
-      });
-    } finally {
-      setIsSendingPlay(false);
-    }
-  }
-
   const duplicates = details?.duplicates ?? [];
   const hasDuplicates = duplicates.length > 0;
 
@@ -315,34 +274,6 @@ export function CardDetailsActionsPanel({
     }
   }
 
-  async function openMainInExplorer(): Promise<void> {
-    const p = (details?.file_path ?? "").trim();
-    if (!p) return;
-    if (isOpeningInExplorer) return;
-    setIsOpeningInExplorer(true);
-    try {
-      await showFile(p);
-      notifications.show({
-        title: i18n.t("cardDetails.openInExplorer"),
-        message: i18n.t("cardDetails.openInExplorerHint"),
-        color: "blue",
-        autoClose: 3500,
-      });
-    } catch (e) {
-      const msg =
-        e instanceof Error && e.message.trim()
-          ? e.message
-          : i18n.t("cardDetails.openInExplorerFailed");
-      notifications.show({
-        title: i18n.t("cardDetails.openInExplorer"),
-        message: msg,
-        color: "red",
-      });
-    } finally {
-      setIsOpeningInExplorer(false);
-    }
-  }
-
   async function openDuplicateInExplorer(p: string): Promise<void> {
     const fp = (p ?? "").trim();
     if (!fp) return;
@@ -398,59 +329,6 @@ export function CardDetailsActionsPanel({
     }
   }
 
-  async function deleteCardConfirmed(): Promise<void> {
-    if (!details?.id) return;
-    if (isDeletingCard) return;
-    setIsDeletingCard(true);
-    try {
-      await deleteCard(details.id);
-      notifications.show({
-        title: i18n.t("cardDetails.delete"),
-        message: i18n.t("cardDetails.cardDeleted"),
-        color: "green",
-      });
-      setConfirmDeleteCardOpened(false);
-      closeCard();
-    } catch (e) {
-      notifications.show({
-        title: i18n.t("cardDetails.delete"),
-        message: i18n.t("cardDetails.cardDeleteFailed"),
-        color: "red",
-      });
-    } finally {
-      setIsDeletingCard(false);
-    }
-  }
-
-  async function renameMainFileConfirmed(): Promise<void> {
-    if (!details?.id) return;
-    if (!details?.file_path) return;
-    if (isRenaming) return;
-
-    const next = renameValue.trim();
-    if (next.length === 0) return;
-
-    setIsRenaming(true);
-    try {
-      await renameCardMainFile(details.id, next);
-      notifications.show({
-        title: i18n.t("cardDetails.rename"),
-        message: i18n.t("cardDetails.renameOk"),
-        color: "green",
-      });
-      setRenameOpened(false);
-      openCard(details.id);
-    } catch (e) {
-      notifications.show({
-        title: i18n.t("cardDetails.rename"),
-        message: i18n.t("cardDetails.renameFailed"),
-        color: "red",
-      });
-    } finally {
-      setIsRenaming(false);
-    }
-  }
-
   async function makeDuplicateMain(filePath: string): Promise<void> {
     if (!details?.id) return;
     if (isSettingMainFile) return;
@@ -491,7 +369,10 @@ export function CardDetailsActionsPanel({
             fullWidth
             variant="filled"
             color="green"
-            onClick={() => void playInSillyTavern()}
+            onClick={() => {
+              if (!details?.id) return;
+              onPlay({ cardId: details.id });
+            }}
             loading={isSendingPlay}
             disabled={!details?.id}
           >
@@ -511,7 +392,10 @@ export function CardDetailsActionsPanel({
             fullWidth
             variant={isHidden ? "light" : "subtle"}
             color={isHidden ? "gray" : "orange"}
-            onClick={() => void toggleHidden()}
+            onClick={() => {
+              if (!details?.id) return;
+              onToggleHidden({ cardId: details.id, isHidden });
+            }}
             disabled={!details?.id}
             loading={isTogglingHidden}
           >
@@ -536,7 +420,11 @@ export function CardDetailsActionsPanel({
             fullWidth
             variant="subtle"
             color="gray"
-            onClick={() => void openMainInExplorer()}
+            onClick={() => {
+              const p = (details?.file_path ?? "").trim();
+              if (!p) return;
+              onOpenInExplorer({ filePath: p });
+            }}
             disabled={!details?.file_path}
             loading={isOpeningInExplorer}
           >
@@ -548,9 +436,10 @@ export function CardDetailsActionsPanel({
             color="orange"
             disabled={!details?.file_path}
             onClick={() => {
-              const base = stripPngExt(getFilenameFromPath(details?.file_path));
-              setRenameValue(base === i18n.t("empty.dash") ? "" : base);
-              setRenameOpened(true);
+              if (!details?.id) return;
+              const p = (details?.file_path ?? "").trim();
+              if (!p) return;
+              onOpenRenameModal({ cardId: details.id, filePath: p });
             }}
           >
             {i18n.t("cardDetails.rename")}
@@ -560,7 +449,10 @@ export function CardDetailsActionsPanel({
             variant="light"
             color="red"
             disabled={!details?.id}
-            onClick={() => setConfirmDeleteCardOpened(true)}
+            onClick={() => {
+              if (!details?.id) return;
+              onOpenDeleteModal({ cardId: details.id });
+            }}
           >
             {i18n.t("cardDetails.delete")}
           </Button>
@@ -669,19 +561,7 @@ export function CardDetailsActionsPanel({
                             loading={isSettingMainFile}
                             aria-label={i18n.t("cardDetails.makeMainFile")}
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M12 2l2.4 6.9H22l-5.8 4.2L18.6 20 12 15.8 5.4 20l2.4-6.9L2 8.9h7.6z" />
-                            </svg>
+                            <IconStar size={18} />
                           </ActionIcon>
                         </Tooltip>
 
@@ -695,20 +575,7 @@ export function CardDetailsActionsPanel({
                             loading={openingDuplicatePath === p}
                             aria-label={i18n.t("cardDetails.showInExplorer")}
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M3 7h5l2 3h11v9a2 2 0 0 1-2 2H3z" />
-                              <path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2v2" />
-                            </svg>
+                            <IconFolder size={18} />
                           </ActionIcon>
                         </Tooltip>
 
@@ -725,23 +592,7 @@ export function CardDetailsActionsPanel({
                             }}
                             aria-label={i18n.t("cardDetails.deleteDuplicate")}
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M3 6h18" />
-                              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                              <path d="M10 11v6" />
-                              <path d="M14 11v6" />
-                            </svg>
+                            <IconTrash size={18} />
                           </ActionIcon>
                         </Tooltip>
                       </Group>
@@ -778,69 +629,6 @@ export function CardDetailsActionsPanel({
               loading={isDeletingDuplicate}
             >
               {i18n.t("cardDetails.deleteDuplicate")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      <Modal
-        opened={confirmDeleteCardOpened}
-        onClose={() => setConfirmDeleteCardOpened(false)}
-        title={i18n.t("cardDetails.confirmDeleteCardTitle")}
-      >
-        <Stack gap="md">
-          <Text size="sm">
-            {i18n.t("cardDetails.confirmDeleteCardMessage")}
-          </Text>
-          <Group justify="flex-end">
-            <Button
-              variant="default"
-              onClick={() => setConfirmDeleteCardOpened(false)}
-              disabled={isDeletingCard}
-            >
-              {i18n.t("actions.cancel")}
-            </Button>
-            <Button
-              color="red"
-              onClick={() => void deleteCardConfirmed()}
-              loading={isDeletingCard}
-            >
-              {i18n.t("cardDetails.delete")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      <Modal
-        opened={renameOpened}
-        onClose={() => setRenameOpened(false)}
-        title={i18n.t("cardDetails.renameMainFileTitle")}
-      >
-        <Stack gap="md">
-          <Text size="sm" c="dimmed">
-            {i18n.t("cardDetails.renameMainFileHint")}
-          </Text>
-          <TextInput
-            label={i18n.t("cardDetails.renameMainFileInputLabel")}
-            value={renameValue}
-            onChange={(e) => setRenameValue(e.currentTarget.value)}
-            placeholder={i18n.t("cardDetails.renameMainFilePlaceholder")}
-            rightSection={<Text c="dimmed">.png</Text>}
-          />
-          <Group justify="flex-end">
-            <Button
-              variant="default"
-              onClick={() => setRenameOpened(false)}
-              disabled={isRenaming}
-            >
-              {i18n.t("actions.cancel")}
-            </Button>
-            <Button
-              onClick={() => void renameMainFileConfirmed()}
-              loading={isRenaming}
-              disabled={renameValue.trim().length === 0}
-            >
-              {i18n.t("actions.save")}
             </Button>
           </Group>
         </Stack>

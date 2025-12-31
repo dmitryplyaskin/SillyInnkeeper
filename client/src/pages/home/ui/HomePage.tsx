@@ -32,6 +32,7 @@ import {
 } from "@/features/cards-filters";
 import { CardDetailsDrawer } from "@/features/card-details";
 import { AppSidebar } from "@/widgets/app-sidebar";
+import { CardActionsModals } from "@/entities/cards";
 
 function SunIcon() {
   return (
@@ -201,6 +202,7 @@ export function HomePage() {
       <CardsImportModal />
       <PatternRulesModal />
       <TagsBulkEditModal />
+      <CardActionsModals />
 
       <CardDetailsDrawer />
     </AppShell>
