@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.3.0](https://github.com/dmitryplyaskin/SillyInnkeeper/compare/v0.2.0...v0.3.0) (2025-12-27)
+
+
+### 🚀 New Features
+
+* add bulk delete functionality for cards and enhance multi-select features in the UI ([7103772](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/7103772a3697be9bbf53749ace08502c4a32c770))
+* add common test search ([2608d36](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/2608d366f4c990344740628157f4b50e2f80af1b))
+* add environment variable to control logging of unparsable card errors ([6415b18](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/6415b18c9687388dc944609f19ce125a04e5f80a))
+* add FTS5 card search ([ec51ff5](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/ec51ff584074f03652a6bec21b68dd3bc329f697))
+* add import from folder ([df4d0fa](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/df4d0fa6c59f11c887313c5d0d2c3f4ea269ed9f))
+* add pattern search ([d7fa973](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/d7fa97342da04c4e90a11b38483c375054d8cd2a))
+* add sort by tokens ([435b88e](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/435b88e9ebc38ff63a6e71d60ba1958ff3bc8808))
+* add tag editor ([97065f3](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/97065f3838a0a372464286fa92c659f39ae4e541))
+* left side bar ([ab62973](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/ab62973d3f294a6fe3853f16ecdd15ba252d95b0))
+
+
+### 🐛 Bug Fixes
+
+* import modal bug ([cf0cde1](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/cf0cde15cf13de10ee727a3aa8d8a948fcf82e0f))
+* import tags from extention (update ST-Extension-SillyInnkeeper) ([b68ee5a](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/b68ee5a8c47f14e3fcc0154346cd7deba57e76c5))
+* raise payload limit ([7e06e41](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/7e06e41dc29733c618023a7084c3dbb86dd86551))
+* raise payload limit ([94e8ab2](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/94e8ab2c67a0a8cbb43e69a65ed9e460a047ec49))
+
 ## [0.2.0](https://github.com/dmitryplyaskin/SillyInnkeeper/compare/v0.1.0...v0.2.0) (2025-12-23)
 
 
