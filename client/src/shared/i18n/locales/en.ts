@@ -199,6 +199,7 @@ const en = {
     altGreetingsCount: "Alternate greetings (count)",
     tokensEstimateTip: "Tokens estimate (approx.)",
     createdAtTip: "Created date (from file)",
+    favBadgeTip: "Favorite from SillyTavern",
     stBadgeTip: "Card from SillyTavern",
     imageTitleFallback: "Card image",
   },

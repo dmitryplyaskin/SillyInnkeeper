@@ -201,6 +201,7 @@ const ru = {
     altGreetingsCount: "Альтернативные приветствия (кол-во)",
     tokensEstimateTip: "Оценка токенов (примерно)",
     createdAtTip: "Дата создания (по файлу)",
+    favBadgeTip: "Избранное из SillyTavern",
     stBadgeTip: "Карточка из SillyTavern",
     imageTitleFallback: "Изображение карточки",
   },
