@@ -260,7 +260,8 @@ export type SaveCardMode =
   | "overwrite_main"
   | "overwrite_all_files"
   | "save_new"
-  | "save_new_delete_old_main";
+  | "save_new_delete_old_main"
+  | "save_new_to_library";
 
 export async function saveCard(opts: {
   cardId: string;

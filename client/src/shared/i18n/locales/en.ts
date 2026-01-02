@@ -288,6 +288,8 @@ const en = {
     saveOverwriteWithDuplicates: "Overwrite card and duplicates",
     saveAsNew: "Save as new",
     saveAsNewDeleteOld: "Save as new and delete old",
+    saveToFolder: "Save to folder",
+    saveToFolderTip: "Saves a copy into your library folder: {{path}}",
 
     edit: "Edit",
     preview: "Preview",

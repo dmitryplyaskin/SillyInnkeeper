@@ -291,6 +291,8 @@ const ru = {
     saveOverwriteWithDuplicates: "Перезаписать карточку и дубли",
     saveAsNew: "Сохранить как новую",
     saveAsNewDeleteOld: "Сохранить как новую и удалить старую",
+    saveToFolder: "Сохранить в папке",
+    saveToFolderTip: "Сохранит копию в папке библиотеки: {{path}}",
 
     edit: "Редактирование",
     preview: "Предпросмотр",

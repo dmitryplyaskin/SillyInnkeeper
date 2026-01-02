@@ -20,6 +20,7 @@ import { deleteCardFileDuplicate } from "@/shared/api/cards";
 import { saveCard, setCardMainFile } from "@/shared/api/cards";
 import { showFile } from "@/shared/api/explorer";
 import { CopyableTruncatedText } from "@/shared/ui/CopyableTruncatedText";
+import { $settings } from "@/entities/settings";
 import {
   $isOpeningInExplorer,
   $isPlayingInSillyTavern,
@@ -86,16 +87,25 @@ export function CardDetailsActionsPanel({
     openDeleteCardModal,
   ]);
 
-  const [draft, altIds, altValues, groupIds, groupValues, lorebook, markSaved] =
-    useUnit([
-      $draft,
-      $altGreetingIds,
-      $altGreetingValues,
-      $groupGreetingIds,
-      $groupGreetingValues,
-      $lorebook,
-      draftSaved,
-    ]);
+  const [
+    draft,
+    altIds,
+    altValues,
+    groupIds,
+    groupValues,
+    lorebook,
+    markSaved,
+    settings,
+  ] = useUnit([
+    $draft,
+    $altGreetingIds,
+    $altGreetingValues,
+    $groupGreetingIds,
+    $groupGreetingValues,
+    $lorebook,
+    draftSaved,
+    $settings,
+  ]);
 
   function canonicalizeForCompare(value: unknown): unknown {
     if (value === null || value === undefined) return null;
@@ -205,6 +215,7 @@ export function CardDetailsActionsPanel({
     : undefined;
 
   const isHidden = Boolean(details?.innkeeperMeta?.isHidden);
+  const isSillyTavern = Boolean(details?.is_sillytavern);
 
   const duplicates = details?.duplicates ?? [];
   const hasDuplicates = duplicates.length > 0;
@@ -655,6 +666,25 @@ export function CardDetailsActionsPanel({
               >
                 {i18n.t("cardDetails.saveAsNew")}
               </Button>
+              {isSillyTavern && (
+                <Tooltip
+                  label={i18n.t("cardDetails.saveToFolderTip", {
+                    path:
+                      (settings?.cardsFolderPath ?? "").trim() ||
+                      i18n.t("empty.dash"),
+                  })}
+                  withArrow
+                >
+                  <Button
+                    color="teal"
+                    variant="light"
+                    onClick={() => void doSave("save_new_to_library")}
+                    loading={isSaving}
+                  >
+                    {i18n.t("cardDetails.saveToFolder")}
+                  </Button>
+                </Tooltip>
+              )}
             </>
           ) : (
             <>
@@ -680,6 +710,25 @@ export function CardDetailsActionsPanel({
               >
                 {i18n.t("cardDetails.saveOverwriteWithDuplicates")}
               </Button>
+              {isSillyTavern && (
+                <Tooltip
+                  label={i18n.t("cardDetails.saveToFolderTip", {
+                    path:
+                      (settings?.cardsFolderPath ?? "").trim() ||
+                      i18n.t("empty.dash"),
+                  })}
+                  withArrow
+                >
+                  <Button
+                    color="teal"
+                    variant="light"
+                    onClick={() => void doSave("save_new_to_library")}
+                    loading={isSaving}
+                  >
+                    {i18n.t("cardDetails.saveToFolder")}
+                  </Button>
+                </Tooltip>
+              )}
             </>
           )}
           <Button

@@ -97,6 +97,8 @@ const en = {
   "api.cards.export_failed": "Could not export card PNG",
   "api.cards.invalid_card_json": "Invalid card data for save",
   "api.cards.save_failed": "Could not save card",
+  "api.cards.cardsFolderPath_not_set":
+    "Library folder is not configured (cardsFolderPath)",
 
   "api.cardsImport.invalid_format":
     "Invalid data format. Expected object with sourceFolderPath, importMode, duplicatesMode",

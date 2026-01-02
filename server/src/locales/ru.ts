@@ -110,6 +110,8 @@ const ru = {
   "api.cards.export_failed": "Не удалось экспортировать PNG карточки",
   "api.cards.invalid_card_json": "Некорректные данные карточки для сохранения",
   "api.cards.save_failed": "Не удалось сохранить карточку",
+  "api.cards.cardsFolderPath_not_set":
+    "Папка библиотеки не настроена (cardsFolderPath)",
 
   "api.cardsImport.invalid_format":
     "Неверный формат данных. Ожидается объект с полями sourceFolderPath, importMode, duplicatesMode",

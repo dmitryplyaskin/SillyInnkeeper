@@ -645,7 +645,8 @@ type SaveCardMode =
   | "overwrite_main"
   | "overwrite_all_files"
   | "save_new"
-  | "save_new_delete_old_main";
+  | "save_new_delete_old_main"
+  | "save_new_to_library";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -691,7 +692,8 @@ router.post("/cards/:id/save", async (req: Request, res: Response) => {
       modeRaw === "overwrite_main" ||
       modeRaw === "overwrite_all_files" ||
       modeRaw === "save_new" ||
-      modeRaw === "save_new_delete_old_main"
+      modeRaw === "save_new_delete_old_main" ||
+      modeRaw === "save_new_to_library"
         ? modeRaw
         : "overwrite_main";
 
@@ -705,7 +707,7 @@ router.post("/cards/:id/save", async (req: Request, res: Response) => {
     const cardRow = db
       .prepare(
         `
-        SELECT id, library_id, content_hash, avatar_path, data_json, primary_file_path
+        SELECT id, library_id, is_sillytavern, content_hash, avatar_path, data_json, primary_file_path
         FROM cards
         WHERE id = ?
         LIMIT 1
@@ -715,6 +717,7 @@ router.post("/cards/:id/save", async (req: Request, res: Response) => {
       | {
           id: string;
           library_id: string | null;
+          is_sillytavern: number;
           content_hash: string | null;
           avatar_path: string | null;
           data_json: string;
@@ -798,7 +801,8 @@ router.post("/cards/:id/save", async (req: Request, res: Response) => {
 
     const scanService = createScanService(
       db,
-      (cardRow.library_id ?? "cards").trim() || "cards"
+      (cardRow.library_id ?? "cards").trim() || "cards",
+      cardRow.is_sillytavern === 1
     );
 
     const rewritePngInPlace = async (filePath: string, ccv3Object: unknown) => {
@@ -841,6 +845,27 @@ router.post("/cards/:id/save", async (req: Request, res: Response) => {
       return next;
     };
 
+    const inferStMetaFromPath = (
+      filePath: string
+    ):
+      | {
+          stProfileHandle: string;
+          stAvatarFile: string;
+          stAvatarBase: string;
+        }
+      | null => {
+      const p = String(filePath ?? "").trim();
+      if (!p) return null;
+      // Expected: .../data/<profile>/characters/<avatar>.png
+      const m = p.match(/[/\\]data[/\\]([^/\\]+)[/\\]characters[/\\]([^/\\]+\.png)$/i);
+      if (!m) return null;
+      const stProfileHandle = String(m[1] ?? "").trim();
+      const stAvatarFile = String(m[2] ?? "").trim();
+      const stAvatarBase = stAvatarFile.replace(/\.png$/i, "");
+      if (!stProfileHandle || !stAvatarFile) return null;
+      return { stProfileHandle, stAvatarFile, stAvatarBase };
+    };
+
     if (mode === "overwrite_main") {
       // no duplicates scenario (UI should not show this mode when duplicates exist)
       await rewritePngInPlace(main_file_path, normalized);
@@ -869,7 +894,9 @@ router.post("/cards/:id/save", async (req: Request, res: Response) => {
 
       const withNonce = addNonceForSaveAsNew(normalized);
       await writeNewPng(main_file_path, targetPath, withNonce);
-      await scanService.syncSingleFile(targetPath);
+      const stMeta =
+        cardRow.is_sillytavern === 1 ? inferStMetaFromPath(targetPath) : null;
+      await scanService.syncSingleFile(targetPath, stMeta ?? undefined);
 
       const newRow = db
         .prepare(`SELECT card_id FROM card_files WHERE file_path = ? LIMIT 1`)
@@ -925,6 +952,41 @@ router.post("/cards/:id/save", async (req: Request, res: Response) => {
             await deleteThumbnail(uuid);
           }
         }
+      }
+
+      res.json({ ok: true, changed: true, card_id: newRow.card_id });
+      return;
+    }
+
+    if (mode === "save_new_to_library") {
+      const settings = await getSettings();
+      const targetFolderPath = (settings.cardsFolderPath ?? "").trim();
+      if (!targetFolderPath) {
+        throw new AppError({
+          status: 409,
+          code: "api.cards.cardsFolderPath_not_set",
+        });
+      }
+
+      const nameCandidate =
+        typeof (normalized as any)?.data?.name === "string"
+          ? String((normalized as any).data.name)
+          : "";
+      const targetPath = pickUniquePngPath(targetFolderPath, nameCandidate);
+
+      // Save the *current* card JSON into a new PNG in the main library folder.
+      // No nonce: let scan+hash dedup decide whether it's a duplicate or a new card.
+      await writeNewPng(main_file_path, targetPath, normalized);
+
+      const libraryId = getOrCreateLibraryId(db, targetFolderPath);
+      const libraryScan = createScanService(db, libraryId, false);
+      await libraryScan.syncSingleFile(targetPath);
+
+      const newRow = db
+        .prepare(`SELECT card_id FROM card_files WHERE file_path = ? LIMIT 1`)
+        .get(targetPath) as { card_id: string } | undefined;
+      if (!newRow?.card_id) {
+        throw new AppError({ status: 500, code: "api.cards.save_failed" });
       }
 
       res.json({ ok: true, changed: true, card_id: newRow.card_id });

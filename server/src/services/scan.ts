@@ -56,8 +56,15 @@ export class ScanService {
    * Обрабатывает один PNG файл (без полного рескана папки).
    * Полезно для точечного обновления БД при изменениях, сделанных приложением.
    */
-  async syncSingleFile(filePath: string): Promise<void> {
-    await this.processFile(filePath);
+  async syncSingleFile(
+    filePath: string,
+    stMeta?: {
+      stProfileHandle: string;
+      stAvatarFile: string;
+      stAvatarBase: string;
+    }
+  ): Promise<void> {
+    await this.processFile(filePath, stMeta);
   }
 
   /**
@@ -578,27 +585,57 @@ export class ScanService {
           }
 
           // Обновляем информацию о файле
-          dbService.execute(
-            `UPDATE card_files SET 
-              file_mtime = ?, 
-              file_birthtime = ?,
-              file_size = ?,
-              folder_path = ?,
-              st_profile_handle = ?,
-              st_avatar_file = ?,
-              st_avatar_base = ?
-            WHERE file_path = ?`,
-            [
-              fileMtime,
-              createdAt,
-              fileSize,
-              dirname(filePath),
-              shouldSetStMeta ? stMeta!.stProfileHandle : null,
-              shouldSetStMeta ? stMeta!.stAvatarFile : null,
-              shouldSetStMeta ? stMeta!.stAvatarBase : null,
-              filePath,
-            ]
-          );
+          // Важно:
+          // - Для SillyTavern-библиотеки st_* метаданные критичны для /api/st/play.
+          // - При точечном syncSingleFile() мы часто НЕ передаём stMeta (у нас только filePath).
+          // Поэтому:
+          // - если this.isSillyTavern=true и stMeta отсутствует — НЕ затираем st_* (оставляем как было)
+          // - если this.isSillyTavern=false — оставляем прежнее поведение (st_* = NULL)
+          if (this.isSillyTavern) {
+            dbService.execute(
+              `UPDATE card_files SET 
+                file_mtime = ?, 
+                file_birthtime = ?,
+                file_size = ?,
+                folder_path = ?,
+                st_profile_handle = COALESCE(?, st_profile_handle),
+                st_avatar_file = COALESCE(?, st_avatar_file),
+                st_avatar_base = COALESCE(?, st_avatar_base)
+              WHERE file_path = ?`,
+              [
+                fileMtime,
+                createdAt,
+                fileSize,
+                dirname(filePath),
+                shouldSetStMeta ? stMeta!.stProfileHandle : null,
+                shouldSetStMeta ? stMeta!.stAvatarFile : null,
+                shouldSetStMeta ? stMeta!.stAvatarBase : null,
+                filePath,
+              ]
+            );
+          } else {
+            dbService.execute(
+              `UPDATE card_files SET 
+                file_mtime = ?, 
+                file_birthtime = ?,
+                file_size = ?,
+                folder_path = ?,
+                st_profile_handle = ?,
+                st_avatar_file = ?,
+                st_avatar_base = ?
+              WHERE file_path = ?`,
+              [
+                fileMtime,
+                createdAt,
+                fileSize,
+                dirname(filePath),
+                null,
+                null,
+                null,
+                filePath,
+              ]
+            );
+          }
         } else {
           // Для новых file_path: либо создаём карточку, либо привязываем к существующей по (library_id, content_hash).
           if (createdNewCard && cardId) {
