@@ -184,7 +184,7 @@ export function Card({
                 </Box>
               )}
 
-              {isFav && (
+              {isFav && isSillyTavern && (
                 <Tooltip label={t("card.favBadgeTip")} withArrow>
                   <Box
                     style={{
