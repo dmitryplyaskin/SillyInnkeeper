@@ -23,6 +23,7 @@ import { AppError } from "../../errors/app-error";
 import { sendError } from "../../errors/http";
 import { buildPngWithCcv3TextChunk } from "../../services/png-export";
 import { deleteThumbnail } from "../../services/thumbnail";
+import type { SseHub } from "../../services/sse-hub";
 import {
   makeAttachmentContentDisposition,
   sanitizeWindowsFilenameBase,
@@ -33,6 +34,12 @@ const router = Router();
 // Middleware для получения базы данных из app.locals
 function getDb(req: Request): Database.Database {
   return req.app.locals.db as Database.Database;
+}
+
+function getHub(req: Request): SseHub {
+  const hub = (req.app.locals as any).sseHub as SseHub | undefined;
+  if (!hub) throw new Error("SSE hub is not initialized");
+  return hub;
 }
 
 function safeJsonParse<T = unknown>(value: unknown): T | null {
@@ -847,17 +854,17 @@ router.post("/cards/:id/save", async (req: Request, res: Response) => {
 
     const inferStMetaFromPath = (
       filePath: string
-    ):
-      | {
-          stProfileHandle: string;
-          stAvatarFile: string;
-          stAvatarBase: string;
-        }
-      | null => {
+    ): {
+      stProfileHandle: string;
+      stAvatarFile: string;
+      stAvatarBase: string;
+    } | null => {
       const p = String(filePath ?? "").trim();
       if (!p) return null;
       // Expected: .../data/<profile>/characters/<avatar>.png
-      const m = p.match(/[/\\]data[/\\]([^/\\]+)[/\\]characters[/\\]([^/\\]+\.png)$/i);
+      const m = p.match(
+        /[/\\]data[/\\]([^/\\]+)[/\\]characters[/\\]([^/\\]+\.png)$/i
+      );
       if (!m) return null;
       const stProfileHandle = String(m[1] ?? "").trim();
       const stAvatarFile = String(m[2] ?? "").trim();
@@ -866,10 +873,49 @@ router.post("/cards/:id/save", async (req: Request, res: Response) => {
       return { stProfileHandle, stAvatarFile, stAvatarBase };
     };
 
+    const broadcastStCardsChanged = (
+      filePath: string,
+      extra?: Partial<{
+        stProfileHandle: string;
+        stAvatarFile: string;
+        stAvatarBase: string;
+      }>
+    ) => {
+      if (cardRow.is_sillytavern !== 1) return;
+      const inferred = inferStMetaFromPath(filePath);
+      const stProfileHandle = (
+        extra?.stProfileHandle ??
+        inferred?.stProfileHandle ??
+        ""
+      ).trim();
+      const stAvatarFile = (
+        extra?.stAvatarFile ??
+        inferred?.stAvatarFile ??
+        ""
+      ).trim();
+      const stAvatarBase = (
+        extra?.stAvatarBase ??
+        inferred?.stAvatarBase ??
+        ""
+      ).trim();
+
+      const payload = {
+        type: "st:cards_changed" as const,
+        ts: Date.now(),
+        cardId: id,
+        mode,
+        ...(stProfileHandle ? { stProfileHandle } : {}),
+        ...(stAvatarFile ? { stAvatarFile } : {}),
+        ...(stAvatarBase ? { stAvatarBase } : {}),
+      };
+      getHub(req).broadcast("st:cards_changed", payload, { id: payload.ts });
+    };
+
     if (mode === "overwrite_main") {
       // no duplicates scenario (UI should not show this mode when duplicates exist)
       await rewritePngInPlace(main_file_path, normalized);
       await scanService.syncSingleFile(main_file_path);
+      broadcastStCardsChanged(main_file_path);
       res.json({ ok: true, changed: true, card_id: id });
       return;
     }
@@ -880,6 +926,8 @@ router.post("/cards/:id/save", async (req: Request, res: Response) => {
         await rewritePngInPlace(p, normalized);
         await scanService.syncSingleFile(p);
       }
+      // One refresh event is enough; use main file to infer profile/avatar.
+      broadcastStCardsChanged(main_file_path);
       res.json({ ok: true, changed: true, card_id: id });
       return;
     }
@@ -897,6 +945,7 @@ router.post("/cards/:id/save", async (req: Request, res: Response) => {
       const stMeta =
         cardRow.is_sillytavern === 1 ? inferStMetaFromPath(targetPath) : null;
       await scanService.syncSingleFile(targetPath, stMeta ?? undefined);
+      broadcastStCardsChanged(targetPath, stMeta ?? undefined);
 
       const newRow = db
         .prepare(`SELECT card_id FROM card_files WHERE file_path = ? LIMIT 1`)
@@ -1015,6 +1064,31 @@ router.delete("/cards/:id/files", async (req: Request, res: Response) => {
     const db = getDb(req);
     const normalizedFilePath = file_path.trim();
 
+    // If this file belongs to a SillyTavern-origin card, capture ST meta BEFORE deletion
+    // so we can notify the ST extension to refresh its characters list.
+    const stMetaForDeletedFile = db
+      .prepare(
+        `
+        SELECT
+          c.is_sillytavern,
+          cf.st_profile_handle,
+          cf.st_avatar_file,
+          cf.st_avatar_base
+        FROM cards c
+        JOIN card_files cf ON cf.card_id = c.id
+        WHERE c.id = ? AND cf.file_path = ?
+        LIMIT 1
+      `
+      )
+      .get(id, normalizedFilePath) as
+      | {
+          is_sillytavern: number;
+          st_profile_handle: string | null;
+          st_avatar_file: string | null;
+          st_avatar_base: string | null;
+        }
+      | undefined;
+
     const belongs = db
       .prepare(
         `
@@ -1072,6 +1146,26 @@ router.delete("/cards/:id/files", async (req: Request, res: Response) => {
       if (e && (e.code === "ENOENT" || e.code === "ENOTDIR")) return;
       throw e;
     });
+
+    // Notify ST about deletion (best-effort)
+    if (stMetaForDeletedFile?.is_sillytavern === 1) {
+      const stProfileHandle = (
+        stMetaForDeletedFile.st_profile_handle ?? ""
+      ).trim();
+      const stAvatarFile = (stMetaForDeletedFile.st_avatar_file ?? "").trim();
+      const stAvatarBase = (stMetaForDeletedFile.st_avatar_base ?? "").trim();
+
+      const payload = {
+        type: "st:cards_changed" as const,
+        ts: Date.now(),
+        cardId: id,
+        mode: "delete",
+        ...(stProfileHandle ? { stProfileHandle } : {}),
+        ...(stAvatarFile ? { stAvatarFile } : {}),
+        ...(stAvatarBase ? { stAvatarBase } : {}),
+      };
+      getHub(req).broadcast("st:cards_changed", payload, { id: payload.ts });
+    }
 
     // Если до было 1 файл, мы удалили карточку — чистим миниатюру
     if ((before?.cnt ?? 0) <= 1 && cardRow?.avatar_path) {
@@ -1308,12 +1402,34 @@ router.delete("/cards/:id", async (req: Request, res: Response) => {
     const db = getDb(req);
 
     const cardRow = db
-      .prepare(`SELECT avatar_path FROM cards WHERE id = ? LIMIT 1`)
-      .get(id) as { avatar_path: string | null } | undefined;
+      .prepare(
+        `SELECT avatar_path, is_sillytavern FROM cards WHERE id = ? LIMIT 1`
+      )
+      .get(id) as
+      | { avatar_path: string | null; is_sillytavern: number }
+      | undefined;
 
     if (!cardRow) {
       throw new AppError({ status: 404, code: "api.cards.not_found" });
     }
+
+    // Capture ST meta for all files BEFORE we delete them from disk/DB (needed for SSE).
+    const stFiles =
+      cardRow.is_sillytavern === 1
+        ? (db
+            .prepare(
+              `
+              SELECT st_profile_handle, st_avatar_file, st_avatar_base
+              FROM card_files
+              WHERE card_id = ?
+            `
+            )
+            .all(id) as Array<{
+            st_profile_handle: string | null;
+            st_avatar_file: string | null;
+            st_avatar_base: string | null;
+          }>)
+        : [];
 
     const fileRows = db
       .prepare(
@@ -1350,6 +1466,30 @@ router.delete("/cards/:id", async (req: Request, res: Response) => {
       const uuid = cardRow.avatar_path.split("/").pop()?.replace(".webp", "");
       if (uuid) {
         await deleteThumbnail(uuid);
+      }
+    }
+
+    // Notify ST about deletion (best-effort)
+    if (cardRow.is_sillytavern === 1 && stFiles.length > 0) {
+      const seen = new Set<string>();
+      for (const f of stFiles) {
+        const stProfileHandle = (f.st_profile_handle ?? "").trim();
+        const stAvatarFile = (f.st_avatar_file ?? "").trim();
+        const stAvatarBase = (f.st_avatar_base ?? "").trim();
+        const key = `${stProfileHandle}::${stAvatarFile}::${stAvatarBase}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const payload = {
+          type: "st:cards_changed" as const,
+          ts: Date.now(),
+          cardId: id,
+          mode: "delete",
+          ...(stProfileHandle ? { stProfileHandle } : {}),
+          ...(stAvatarFile ? { stAvatarFile } : {}),
+          ...(stAvatarBase ? { stAvatarBase } : {}),
+        };
+        getHub(req).broadcast("st:cards_changed", payload, { id: payload.ts });
       }
     }
 
