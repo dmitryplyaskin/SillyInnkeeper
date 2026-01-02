@@ -620,6 +620,8 @@ export function CardDetailsActionsPanel({
         opened={confirmDeleteDuplicateOpened}
         onClose={() => setConfirmDeleteDuplicateOpened(false)}
         title={i18n.t("cardDetails.confirmDeleteDuplicateTitle")}
+        zIndex={500}
+        overlayProps={{ zIndex: 499 }}
       >
         <Stack gap="md">
           <Text size="sm">
@@ -649,6 +651,8 @@ export function CardDetailsActionsPanel({
         opened={saveOpened}
         onClose={() => setSaveOpened(false)}
         title={i18n.t("cardDetails.saveModalTitle")}
+        zIndex={500}
+        overlayProps={{ zIndex: 499 }}
       >
         <Stack gap="md">
           {!hasDuplicates ? (

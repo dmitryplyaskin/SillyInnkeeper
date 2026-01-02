@@ -41,6 +41,8 @@ export function CardActionsModals() {
         opened={renameModal.opened}
         onClose={() => onCloseRename()}
         title={i18n.t("cardDetails.renameMainFileTitle")}
+        zIndex={500}
+        overlayProps={{ zIndex: 499 }}
       >
         <Stack gap="md">
           <Text size="sm" c="dimmed">
@@ -76,6 +78,8 @@ export function CardActionsModals() {
         opened={deleteModal.opened}
         onClose={() => onCloseDelete()}
         title={i18n.t("cardDetails.confirmDeleteCardTitle")}
+        zIndex={500}
+        overlayProps={{ zIndex: 499 }}
       >
         <Stack gap="md">
           <Text size="sm">{i18n.t("cardDetails.confirmDeleteCardMessage")}</Text>
