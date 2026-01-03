@@ -55,17 +55,21 @@ export function buildWatchTargets(
     );
 
     if (charactersDirs.length > 0) {
-      const libraryId = getOrCreateLibraryId(db, stRoot);
-      targets.push({
-        id: "sillytavern",
-        folderPath: stRoot,
-        libraryId,
-        scanMode: "sillytavern",
-        // Watch only exact characters dirs; drastically reduces FS event noise.
-        watchGlobs: charactersDirs,
-        // Only direct *.png files in characters/ (no subdirs)
-        depth: 0,
-      });
+      // One watch target per profile characters dir:
+      // library_id is based on `<root>/data/<profile>/characters`, so cards do not mix between profiles.
+      for (const dir of charactersDirs) {
+        const profileHandle = dir.split(/[/\\]+/).slice(-2, -1)[0] ?? "unknown";
+        const libraryId = getOrCreateLibraryId(db, dir);
+        targets.push({
+          id: `sillytavern:${profileHandle}`,
+          folderPath: dir,
+          libraryId,
+          scanMode: "sillytavern_profile",
+          watchGlobs: [dir],
+          // Only direct *.png files in characters/ (no subdirs)
+          depth: 0,
+        });
+      }
     }
   }
 

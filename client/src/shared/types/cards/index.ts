@@ -54,5 +54,20 @@ export interface CardDetails {
   alternate_greetings: string[];
   group_only_greetings?: string[];
 
+  /**
+   * Доп. метаданные по файлам карточки (в т.ч. SillyTavern profile-specific).
+   * Заполняется сервером в GET /api/cards/:id
+   */
+  files_meta?: Array<{
+    file_path: string;
+    file_birthtime: number;
+    st_profile_handle: string | null;
+    st_avatar_file: string | null;
+    st_avatar_base: string | null;
+    st_chats_folder_path: string | null;
+    st_chats_count: number;
+    st_last_chat_at: number;
+  }>;
+
   data_json: unknown | null;
 }

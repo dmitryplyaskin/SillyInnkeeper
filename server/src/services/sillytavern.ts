@@ -1,6 +1,6 @@
 import { existsSync, statSync } from "node:fs";
 import { readdir } from "node:fs/promises";
-import { join, parse } from "node:path";
+import { basename, dirname, join, parse } from "node:path";
 
 type PngFileEntry = {
   filePath: string;
@@ -8,6 +8,9 @@ type PngFileEntry = {
   profileHandle: string;
   avatarFile: string;
   avatarBase: string;
+  stChatsFolderPath: string;
+  stChatsCount: number;
+  stLastChatAt: number;
 };
 
 function isFinitePositive(n: unknown): n is number {
@@ -19,6 +22,125 @@ function getCreatedAtMs(filePath: string): number {
   const birth = st.birthtimeMs;
   const mtime = st.mtimeMs;
   return isFinitePositive(birth) ? birth : mtime;
+}
+
+function getMtimeMsSafe(filePath: string): number {
+  try {
+    const st = statSync(filePath);
+    const mtime = st.mtimeMs;
+    return Number.isFinite(mtime) ? mtime : 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function getChatsFolderStats(
+  chatsFolderPath: string
+): Promise<{ chatsCount: number; lastChatAt: number }> {
+  // Fast path: no folder => 0
+  if (!existsSync(chatsFolderPath)) {
+    return { chatsCount: 0, lastChatAt: 0 };
+  }
+
+  try {
+    const files = await readdir(chatsFolderPath, { withFileTypes: true });
+    let chatsCount = 0;
+    let lastChatAt = 0;
+
+    for (const f of files) {
+      if (!f.isFile()) continue;
+      const name = f.name ?? "";
+      if (typeof name !== "string") continue;
+      if (!name.toLowerCase().endsWith(".jsonl")) continue;
+      chatsCount += 1;
+      const mtime = getMtimeMsSafe(join(chatsFolderPath, name));
+      if (mtime > lastChatAt) lastChatAt = mtime;
+    }
+
+    return { chatsCount, lastChatAt };
+  } catch {
+    return { chatsCount: 0, lastChatAt: 0 };
+  }
+}
+
+export async function listSillyTavernProfileCharactersDirs(
+  sillytavenrPath: string
+): Promise<Array<{ profileHandle: string; charactersDir: string }>> {
+  const root = String(sillytavenrPath ?? "").trim();
+  if (!root) return [];
+  const dataDir = join(root, "data");
+  if (!existsSync(dataDir)) return [];
+
+  try {
+    const entries = await readdir(dataDir, { withFileTypes: true });
+    const profileDirs = entries
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name)
+      .filter((name) => typeof name === "string" && name.length > 0)
+      .filter((name) => !name.startsWith("_"));
+
+    return profileDirs
+      .map((profileHandle) => ({
+        profileHandle,
+        charactersDir: join(dataDir, profileHandle, "characters"),
+      }))
+      .filter((e) => existsSync(e.charactersDir));
+  } catch {
+    return [];
+  }
+}
+
+export async function listSillyTavernCharactersDirPngs(
+  charactersDir: string
+): Promise<PngFileEntry[]> {
+  const dir = String(charactersDir ?? "").trim();
+  if (!dir || !existsSync(dir)) return [];
+
+  // Expected: .../data/<profile>/characters
+  const profileHandle = basename(dirname(dir));
+  const dataDir = dirname(dirname(dir)); // .../data
+
+  const pngEntries: PngFileEntry[] = [];
+
+  try {
+    const files = await readdir(dir, { withFileTypes: true });
+    for (const f of files) {
+      if (!f.isFile()) continue;
+      const name = f.name ?? "";
+      if (typeof name !== "string") continue;
+      if (!name.toLowerCase().endsWith(".png")) continue;
+      const fullPath = join(dir, name);
+      try {
+        const p = parse(name);
+        const avatarBase = p.name;
+        const stChatsFolderPath = join(dataDir, profileHandle, "chats", avatarBase);
+        const { chatsCount, lastChatAt } = await getChatsFolderStats(
+          stChatsFolderPath
+        );
+        pngEntries.push({
+          filePath: fullPath,
+          createdAtMs: getCreatedAtMs(fullPath),
+          profileHandle,
+          avatarFile: name,
+          avatarBase,
+          stChatsFolderPath,
+          stChatsCount: chatsCount,
+          stLastChatAt: lastChatAt,
+        });
+      } catch {
+        // If file disappears during listing, ignore.
+      }
+    }
+  } catch {
+    return [];
+  }
+
+  pngEntries.sort((a, b) => {
+    if (a.createdAtMs !== b.createdAtMs) return a.createdAtMs - b.createdAtMs;
+    return a.filePath.localeCompare(b.filePath);
+  });
+
+  return pngEntries;
 }
 
 /**
@@ -56,26 +178,8 @@ export async function listSillyTavernCharacterPngs(
     if (!existsSync(charactersDir)) continue;
 
     try {
-      const files = await readdir(charactersDir, { withFileTypes: true });
-      for (const f of files) {
-        if (!f.isFile()) continue;
-        const name = f.name ?? "";
-        if (typeof name !== "string") continue;
-        if (!name.toLowerCase().endsWith(".png")) continue;
-        const fullPath = join(charactersDir, name);
-        try {
-          const p = parse(name);
-          pngEntries.push({
-            filePath: fullPath,
-            createdAtMs: getCreatedAtMs(fullPath),
-            profileHandle: profileName,
-            avatarFile: name,
-            avatarBase: p.name,
-          });
-        } catch {
-          // If file disappears during listing, ignore.
-        }
-      }
+      const profEntries = await listSillyTavernCharactersDirPngs(charactersDir);
+      pngEntries.push(...profEntries);
     } catch {
       continue;
     }

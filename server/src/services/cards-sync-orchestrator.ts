@@ -5,7 +5,7 @@ import { createDatabaseService } from "./database";
 import type { SseHub } from "./sse-hub";
 
 export type SyncOrigin = "fs" | "app";
-export type ScanMode = "folder" | "sillytavern";
+export type ScanMode = "folder" | "sillytavern" | "sillytavern_profile";
 
 export type CardsResyncedPayload = {
   revision: number;
@@ -149,12 +149,14 @@ export class CardsSyncOrchestrator {
         const scanService = createScanService(
           this.db,
           currentLibraryId,
-          currentScanMode === "sillytavern"
+          currentScanMode === "sillytavern" || currentScanMode === "sillytavern_profile"
         );
 
         const scanResult =
           currentScanMode === "sillytavern"
             ? await scanService.scanSillyTavern(currentPath, scanOpts)
+            : currentScanMode === "sillytavern_profile"
+            ? await scanService.scanSillyTavernProfile(currentPath, scanOpts)
             : await scanService.scanFolder(currentPath, scanOpts);
 
         // If folder had no PNG files, onStart might never fire (edge cases). Ensure we emit started at least once.

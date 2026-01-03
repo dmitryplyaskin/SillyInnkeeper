@@ -14,6 +14,7 @@ import { setCurrentLanguage } from "../../i18n/language";
 import { AppError } from "../../errors/app-error";
 import { sendError } from "../../errors/http";
 import { buildWatchTargets } from "../../services/watch-targets";
+import { listSillyTavernProfileCharactersDirs } from "../../services/sillytavern";
 
 const router = Router();
 
@@ -106,13 +107,16 @@ router.put("/settings", async (req: Request, res: Response) => {
     // Запускаем SillyTavern scan, если путь изменился (или был установлен)
     if (prevStPath !== nextStPath && nextStPath !== null) {
       try {
-        const libraryId = getOrCreateLibraryId(db, nextStPath);
-        getOrchestrator(req).requestScan(
-          "app",
-          nextStPath,
-          libraryId,
-          "sillytavern"
-        );
+        const dirs = await listSillyTavernProfileCharactersDirs(nextStPath);
+        for (const d of dirs) {
+          const libraryId = getOrCreateLibraryId(db, d.charactersDir);
+          getOrchestrator(req).requestScan(
+            "app",
+            d.charactersDir,
+            libraryId,
+            "sillytavern_profile"
+          );
+        }
       } catch (error) {
         logger.errorKey(error, "error.settings.postSettingsSyncFailed");
       }

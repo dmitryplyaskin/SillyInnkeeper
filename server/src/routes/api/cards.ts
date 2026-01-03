@@ -17,6 +17,7 @@ import { createCardsFiltersService } from "../../services/cards-filters";
 import { getSettings } from "../../services/settings";
 import { getOrCreateLibraryId } from "../../services/libraries";
 import { createScanService } from "../../services/scan";
+import { listSillyTavernProfileCharactersDirs } from "../../services/sillytavern";
 import { createTagService } from "../../services/tags";
 import { computeContentHash } from "../../services/card-hash";
 import { AppError } from "../../errors/app-error";
@@ -126,7 +127,37 @@ router.get("/cards", async (req: Request, res: Response) => {
       libraryIds.push(getOrCreateLibraryId(db, settings.cardsFolderPath));
     }
     if (settings.sillytavenrPath) {
-      libraryIds.push(getOrCreateLibraryId(db, settings.sillytavenrPath));
+      const stRoot = settings.sillytavenrPath;
+      const dirs = await listSillyTavernProfileCharactersDirs(stRoot);
+      const perProfileLibraryIds = dirs.map((d) =>
+        getOrCreateLibraryId(db, d.charactersDir)
+      );
+
+      // Backward-compat fallback:
+      // Older DBs stored ST cards under library_id = getOrCreateLibraryId(db, stRoot).
+      // If per-profile libraries are not populated yet (scan not run / still running),
+      // fall back to the old root-library so ST cards don't disappear from the UI.
+      const usePerProfile = (() => {
+        if (perProfileLibraryIds.length === 0) return false;
+        const placeholders = perProfileLibraryIds.map(() => "?").join(", ");
+        const row = db
+          .prepare(
+            `
+            SELECT COUNT(*) as cnt
+            FROM cards
+            WHERE is_sillytavern = 1
+              AND library_id IN (${placeholders})
+          `
+          )
+          .get(...perProfileLibraryIds) as { cnt: number } | undefined;
+        return (row?.cnt ?? 0) > 0;
+      })();
+
+      if (usePerProfile) {
+        libraryIds.push(...perProfileLibraryIds);
+      } else {
+        libraryIds.push(getOrCreateLibraryId(db, stRoot));
+      }
     }
 
     if (libraryIds.length === 0) {
@@ -432,7 +463,33 @@ router.get("/cards/filters", async (req: Request, res: Response) => {
       libraryIds.push(getOrCreateLibraryId(db, settings.cardsFolderPath));
     }
     if (settings.sillytavenrPath) {
-      libraryIds.push(getOrCreateLibraryId(db, settings.sillytavenrPath));
+      const stRoot = settings.sillytavenrPath;
+      const dirs = await listSillyTavernProfileCharactersDirs(stRoot);
+      const perProfileLibraryIds = dirs.map((d) =>
+        getOrCreateLibraryId(db, d.charactersDir)
+      );
+
+      const usePerProfile = (() => {
+        if (perProfileLibraryIds.length === 0) return false;
+        const placeholders = perProfileLibraryIds.map(() => "?").join(", ");
+        const row = db
+          .prepare(
+            `
+            SELECT COUNT(*) as cnt
+            FROM cards
+            WHERE is_sillytavern = 1
+              AND library_id IN (${placeholders})
+          `
+          )
+          .get(...perProfileLibraryIds) as { cnt: number } | undefined;
+        return (row?.cnt ?? 0) > 0;
+      })();
+
+      if (usePerProfile) {
+        libraryIds.push(...perProfileLibraryIds);
+      } else {
+        libraryIds.push(getOrCreateLibraryId(db, stRoot));
+      }
     }
 
     if (libraryIds.length === 0) {
@@ -543,13 +600,30 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
     const fileRows = db
       .prepare(
         `
-        SELECT cf.file_path
+        SELECT
+          cf.file_path,
+          cf.file_birthtime,
+          cf.st_profile_handle,
+          cf.st_avatar_file,
+          cf.st_avatar_base,
+          cf.st_chats_folder_path,
+          cf.st_chats_count,
+          cf.st_last_chat_at
         FROM card_files cf
         WHERE cf.card_id = ?
         ORDER BY cf.file_birthtime ASC, cf.file_path ASC
       `
       )
-      .all(id) as Array<{ file_path: string }>;
+      .all(id) as Array<{
+      file_path: string;
+      file_birthtime: number;
+      st_profile_handle: string | null;
+      st_avatar_file: string | null;
+      st_avatar_base: string | null;
+      st_chats_folder_path: string | null;
+      st_chats_count: number | null;
+      st_last_chat_at: number | null;
+    }>;
 
     const file_paths = fileRows
       .map((r) => r.file_path)
@@ -634,6 +708,22 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
       has_character_book: row.has_character_book === 1,
 
       innkeeperMeta: { isHidden: row.is_hidden === 1 },
+
+      // SillyTavern per-file meta (profile-specific). Useful for debugging / UI.
+      files_meta: fileRows.map((r) => ({
+        file_path: r.file_path,
+        file_birthtime: r.file_birthtime,
+        st_profile_handle: r.st_profile_handle,
+        st_avatar_file: r.st_avatar_file,
+        st_avatar_base: r.st_avatar_base,
+        st_chats_folder_path: r.st_chats_folder_path,
+        st_chats_count: Number.isFinite(r.st_chats_count as number)
+          ? (r.st_chats_count as number)
+          : 0,
+        st_last_chat_at: Number.isFinite(r.st_last_chat_at as number)
+          ? (r.st_last_chat_at as number)
+          : 0,
+      })),
 
       // extracted arrays (server-side)
       alternate_greetings,

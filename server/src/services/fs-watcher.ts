@@ -9,7 +9,7 @@ export type WatchTarget = {
   /** Path that should be passed into orchestrator (root folder for scanning) */
   folderPath: string;
   libraryId: string;
-  scanMode?: "folder" | "sillytavern";
+  scanMode?: "folder" | "sillytavern" | "sillytavern_profile";
   /** Globs passed into chokidar.watch(...) */
   watchGlobs: string[];
   /**

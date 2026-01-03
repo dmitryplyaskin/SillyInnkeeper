@@ -11,7 +11,10 @@ import { createTagService } from "./tags";
 import { computeContentHash } from "./card-hash";
 import { createLorebooksService, LorebooksService } from "./lorebooks";
 import { logger } from "../utils/logger";
-import { listSillyTavernCharacterPngs } from "./sillytavern";
+import {
+  listSillyTavernCharacterPngs,
+  listSillyTavernCharactersDirPngs,
+} from "./sillytavern";
 
 const CONCURRENT_LIMIT_FOLDER = 5;
 // SillyTavern scan tends to create more pressure on the event loop (lots of sync IO + parsing).
@@ -62,6 +65,9 @@ export class ScanService {
       stProfileHandle: string;
       stAvatarFile: string;
       stAvatarBase: string;
+      stChatsFolderPath?: string;
+      stChatsCount?: number;
+      stLastChatAt?: number;
     }
   ): Promise<void> {
     await this.processFile(filePath, stMeta);
@@ -184,6 +190,9 @@ export class ScanService {
               stProfileHandle: entry.profileHandle,
               stAvatarFile: entry.avatarFile,
               stAvatarBase: entry.avatarBase,
+              stChatsFolderPath: entry.stChatsFolderPath,
+              stChatsCount: entry.stChatsCount,
+              stLastChatAt: entry.stLastChatAt,
             });
           } finally {
             processedFiles += 1;
@@ -203,6 +212,82 @@ export class ScanService {
     } catch (error) {
       logger.errorKey(error, "error.scan.scanFolderFailed", {
         folderPath: root,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Сканирует SillyTavern-карточки для ОДНОГО профиля по структуре:
+   *   <sillytavenrPath>/data/<profile>/characters/*.png
+   *
+   * Входной параметр: путь до `.../data/<profile>/characters`.
+   * Подпапки внутри characters игнорируются (считаем их доп. изображениями).
+   */
+  async scanSillyTavernProfile(
+    charactersDir: string,
+    opts?: {
+      onStart?: (totalFiles: number) => void;
+      onProgress?: (processedFiles: number, totalFiles: number) => void;
+    }
+  ): Promise<{ totalFiles: number; processedFiles: number }> {
+    const dir = String(charactersDir ?? "").trim();
+    if (!dir || !existsSync(dir)) {
+      logger.errorMessageKey("error.scan.folderNotExists", {
+        folderPath: dir,
+      });
+      return { totalFiles: 0, processedFiles: 0 };
+    }
+
+    logger.infoKey("log.scan.start", { folderPath: dir });
+    this.scannedFiles.clear();
+
+    try {
+      const entries = await listSillyTavernCharactersDirPngs(dir);
+      logger.infoKey("log.scan.foundPngFiles", { count: entries.length });
+      opts?.onStart?.(entries.length);
+
+      const totalFiles = entries.length;
+      let processedFiles = 0;
+      let lastProgressAt = 0;
+      const emitProgress = () => {
+        if (!opts?.onProgress) return;
+        const now = Date.now();
+        if (processedFiles >= totalFiles || now - lastProgressAt >= 300) {
+          lastProgressAt = now;
+          opts.onProgress(processedFiles, totalFiles);
+        }
+      };
+
+      const promises = entries.map((entry) =>
+        this.limit(async () => {
+          try {
+            await this.processFile(entry.filePath, {
+              stProfileHandle: entry.profileHandle,
+              stAvatarFile: entry.avatarFile,
+              stAvatarBase: entry.avatarBase,
+              stChatsFolderPath: entry.stChatsFolderPath,
+              stChatsCount: entry.stChatsCount,
+              stLastChatAt: entry.stLastChatAt,
+            });
+          } finally {
+            processedFiles += 1;
+            emitProgress();
+          }
+        })
+      );
+      await Promise.all(promises);
+
+      await this.cleanupDeletedFiles();
+
+      logger.infoKey("log.scan.done", { count: entries.length });
+      if (processedFiles !== totalFiles) processedFiles = totalFiles;
+      opts?.onProgress?.(processedFiles, totalFiles);
+
+      return { totalFiles, processedFiles };
+    } catch (error) {
+      logger.errorKey(error, "error.scan.scanFolderFailed", {
+        folderPath: dir,
       });
       throw error;
     }
@@ -263,6 +348,9 @@ export class ScanService {
       stProfileHandle: string;
       stAvatarFile: string;
       stAvatarBase: string;
+      stChatsFolderPath?: string;
+      stChatsCount?: number;
+      stLastChatAt?: number;
     }
   ): Promise<void> {
     try {
@@ -298,6 +386,9 @@ export class ScanService {
         st_profile_handle?: string | null;
         st_avatar_file?: string | null;
         st_avatar_base?: string | null;
+        st_chats_folder_path?: string | null;
+        st_chats_count?: number | null;
+        st_last_chat_at?: number | null;
       }>(
         `SELECT 
           cf.card_id,
@@ -307,6 +398,9 @@ export class ScanService {
           cf.st_profile_handle,
           cf.st_avatar_file,
           cf.st_avatar_base,
+          cf.st_chats_folder_path,
+          cf.st_chats_count,
+          cf.st_last_chat_at,
           c.prompt_tokens_est as prompt_tokens_est
         FROM card_files cf
         LEFT JOIN cards c ON c.id = cf.card_id
@@ -327,23 +421,53 @@ export class ScanService {
         (existingFile.prompt_tokens_est ?? 0) > 0
       ) {
         if (shouldSetStMeta) {
+          const nextChatsFolderPath =
+            typeof stMeta!.stChatsFolderPath === "string"
+              ? stMeta!.stChatsFolderPath
+              : null;
+          const nextChatsCount =
+            typeof stMeta!.stChatsCount === "number" &&
+            Number.isFinite(stMeta!.stChatsCount)
+              ? stMeta!.stChatsCount
+              : null;
+          const nextLastChatAt =
+            typeof stMeta!.stLastChatAt === "number" &&
+            Number.isFinite(stMeta!.stLastChatAt)
+              ? stMeta!.stLastChatAt
+              : null;
+
           const needUpdate =
             (existingFile.st_profile_handle ?? null) !==
               (stMeta!.stProfileHandle ?? null) ||
             (existingFile.st_avatar_file ?? null) !==
               (stMeta!.stAvatarFile ?? null) ||
             (existingFile.st_avatar_base ?? null) !==
-              (stMeta!.stAvatarBase ?? null);
+              (stMeta!.stAvatarBase ?? null) ||
+            (nextChatsFolderPath != null &&
+              (existingFile.st_chats_folder_path ?? null) !==
+                nextChatsFolderPath) ||
+            (nextChatsCount != null &&
+              (existingFile.st_chats_count ?? 0) !== nextChatsCount) ||
+            (nextLastChatAt != null &&
+              (existingFile.st_last_chat_at ?? 0) !== nextLastChatAt);
 
           if (needUpdate) {
             this.dbService.execute(
               `UPDATE card_files
-               SET st_profile_handle = ?, st_avatar_file = ?, st_avatar_base = ?
+               SET st_profile_handle = ?,
+                   st_avatar_file = ?,
+                   st_avatar_base = ?,
+                   st_chats_folder_path = COALESCE(?, st_chats_folder_path),
+                   st_chats_count = COALESCE(?, st_chats_count),
+                   st_last_chat_at = COALESCE(?, st_last_chat_at)
                WHERE file_path = ?`,
               [
                 stMeta!.stProfileHandle,
                 stMeta!.stAvatarFile,
                 stMeta!.stAvatarBase,
+                nextChatsFolderPath,
+                nextChatsCount,
+                nextLastChatAt,
                 filePath,
               ]
             );
@@ -600,7 +724,10 @@ export class ScanService {
                 folder_path = ?,
                 st_profile_handle = COALESCE(?, st_profile_handle),
                 st_avatar_file = COALESCE(?, st_avatar_file),
-                st_avatar_base = COALESCE(?, st_avatar_base)
+                st_avatar_base = COALESCE(?, st_avatar_base),
+                st_chats_folder_path = COALESCE(?, st_chats_folder_path),
+                st_chats_count = COALESCE(?, st_chats_count),
+                st_last_chat_at = COALESCE(?, st_last_chat_at)
               WHERE file_path = ?`,
               [
                 fileMtime,
@@ -610,6 +737,17 @@ export class ScanService {
                 shouldSetStMeta ? stMeta!.stProfileHandle : null,
                 shouldSetStMeta ? stMeta!.stAvatarFile : null,
                 shouldSetStMeta ? stMeta!.stAvatarBase : null,
+                shouldSetStMeta ? (stMeta!.stChatsFolderPath ?? null) : null,
+                shouldSetStMeta
+                  ? typeof stMeta!.stChatsCount === "number"
+                    ? stMeta!.stChatsCount
+                    : null
+                  : null,
+                shouldSetStMeta
+                  ? typeof stMeta!.stLastChatAt === "number"
+                    ? stMeta!.stLastChatAt
+                    : null
+                  : null,
                 filePath,
               ]
             );
@@ -622,13 +760,19 @@ export class ScanService {
                 folder_path = ?,
                 st_profile_handle = ?,
                 st_avatar_file = ?,
-                st_avatar_base = ?
+                st_avatar_base = ?,
+                st_chats_folder_path = ?,
+                st_chats_count = ?,
+                st_last_chat_at = ?
               WHERE file_path = ?`,
               [
                 fileMtime,
                 createdAt,
                 fileSize,
                 dirname(filePath),
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -777,9 +921,12 @@ export class ScanService {
               folder_path,
               st_profile_handle,
               st_avatar_file,
-              st_avatar_base
+              st_avatar_base,
+              st_chats_folder_path,
+              st_chats_count,
+              st_last_chat_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               filePath,
               cardId,
@@ -790,6 +937,17 @@ export class ScanService {
               shouldSetStMeta ? stMeta!.stProfileHandle : null,
               shouldSetStMeta ? stMeta!.stAvatarFile : null,
               shouldSetStMeta ? stMeta!.stAvatarBase : null,
+              shouldSetStMeta ? (stMeta!.stChatsFolderPath ?? null) : null,
+              shouldSetStMeta
+                ? typeof stMeta!.stChatsCount === "number"
+                  ? stMeta!.stChatsCount
+                  : 0
+                : 0,
+              shouldSetStMeta
+                ? typeof stMeta!.stLastChatAt === "number"
+                  ? stMeta!.stLastChatAt
+                  : 0
+                : 0,
             ]
           );
 

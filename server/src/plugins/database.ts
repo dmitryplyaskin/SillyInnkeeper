@@ -499,6 +499,23 @@ function initializeSchema(db: Database.Database): void {
   );
   addColumnIfMissing("card_files", "st_avatar_file", "st_avatar_file TEXT");
   addColumnIfMissing("card_files", "st_avatar_base", "st_avatar_base TEXT");
+  // card_files: SillyTavern chats metadata (для быстрого поиска истории чатов)
+  // Храним на уровне file_path (profile-specific).
+  addColumnIfMissing(
+    "card_files",
+    "st_chats_folder_path",
+    "st_chats_folder_path TEXT"
+  );
+  addColumnIfMissing(
+    "card_files",
+    "st_chats_count",
+    "st_chats_count INTEGER NOT NULL DEFAULT 0"
+  );
+  addColumnIfMissing(
+    "card_files",
+    "st_last_chat_at",
+    "st_last_chat_at INTEGER NOT NULL DEFAULT 0"
+  );
   // card_files: file_birthtime — время создания файла (нужно для корректного created_at карточки)
   // NOT NULL + DEFAULT нужен для старых БД.
   addColumnIfMissing(
@@ -510,6 +527,7 @@ function initializeSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_card_files_folder_path ON card_files(folder_path);
     CREATE INDEX IF NOT EXISTS idx_card_files_st_profile_handle ON card_files(st_profile_handle);
     CREATE INDEX IF NOT EXISTS idx_card_files_st_avatar_file ON card_files(st_avatar_file);
+    CREATE INDEX IF NOT EXISTS idx_card_files_st_chats_folder_path ON card_files(st_chats_folder_path);
   `);
 
   // Связь карточек и тегов для точной фильтрации
