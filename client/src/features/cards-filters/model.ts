@@ -62,6 +62,9 @@ const DEFAULT_FILTERS: CardsFiltersState = {
   has_alternate_greetings: "any",
   alternate_greetings_min: 0,
   patterns: "any",
+  st_chats_count: undefined,
+  st_chats_count_op: "gte",
+  st_profile_handle: undefined,
 };
 
 function toLocalDayStartMs(dateStr: string): number | undefined {
@@ -132,6 +135,18 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     alternate_greetings_min:
       hasAlt === "0" ? undefined : effectiveMin > 0 ? effectiveMin : undefined,
     patterns: state.patterns,
+    st_chats_count:
+      typeof state.st_chats_count === "number" &&
+      Number.isFinite(state.st_chats_count) &&
+      state.st_chats_count >= 0
+        ? state.st_chats_count
+        : undefined,
+    st_chats_count_op: state.st_chats_count_op ?? undefined,
+    st_profile_handle:
+      typeof state.st_profile_handle === "string" &&
+      state.st_profile_handle.trim().length > 0
+        ? state.st_profile_handle.trim()
+        : undefined,
   };
 
   return query;
@@ -192,6 +207,7 @@ export const $filtersData = createStore<CardsFiltersResponse>({
   creators: [],
   spec_versions: [],
   tags: [],
+  st_profiles: [],
 });
 export const $filtersError = createStore<string | null>(null);
 export const $filtersLoading = combine(loadCardsFiltersFx.pending, (p) => p);
@@ -228,6 +244,9 @@ export const setHasCharacterBook = createEvent<TriState>();
 export const setHasAlternateGreetings = createEvent<TriState>();
 export const setAlternateGreetingsMin = createEvent<number>();
 export const setPatterns = createEvent<TriState>();
+export const setStChatsCount = createEvent<number | undefined>();
+export const setStChatsCountOp = createEvent<"eq" | "gte" | "lte">();
+export const setStProfileHandle = createEvent<string | undefined>();
 export const resetFilters = createEvent<void>();
 export const applyFilters = createEvent<void>();
 export const applyFiltersSilent = createEvent<void>();
@@ -304,6 +323,24 @@ $filters
       : 0,
   }))
   .on(setPatterns, (s, patterns) => ({ ...s, patterns }))
+  .on(setStChatsCount, (s, st_chats_count) => ({
+    ...s,
+    st_chats_count:
+      typeof st_chats_count === "number" && Number.isFinite(st_chats_count)
+        ? Math.max(0, Math.floor(st_chats_count))
+        : undefined,
+  }))
+  .on(setStChatsCountOp, (s, st_chats_count_op) => ({
+    ...s,
+    st_chats_count_op,
+  }))
+  .on(setStProfileHandle, (s, st_profile_handle) => ({
+    ...s,
+    st_profile_handle:
+      typeof st_profile_handle === "string" && st_profile_handle.trim().length > 0
+        ? st_profile_handle.trim()
+        : undefined,
+  }))
   .on(applyTagsBulkEditToSelectedTags, (s, payload) => {
     const normalize = (x: string) => x.trim().toLowerCase();
     const fromSet = new Set(payload.from_raw.map((x) => normalize(String(x))));
@@ -432,6 +469,9 @@ const immediateApplyClock = [
   setHasAlternateGreetings,
   setAlternateGreetingsMin,
   setPatterns,
+  setStChatsCount,
+  setStChatsCountOp,
+  setStProfileHandle,
 ];
 
 sample({
@@ -510,6 +550,9 @@ const persistNonTextChanged = merge([
   setHasAlternateGreetings,
   setAlternateGreetingsMin,
   setPatterns,
+  setStChatsCount,
+  setStChatsCountOp,
+  setStProfileHandle,
   applyTagsBulkEditToSelectedTags,
   resetFilters,
 ]);

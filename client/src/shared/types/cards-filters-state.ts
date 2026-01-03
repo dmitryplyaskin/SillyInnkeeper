@@ -31,6 +31,11 @@ export interface CardsFiltersState {
   has_alternate_greetings: TriState;
   alternate_greetings_min: number;
   patterns: TriState;
+
+  // SillyTavern chats filters
+  st_chats_count?: number;
+  st_chats_count_op?: "eq" | "gte" | "lte";
+  st_profile_handle?: string;
 }
 
 

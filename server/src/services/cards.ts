@@ -28,6 +28,10 @@ export type CardsSort =
   | "name_desc"
   | "prompt_tokens_desc"
   | "prompt_tokens_asc"
+  | "st_chats_count_desc"
+  | "st_chats_count_asc"
+  | "st_last_chat_at_desc"
+  | "st_last_chat_at_asc"
   | "relevance";
 
 export type CardsFtsField =
@@ -72,6 +76,13 @@ export interface SearchCardsParams {
   prompt_tokens_min?: number;
   prompt_tokens_max?: number;
   patterns?: TriState;
+
+  // SillyTavern chats filters (computed from card_files)
+  // chats_count = number of *.jsonl files per character folder; aggregated per card via SUM over card_files
+  st_chats_count?: number;
+  st_chats_count_op?: "eq" | "gte" | "lte";
+  // Filter by SillyTavern profile (stored in card_files.st_profile_handle)
+  st_profile_handle?: string;
 }
 
 /**
@@ -104,6 +115,15 @@ export class CardsService {
       sort === "relevance" && (!hasQ || qMode !== "fts")
         ? "created_at_desc"
         : sort;
+
+    const needsStAgg =
+      effectiveSort === "st_chats_count_desc" ||
+      effectiveSort === "st_chats_count_asc" ||
+      effectiveSort === "st_last_chat_at_desc" ||
+      effectiveSort === "st_last_chat_at_asc" ||
+      (typeof params.st_chats_count === "number" &&
+        Number.isFinite(params.st_chats_count) &&
+        params.st_chats_count >= 0);
 
     const libraryIds =
       Array.isArray(params.library_ids) && params.library_ids.length > 0
@@ -227,6 +247,19 @@ export class CardsService {
     if (tokensMax > 0) {
       where.push(`c.prompt_tokens_est <= ?`);
       sqlParams.push(tokensMax);
+    }
+
+    // ST profile filter: profile-specific meta stored in card_files
+    if (params.st_profile_handle && params.st_profile_handle.trim().length > 0) {
+      where.push(
+        `EXISTS (
+          SELECT 1
+          FROM card_files cf
+          WHERE cf.card_id = c.id
+            AND cf.st_profile_handle = ?
+        )`
+      );
+      sqlParams.push(params.st_profile_handle.trim());
     }
 
     // pattern matches filter (cached)
@@ -382,6 +415,36 @@ export class CardsService {
       }
     }
 
+    const stAggJoin = needsStAgg
+      ? `
+        LEFT JOIN (
+          SELECT
+            cf.card_id as card_id,
+            SUM(COALESCE(cf.st_chats_count, 0)) as st_chats_count_sum,
+            MAX(COALESCE(cf.st_last_chat_at, 0)) as st_last_chat_at_max
+          FROM card_files cf
+          GROUP BY cf.card_id
+        ) stagg ON stagg.card_id = c.id
+      `
+      : "";
+
+    // ST chats count filter: applies to SUM(st_chats_count) aggregated per card.
+    if (
+      typeof params.st_chats_count === "number" &&
+      Number.isFinite(params.st_chats_count) &&
+      params.st_chats_count >= 0
+    ) {
+      const op = params.st_chats_count_op ?? "gte";
+      if (op === "eq") {
+        where.push(`COALESCE(stagg.st_chats_count_sum, 0) = ?`);
+      } else if (op === "lte") {
+        where.push(`COALESCE(stagg.st_chats_count_sum, 0) <= ?`);
+      } else {
+        where.push(`COALESCE(stagg.st_chats_count_sum, 0) >= ?`);
+      }
+      sqlParams.push(Math.floor(params.st_chats_count));
+    }
+
     const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
     const orderBy = (() => {
@@ -404,6 +467,14 @@ export class CardsService {
           return `ORDER BY c.prompt_tokens_est ASC, c.created_at DESC`;
         case "prompt_tokens_desc":
           return `ORDER BY c.prompt_tokens_est DESC, c.created_at DESC`;
+        case "st_chats_count_asc":
+          return `ORDER BY COALESCE(stagg.st_chats_count_sum, 0) ASC, c.created_at DESC`;
+        case "st_chats_count_desc":
+          return `ORDER BY COALESCE(stagg.st_chats_count_sum, 0) DESC, c.created_at DESC`;
+        case "st_last_chat_at_asc":
+          return `ORDER BY COALESCE(stagg.st_last_chat_at_max, 0) ASC, c.created_at DESC`;
+        case "st_last_chat_at_desc":
+          return `ORDER BY COALESCE(stagg.st_last_chat_at_max, 0) DESC, c.created_at DESC`;
         case "created_at_desc":
         default:
           return `ORDER BY c.created_at DESC`;
@@ -441,6 +512,7 @@ export class CardsService {
         ) as file_path
       FROM cards c
       ${joinSql}
+      ${stAggJoin}
       ${whereSql}
       ${orderBy}
     `;

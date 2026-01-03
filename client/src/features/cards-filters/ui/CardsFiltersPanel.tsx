@@ -13,6 +13,7 @@ import { CreatedAtSection } from "./sections/CreatedAtSection";
 import { TokensSection } from "./sections/TokensSection";
 import { AltGreetingsSection } from "./sections/AltGreetingsSection";
 import { FieldsPresenceSection } from "./sections/FieldsPresenceSection";
+import { ChatsSection } from "./sections/ChatsSection";
 
 export function CardsFiltersPanel() {
   const { t } = useTranslation();
@@ -30,6 +31,7 @@ export function CardsFiltersPanel() {
 
       <SearchAndSortSection />
       <SourceSection />
+      <ChatsSection />
       <HiddenSection />
       <FavoritesSection />
       <TextSearchSection />

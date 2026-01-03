@@ -7,6 +7,10 @@ export type CardsSort =
   | "name_desc"
   | "prompt_tokens_desc"
   | "prompt_tokens_asc"
+  | "st_chats_count_desc"
+  | "st_chats_count_asc"
+  | "st_last_chat_at_desc"
+  | "st_last_chat_at_asc"
   | "relevance";
 
 export type CardsFtsField =
@@ -49,4 +53,9 @@ export interface CardsQuery {
   prompt_tokens_min?: number;
   prompt_tokens_max?: number;
   patterns?: TriState;
+
+  // SillyTavern chats filters (computed on backend from card_files)
+  st_chats_count?: number;
+  st_chats_count_op?: "eq" | "gte" | "lte";
+  st_profile_handle?: string;
 }

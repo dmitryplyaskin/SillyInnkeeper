@@ -59,6 +59,13 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
 
   if (query?.patterns) params.set("patterns", query.patterns);
 
+  if (typeof query?.st_chats_count === "number")
+    params.set("st_chats_count", String(query.st_chats_count));
+  if (query?.st_chats_count_op)
+    params.set("st_chats_count_op", query.st_chats_count_op);
+  if (query?.st_profile_handle && query.st_profile_handle.trim().length > 0)
+    params.set("st_profile_handle", query.st_profile_handle.trim());
+
   if (typeof query?.alternate_greetings_min === "number")
     params.set(
       "alternate_greetings_min",

@@ -11,6 +11,10 @@ const SORT_DATA = [
   { value: "name_desc", label: "filters.sortNameDesc" },
   { value: "prompt_tokens_desc", label: "filters.sortTokensDesc" },
   { value: "prompt_tokens_asc", label: "filters.sortTokensAsc" },
+  { value: "st_chats_count_desc", label: "filters.sortChatsCountDesc" },
+  { value: "st_chats_count_asc", label: "filters.sortChatsCountAsc" },
+  { value: "st_last_chat_at_desc", label: "filters.sortLastChatDesc" },
+  { value: "st_last_chat_at_asc", label: "filters.sortLastChatAsc" },
   { value: "relevance", label: "filters.sortRelevance" },
 ] as const;
 

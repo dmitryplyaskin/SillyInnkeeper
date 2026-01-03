@@ -10,6 +10,7 @@ export interface CardsFiltersResponse {
   creators: FilterOption[];
   spec_versions: FilterOption[];
   tags: FilterOption[];
+  st_profiles: FilterOption[];
 }
 
 export class CardsFiltersService {
@@ -73,11 +74,30 @@ export class CardsFiltersService {
     return this.dbService.query<FilterOption>(sql, lib.params);
   }
 
+  getStProfiles(libraryIds: string | string[]): FilterOption[] {
+    const lib = this.buildLibraryWhere(libraryIds);
+    const sql = `
+      SELECT
+        cf.st_profile_handle as value,
+        COUNT(DISTINCT c.id) as count
+      FROM card_files cf
+      JOIN cards c ON c.id = cf.card_id
+      WHERE ${lib.whereSql}
+        AND c.is_sillytavern = 1
+        AND cf.st_profile_handle IS NOT NULL
+        AND TRIM(cf.st_profile_handle) != ''
+      GROUP BY cf.st_profile_handle
+      ORDER BY count DESC, value COLLATE NOCASE ASC
+    `;
+    return this.dbService.query<FilterOption>(sql, lib.params);
+  }
+
   getFilters(libraryIds: string | string[]): CardsFiltersResponse {
     return {
       creators: this.getCreators(libraryIds),
       spec_versions: this.getSpecVersions(libraryIds),
       tags: this.getTags(libraryIds),
+      st_profiles: this.getStProfiles(libraryIds),
     };
   }
 }

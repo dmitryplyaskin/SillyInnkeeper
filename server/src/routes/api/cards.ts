@@ -173,6 +173,10 @@ router.get("/cards", async (req: Request, res: Response) => {
       sortRaw === "name_desc" ||
       sortRaw === "prompt_tokens_desc" ||
       sortRaw === "prompt_tokens_asc" ||
+      sortRaw === "st_chats_count_desc" ||
+      sortRaw === "st_chats_count_asc" ||
+      sortRaw === "st_last_chat_at_desc" ||
+      sortRaw === "st_last_chat_at_asc" ||
       sortRaw === "relevance"
         ? sortRaw
         : undefined;
@@ -306,6 +310,16 @@ router.get("/cards", async (req: Request, res: Response) => {
     const promptTokensMin = parseNumber((req.query as any).prompt_tokens_min);
     const promptTokensMax = parseNumber((req.query as any).prompt_tokens_max);
 
+    const stChatsCount = parseNumber((req.query as any).st_chats_count);
+    const stChatsCountOpRaw = parseString((req.query as any).st_chats_count_op);
+    const st_chats_count_op: "eq" | "gte" | "lte" | undefined =
+      stChatsCountOpRaw === "eq" ||
+      stChatsCountOpRaw === "gte" ||
+      stChatsCountOpRaw === "lte"
+        ? stChatsCountOpRaw
+        : undefined;
+    const st_profile_handle = parseString((req.query as any).st_profile_handle);
+
     // Default: hide hidden cards
     const isHiddenRaw = (req.query as any).is_hidden;
     const is_hidden: TriState =
@@ -351,7 +365,24 @@ router.get("/cards", async (req: Request, res: Response) => {
         typeof promptTokensMax === "number" && promptTokensMax >= 0
           ? promptTokensMax
           : undefined,
+      // ST chats filters
+      st_chats_count:
+        typeof stChatsCount === "number" && stChatsCount >= 0
+          ? stChatsCount
+          : undefined,
+      st_chats_count_op: st_chats_count_op ?? undefined,
+      st_profile_handle: st_profile_handle ?? undefined,
     };
+
+    // UX rule: when sorting by ST chats, show only SillyTavern cards.
+    if (
+      sort === "st_chats_count_desc" ||
+      sort === "st_chats_count_asc" ||
+      sort === "st_last_chat_at_desc" ||
+      sort === "st_last_chat_at_asc"
+    ) {
+      params.is_sillytavern = "1";
+    }
 
     const cardsList = cardsService.searchCards(params);
     res.json(cardsList);
