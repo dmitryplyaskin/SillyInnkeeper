@@ -179,6 +179,8 @@ const en = {
     sortChatsCountAsc: "Chats: low → high (ST)",
     sortLastChatDesc: "Last chat: new → old (ST)",
     sortLastChatAsc: "Last chat: old → new (ST)",
+    sortFirstChatDesc: "First chat: new → old (ST)",
+    sortFirstChatAsc: "First chat: old → new (ST)",
     chats: "Chats (ST)",
     chatsCount: "Chats count",
     chatsCountOp: "Compare",

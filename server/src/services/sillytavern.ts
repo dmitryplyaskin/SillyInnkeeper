@@ -35,6 +35,18 @@ function getMtimeMsSafe(filePath: string): number {
   }
 }
 
+function getBirthtimeOrMtimeMsSafe(filePath: string): number {
+  try {
+    const st = statSync(filePath);
+    const birth = st.birthtimeMs;
+    const mtime = st.mtimeMs;
+    if (Number.isFinite(birth) && birth > 0) return birth;
+    return Number.isFinite(mtime) ? mtime : 0;
+  } catch {
+    return 0;
+  }
+}
+
 async function getChatsFolderStats(
   chatsFolderPath: string
 ): Promise<{ chatsCount: number; lastChatAt: number; firstChatAt: number }> {
@@ -55,10 +67,13 @@ async function getChatsFolderStats(
       if (typeof name !== "string") continue;
       if (!name.toLowerCase().endsWith(".jsonl")) continue;
       chatsCount += 1;
-      const mtime = getMtimeMsSafe(join(chatsFolderPath, name));
-      if (mtime > 0) {
-        if (mtime > lastChatAt) lastChatAt = mtime;
-        if (firstChatAt === 0 || mtime < firstChatAt) firstChatAt = mtime;
+      const fullPath = join(chatsFolderPath, name);
+      const mtime = getMtimeMsSafe(fullPath);
+      if (mtime > lastChatAt) lastChatAt = mtime;
+
+      const createdAt = getBirthtimeOrMtimeMsSafe(fullPath);
+      if (createdAt > 0) {
+        if (firstChatAt === 0 || createdAt < firstChatAt) firstChatAt = createdAt;
       }
     }
 

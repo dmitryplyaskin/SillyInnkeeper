@@ -15,6 +15,8 @@ const SORT_DATA = [
   { value: "st_chats_count_asc", label: "filters.sortChatsCountAsc" },
   { value: "st_last_chat_at_desc", label: "filters.sortLastChatDesc" },
   { value: "st_last_chat_at_asc", label: "filters.sortLastChatAsc" },
+  { value: "st_first_chat_at_desc", label: "filters.sortFirstChatDesc" },
+  { value: "st_first_chat_at_asc", label: "filters.sortFirstChatAsc" },
   { value: "relevance", label: "filters.sortRelevance" },
 ] as const;
 

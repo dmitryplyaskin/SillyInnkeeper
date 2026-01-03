@@ -32,6 +32,8 @@ export type CardsSort =
   | "st_chats_count_asc"
   | "st_last_chat_at_desc"
   | "st_last_chat_at_asc"
+  | "st_first_chat_at_desc"
+  | "st_first_chat_at_asc"
   | "relevance";
 
 export type CardsFtsField =
@@ -123,6 +125,8 @@ export class CardsService {
       effectiveSort === "st_chats_count_asc" ||
       effectiveSort === "st_last_chat_at_desc" ||
       effectiveSort === "st_last_chat_at_asc" ||
+      effectiveSort === "st_first_chat_at_desc" ||
+      effectiveSort === "st_first_chat_at_asc" ||
       params.st_has_chats === true ||
       (typeof params.st_chats_count === "number" &&
         Number.isFinite(params.st_chats_count) &&
@@ -430,7 +434,8 @@ export class CardsService {
           SELECT
             cf.card_id as card_id,
             SUM(COALESCE(cf.st_chats_count, 0)) as st_chats_count_sum,
-            MAX(COALESCE(cf.st_last_chat_at, 0)) as st_last_chat_at_max
+            MAX(COALESCE(cf.st_last_chat_at, 0)) as st_last_chat_at_max,
+            MIN(NULLIF(cf.st_first_chat_at, 0)) as st_first_chat_at_min
           FROM card_files cf
           GROUP BY cf.card_id
         ) stagg ON stagg.card_id = c.id
@@ -488,6 +493,10 @@ export class CardsService {
           return `ORDER BY COALESCE(stagg.st_last_chat_at_max, 0) ASC, c.created_at DESC`;
         case "st_last_chat_at_desc":
           return `ORDER BY COALESCE(stagg.st_last_chat_at_max, 0) DESC, c.created_at DESC`;
+        case "st_first_chat_at_asc":
+          return `ORDER BY COALESCE(stagg.st_first_chat_at_min, 0) ASC, c.created_at DESC`;
+        case "st_first_chat_at_desc":
+          return `ORDER BY COALESCE(stagg.st_first_chat_at_min, 0) DESC, c.created_at DESC`;
         case "created_at_desc":
         default:
           return `ORDER BY c.created_at DESC`;

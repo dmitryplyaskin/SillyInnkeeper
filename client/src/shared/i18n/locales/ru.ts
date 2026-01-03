@@ -181,6 +181,8 @@ const ru = {
     sortChatsCountAsc: "Чаты: меньше → больше (ST)",
     sortLastChatDesc: "Последний чат: новые → старые (ST)",
     sortLastChatAsc: "Последний чат: старые → новые (ST)",
+    sortFirstChatDesc: "Первый чат: новые → старые (ST)",
+    sortFirstChatAsc: "Первый чат: старые → новые (ST)",
     chats: "Чаты (ST)",
     chatsCount: "Кол-во чатов",
     chatsCountOp: "Сравнение",

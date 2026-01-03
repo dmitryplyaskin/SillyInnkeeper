@@ -1,19 +1,7 @@
 import { useState } from "react";
-import {
-  ActionIcon,
-  Button,
-  Code,
-  Divider,
-  Group,
-  Modal,
-  Paper,
-  Stack,
-  Text,
-  Tooltip,
-} from "@mantine/core";
+import { Button, Divider, Group, Paper, Stack, Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useUnit } from "effector-react";
-import { IconFolder, IconStar, IconTrash } from "@tabler/icons-react";
 import type { CardDetails } from "@/shared/types/cards";
 import i18n from "@/shared/i18n/i18n";
 import { deleteCardFileDuplicate } from "@/shared/api/cards";
@@ -41,6 +29,10 @@ import {
   $lorebook,
   draftSaved,
 } from "../../model.form";
+import { SillyTavernChatsInfo } from "./sillytavern-chats-info";
+import { CardDuplicatesSection } from "./card-duplicates-section";
+import { ConfirmDeleteDuplicateModal } from "./confirm-delete-duplicate-modal";
+import { SaveCardModal, type SaveCardMode } from "./save-card-modal";
 
 function getFilenameFromPath(filePath: string | null | undefined): string {
   const p = (filePath ?? "").trim();
@@ -241,7 +233,7 @@ export function CardDetailsActionsPanel({
     setSaveOpened(true);
   }
 
-  async function doSave(mode: Parameters<typeof saveCard>[0]["mode"]) {
+  async function doSave(mode: SaveCardMode) {
     if (!details?.id) return;
     if (!pendingCardJson) return;
     if (isSaving) return;
@@ -473,66 +465,9 @@ export function CardDetailsActionsPanel({
           <Text fw={650}>{i18n.t("cardDetails.metadata")}</Text>
 
           <Stack gap={6}>
-            {details?.is_sillytavern === true &&
-              (() => {
-                const meta = details?.files_meta ?? [];
-                const totalChats = meta.reduce(
-                  (acc, m) =>
-                    acc +
-                    (Number.isFinite(m.st_chats_count) ? m.st_chats_count : 0),
-                  0
-                );
-                const lastChatAt = meta.reduce(
-                  (acc, m) =>
-                    Math.max(
-                      acc,
-                      Number.isFinite(m.st_last_chat_at) ? m.st_last_chat_at : 0
-                    ),
-                  0
-                );
-                const firstChatAt = meta.reduce((acc, m) => {
-                  const v = Number.isFinite(m.st_first_chat_at)
-                    ? m.st_first_chat_at
-                    : 0;
-                  if (v <= 0) return acc;
-                  return acc === 0 ? v : Math.min(acc, v);
-                }, 0);
-
-                const locale = i18n.language === "ru" ? "ru-RU" : "en-US";
-                const formatDateOrNone = (ms: number) =>
-                  ms > 0
-                    ? new Date(ms).toLocaleString(locale)
-                    : i18n.t("empty.none");
-
-                return (
-                  <>
-                    <Group justify="space-between" wrap="nowrap">
-                      <Text size="sm" c="dimmed">
-                        {i18n.t("cardDetails.stChatsCount")}
-                      </Text>
-                      <Text size="sm">
-                        {totalChats > 0
-                          ? String(totalChats)
-                          : i18n.t("empty.none")}
-                      </Text>
-                    </Group>
-
-                    <Group justify="space-between" wrap="nowrap">
-                      <Text size="sm" c="dimmed">
-                        {i18n.t("cardDetails.stLastChat")}
-                      </Text>
-                      <Text size="sm">{formatDateOrNone(lastChatAt)}</Text>
-                    </Group>
-
-                    <Group justify="space-between" wrap="nowrap">
-                      <Text size="sm" c="dimmed">
-                        {i18n.t("cardDetails.stFirstChat")}
-                      </Text>
-                      <Text size="sm">{formatDateOrNone(firstChatAt)}</Text>
-                    </Group>
-                  </>
-                );
-              })()}
+            {details?.is_sillytavern === true && (
+              <SillyTavernChatsInfo filesMeta={details?.files_meta} />
+            )}
 
             <Group justify="space-between" wrap="nowrap" align="flex-start">
               <Text size="sm" c="dimmed">
@@ -601,210 +536,39 @@ export function CardDetailsActionsPanel({
           {hasDuplicates && (
             <>
               <Divider my="sm" />
-
-              <Text fw={650}>{i18n.t("cardDetails.duplicatesTitle")}</Text>
-              <Stack gap={8}>
-                {duplicates.map((p) => (
-                  <Paper key={p} p="xs">
-                    <Group
-                      justify="space-between"
-                      align="flex-start"
-                      wrap="nowrap"
-                    >
-                      <CopyableTruncatedText
-                        value={p}
-                        copyValue={p}
-                        tooltip={p}
-                        keepStart={18}
-                        keepEnd={18}
-                        maxWidth="100%"
-                        onCopiedMessage={i18n.t("cardDetails.copiedPath")}
-                        onCopyFailedMessage={i18n.t("cardDetails.copyFailed")}
-                      />
-                      <Group gap={6} wrap="nowrap">
-                        <Tooltip
-                          label={i18n.t("cardDetails.makeMainFile")}
-                          withArrow
-                        >
-                          <ActionIcon
-                            variant="light"
-                            color="indigo"
-                            onClick={() => void makeDuplicateMain(p)}
-                            loading={isSettingMainFile}
-                            aria-label={i18n.t("cardDetails.makeMainFile")}
-                          >
-                            <IconStar size={18} />
-                          </ActionIcon>
-                        </Tooltip>
-
-                        <Tooltip
-                          label={i18n.t("cardDetails.showInExplorer")}
-                          withArrow
-                        >
-                          <ActionIcon
-                            variant="light"
-                            onClick={() => void openDuplicateInExplorer(p)}
-                            loading={openingDuplicatePath === p}
-                            aria-label={i18n.t("cardDetails.showInExplorer")}
-                          >
-                            <IconFolder size={18} />
-                          </ActionIcon>
-                        </Tooltip>
-
-                        <Tooltip
-                          label={i18n.t("cardDetails.deleteDuplicate")}
-                          withArrow
-                        >
-                          <ActionIcon
-                            variant="light"
-                            color="red"
-                            onClick={() => {
-                              setSelectedDuplicatePath(p);
-                              setConfirmDeleteDuplicateOpened(true);
-                            }}
-                            aria-label={i18n.t("cardDetails.deleteDuplicate")}
-                          >
-                            <IconTrash size={18} />
-                          </ActionIcon>
-                        </Tooltip>
-                      </Group>
-                    </Group>
-                  </Paper>
-                ))}
-              </Stack>
+              <CardDuplicatesSection
+                duplicates={duplicates}
+                isSettingMainFile={isSettingMainFile}
+                openingDuplicatePath={openingDuplicatePath}
+                onMakeMain={(p) => void makeDuplicateMain(p)}
+                onOpenInExplorer={(p) => void openDuplicateInExplorer(p)}
+                onRequestDelete={(p) => {
+                  setSelectedDuplicatePath(p);
+                  setConfirmDeleteDuplicateOpened(true);
+                }}
+              />
             </>
           )}
         </Stack>
       </Paper>
 
-      <Modal
+      <ConfirmDeleteDuplicateModal
         opened={confirmDeleteDuplicateOpened}
+        selectedDuplicatePath={selectedDuplicatePath}
+        isDeleting={isDeletingDuplicate}
         onClose={() => setConfirmDeleteDuplicateOpened(false)}
-        title={i18n.t("cardDetails.confirmDeleteDuplicateTitle")}
-        zIndex={500}
-        overlayProps={{ zIndex: 499 }}
-      >
-        <Stack gap="md">
-          <Text size="sm">
-            {i18n.t("cardDetails.confirmDeleteDuplicateMessage")}
-          </Text>
-          {selectedDuplicatePath && <Code block>{selectedDuplicatePath}</Code>}
-          <Group justify="flex-end">
-            <Button
-              variant="default"
-              onClick={() => setConfirmDeleteDuplicateOpened(false)}
-              disabled={isDeletingDuplicate}
-            >
-              {i18n.t("actions.cancel")}
-            </Button>
-            <Button
-              color="red"
-              onClick={() => void deleteDuplicateConfirmed()}
-              loading={isDeletingDuplicate}
-            >
-              {i18n.t("cardDetails.deleteDuplicate")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        onConfirm={() => void deleteDuplicateConfirmed()}
+      />
 
-      <Modal
+      <SaveCardModal
         opened={saveOpened}
+        hasDuplicates={hasDuplicates}
+        isSillyTavern={isSillyTavern}
+        cardsFolderPath={(settings?.cardsFolderPath ?? "").trim()}
+        isSaving={isSaving}
         onClose={() => setSaveOpened(false)}
-        title={i18n.t("cardDetails.saveModalTitle")}
-        zIndex={500}
-        overlayProps={{ zIndex: 499 }}
-      >
-        <Stack gap="md">
-          {!hasDuplicates ? (
-            <>
-              <Button
-                onClick={() => void doSave("overwrite_main")}
-                loading={isSaving}
-              >
-                {i18n.t("cardDetails.saveOverwrite")}
-              </Button>
-              <Button
-                variant="light"
-                onClick={() => void doSave("save_new")}
-                loading={isSaving}
-              >
-                {i18n.t("cardDetails.saveAsNew")}
-              </Button>
-              {isSillyTavern && (
-                <Tooltip
-                  label={i18n.t("cardDetails.saveToFolderTip", {
-                    path:
-                      (settings?.cardsFolderPath ?? "").trim() ||
-                      i18n.t("empty.dash"),
-                  })}
-                  withArrow
-                >
-                  <Button
-                    color="teal"
-                    variant="light"
-                    onClick={() => void doSave("save_new_to_library")}
-                    loading={isSaving}
-                  >
-                    {i18n.t("cardDetails.saveToFolder")}
-                  </Button>
-                </Tooltip>
-              )}
-            </>
-          ) : (
-            <>
-              <Button
-                onClick={() => void doSave("save_new")}
-                loading={isSaving}
-              >
-                {i18n.t("cardDetails.saveAsNew")}
-              </Button>
-              <Button
-                color="orange"
-                variant="light"
-                onClick={() => void doSave("save_new_delete_old_main")}
-                loading={isSaving}
-              >
-                {i18n.t("cardDetails.saveAsNewDeleteOld")}
-              </Button>
-              <Button
-                color="red"
-                variant="light"
-                onClick={() => void doSave("overwrite_all_files")}
-                loading={isSaving}
-              >
-                {i18n.t("cardDetails.saveOverwriteWithDuplicates")}
-              </Button>
-              {isSillyTavern && (
-                <Tooltip
-                  label={i18n.t("cardDetails.saveToFolderTip", {
-                    path:
-                      (settings?.cardsFolderPath ?? "").trim() ||
-                      i18n.t("empty.dash"),
-                  })}
-                  withArrow
-                >
-                  <Button
-                    color="teal"
-                    variant="light"
-                    onClick={() => void doSave("save_new_to_library")}
-                    loading={isSaving}
-                  >
-                    {i18n.t("cardDetails.saveToFolder")}
-                  </Button>
-                </Tooltip>
-              )}
-            </>
-          )}
-          <Button
-            variant="default"
-            onClick={() => setSaveOpened(false)}
-            disabled={isSaving}
-          >
-            {i18n.t("actions.cancel")}
-          </Button>
-        </Stack>
-      </Modal>
+        onSave={(mode) => void doSave(mode)}
+      />
     </>
   );
 }

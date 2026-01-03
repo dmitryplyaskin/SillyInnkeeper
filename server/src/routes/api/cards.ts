@@ -177,6 +177,8 @@ router.get("/cards", async (req: Request, res: Response) => {
       sortRaw === "st_chats_count_asc" ||
       sortRaw === "st_last_chat_at_desc" ||
       sortRaw === "st_last_chat_at_asc" ||
+      sortRaw === "st_first_chat_at_desc" ||
+      sortRaw === "st_first_chat_at_asc" ||
       sortRaw === "relevance"
         ? sortRaw
         : undefined;
@@ -382,7 +384,9 @@ router.get("/cards", async (req: Request, res: Response) => {
       sort === "st_chats_count_desc" ||
       sort === "st_chats_count_asc" ||
       sort === "st_last_chat_at_desc" ||
-      sort === "st_last_chat_at_asc"
+      sort === "st_last_chat_at_asc" ||
+      sort === "st_first_chat_at_desc" ||
+      sort === "st_first_chat_at_asc"
     ) {
       params.is_sillytavern = "1";
     }

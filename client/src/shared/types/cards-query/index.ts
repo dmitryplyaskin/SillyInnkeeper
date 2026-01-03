@@ -11,6 +11,8 @@ export type CardsSort =
   | "st_chats_count_asc"
   | "st_last_chat_at_desc"
   | "st_last_chat_at_asc"
+  | "st_first_chat_at_desc"
+  | "st_first_chat_at_asc"
   | "relevance";
 
 export type CardsFtsField =
