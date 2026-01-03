@@ -61,6 +61,7 @@ export interface CardsFiltersState {
   st_chats_count?: number;
   st_chats_count_op?: "eq" | "gte" | "lte";
   st_profile_handle?: string;
+  st_hide_no_chats: boolean;
 }
 
 const CARDS_FILTERS_STATE_FILE_PATH = join(
@@ -109,6 +110,7 @@ const DEFAULT_STATE: CardsFiltersState = {
   st_chats_count: undefined,
   st_chats_count_op: "gte",
   st_profile_handle: undefined,
+  st_hide_no_chats: false,
 };
 
 const SORT_VALUES: CardsSort[] = [
@@ -177,6 +179,13 @@ function normalizeChatsCountOp(
   v: unknown
 ): "eq" | "gte" | "lte" | undefined {
   return v === "eq" || v === "gte" || v === "lte" ? v : undefined;
+}
+
+function normalizeBoolean(v: unknown, fallback: boolean = false): boolean {
+  if (typeof v === "boolean") return v;
+  if (v === 1 || v === "1" || v === "true") return true;
+  if (v === 0 || v === "0" || v === "false") return false;
+  return fallback;
 }
 
 function isIsoDate(value: unknown): value is string {
@@ -293,6 +302,10 @@ function normalizeState(raw: unknown): CardsFiltersState {
     st_chats_count: normalizeOptionalNonNegativeInt(src.st_chats_count),
     st_chats_count_op: normalizeChatsCountOp(src.st_chats_count_op),
     st_profile_handle: normalizeOptionalString(src.st_profile_handle),
+    st_hide_no_chats: normalizeBoolean(
+      src.st_hide_no_chats,
+      DEFAULT_STATE.st_hide_no_chats
+    ),
   };
 }
 

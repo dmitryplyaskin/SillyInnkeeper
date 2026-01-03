@@ -52,6 +52,7 @@ const ru = {
   },
   empty: {
     dash: "—",
+    none: "none",
     notFoundCards: "Карточки не найдены",
   },
   home: {
@@ -184,6 +185,7 @@ const ru = {
     chatsCount: "Кол-во чатов",
     chatsCountOp: "Сравнение",
     stProfile: "Профиль ST",
+    hideNoChats: "Скрыть карточки без чатов",
     opEq: "Точно (=)",
     opGte: "Больше или равно (≥)",
     opLte: "Меньше или равно (≤)",
@@ -233,6 +235,9 @@ const ru = {
     mainFile: "Файл",
     createdAt: "Создано",
     tokensApprox: "Токены (≈)",
+    stChatsCount: "Кол-во чатов (ST)",
+    stLastChat: "Последний чат (ST)",
+    stFirstChat: "Первый чат (ST)",
     tabsMain: "Основное",
     tabsAlt: "Альтернативные приветствия",
     tabsSystem: "Системное",

@@ -58,4 +58,5 @@ export interface CardsQuery {
   st_chats_count?: number;
   st_chats_count_op?: "eq" | "gte" | "lte";
   st_profile_handle?: string;
+  st_has_chats?: "1";
 }

@@ -319,6 +319,8 @@ router.get("/cards", async (req: Request, res: Response) => {
         ? stChatsCountOpRaw
         : undefined;
     const st_profile_handle = parseString((req.query as any).st_profile_handle);
+    const st_has_chats_raw = parseString((req.query as any).st_has_chats);
+    const st_has_chats = st_has_chats_raw === "1" ? true : undefined;
 
     // Default: hide hidden cards
     const isHiddenRaw = (req.query as any).is_hidden;
@@ -372,6 +374,7 @@ router.get("/cards", async (req: Request, res: Response) => {
           : undefined,
       st_chats_count_op: st_chats_count_op ?? undefined,
       st_profile_handle: st_profile_handle ?? undefined,
+      st_has_chats,
     };
 
     // UX rule: when sorting by ST chats, show only SillyTavern cards.
@@ -381,6 +384,10 @@ router.get("/cards", async (req: Request, res: Response) => {
       sort === "st_last_chat_at_desc" ||
       sort === "st_last_chat_at_asc"
     ) {
+      params.is_sillytavern = "1";
+    }
+
+    if (st_has_chats === true) {
       params.is_sillytavern = "1";
     }
 

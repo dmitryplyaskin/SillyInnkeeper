@@ -83,6 +83,8 @@ export interface SearchCardsParams {
   st_chats_count_op?: "eq" | "gte" | "lte";
   // Filter by SillyTavern profile (stored in card_files.st_profile_handle)
   st_profile_handle?: string;
+  // Filter: only cards that have at least one ST chat (aggregated across all profiles)
+  st_has_chats?: boolean;
 }
 
 /**
@@ -121,6 +123,7 @@ export class CardsService {
       effectiveSort === "st_chats_count_asc" ||
       effectiveSort === "st_last_chat_at_desc" ||
       effectiveSort === "st_last_chat_at_asc" ||
+      params.st_has_chats === true ||
       (typeof params.st_chats_count === "number" &&
         Number.isFinite(params.st_chats_count) &&
         params.st_chats_count >= 0);
@@ -443,6 +446,10 @@ export class CardsService {
         where.push(`COALESCE(stagg.st_chats_count_sum, 0) >= ?`);
       }
       sqlParams.push(Math.floor(params.st_chats_count));
+    }
+
+    if (params.st_has_chats === true) {
+      where.push(`COALESCE(stagg.st_chats_count_sum, 0) > 0`);
     }
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";

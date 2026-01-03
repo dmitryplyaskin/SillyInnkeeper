@@ -473,6 +473,67 @@ export function CardDetailsActionsPanel({
           <Text fw={650}>{i18n.t("cardDetails.metadata")}</Text>
 
           <Stack gap={6}>
+            {details?.is_sillytavern === true &&
+              (() => {
+                const meta = details?.files_meta ?? [];
+                const totalChats = meta.reduce(
+                  (acc, m) =>
+                    acc +
+                    (Number.isFinite(m.st_chats_count) ? m.st_chats_count : 0),
+                  0
+                );
+                const lastChatAt = meta.reduce(
+                  (acc, m) =>
+                    Math.max(
+                      acc,
+                      Number.isFinite(m.st_last_chat_at) ? m.st_last_chat_at : 0
+                    ),
+                  0
+                );
+                const firstChatAt = meta.reduce((acc, m) => {
+                  const v = Number.isFinite(m.st_first_chat_at)
+                    ? m.st_first_chat_at
+                    : 0;
+                  if (v <= 0) return acc;
+                  return acc === 0 ? v : Math.min(acc, v);
+                }, 0);
+
+                const locale = i18n.language === "ru" ? "ru-RU" : "en-US";
+                const formatDateOrNone = (ms: number) =>
+                  ms > 0
+                    ? new Date(ms).toLocaleString(locale)
+                    : i18n.t("empty.none");
+
+                return (
+                  <>
+                    <Group justify="space-between" wrap="nowrap">
+                      <Text size="sm" c="dimmed">
+                        {i18n.t("cardDetails.stChatsCount")}
+                      </Text>
+                      <Text size="sm">
+                        {totalChats > 0
+                          ? String(totalChats)
+                          : i18n.t("empty.none")}
+                      </Text>
+                    </Group>
+
+                    <Group justify="space-between" wrap="nowrap">
+                      <Text size="sm" c="dimmed">
+                        {i18n.t("cardDetails.stLastChat")}
+                      </Text>
+                      <Text size="sm">{formatDateOrNone(lastChatAt)}</Text>
+                    </Group>
+
+                    <Group justify="space-between" wrap="nowrap">
+                      <Text size="sm" c="dimmed">
+                        {i18n.t("cardDetails.stFirstChat")}
+                      </Text>
+                      <Text size="sm">{formatDateOrNone(firstChatAt)}</Text>
+                    </Group>
+                  </>
+                );
+              })()}
+
             <Group justify="space-between" wrap="nowrap" align="flex-start">
               <Text size="sm" c="dimmed">
                 {i18n.t("cardDetails.mainFile")}

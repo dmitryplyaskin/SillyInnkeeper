@@ -1,26 +1,46 @@
-import { Divider, NumberInput, Select, SimpleGrid } from "@mantine/core";
+import { Checkbox, Divider, NumberInput, Select, SimpleGrid } from "@mantine/core";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
-import { $filters, $filtersData, setStChatsCount, setStChatsCountOp, setStProfileHandle } from "../../model";
+import {
+  $filters,
+  $filtersData,
+  setStChatsCount,
+  setStChatsCountOp,
+  setStHideNoChats,
+  setStProfileHandle,
+} from "../../model";
 
 const $count = $filters.map((s) => s.st_chats_count);
 const $op = $filters.map((s) => s.st_chats_count_op ?? "gte");
 const $profile = $filters.map((s) => s.st_profile_handle);
+const $hideNoChats = $filters.map((s) => s.st_hide_no_chats);
 const $profilesOptions = $filtersData.map((s) => s.st_profiles ?? []);
 
-const ANY_PROFILE_VALUE = "__any__";
+const ANY_PROFILE_VALUE = "__st_any_profile__";
 
 export function ChatsSection() {
   const { t } = useTranslation();
-  const [count, op, profile, profiles, onSetCount, onSetOp, onSetProfile] =
+  const [
+    count,
+    op,
+    profile,
+    hideNoChats,
+    profiles,
+    onSetCount,
+    onSetOp,
+    onSetProfile,
+    onSetHideNoChats,
+  ] =
     useUnit([
       $count,
       $op,
       $profile,
+      $hideNoChats,
       $profilesOptions,
       setStChatsCount,
       setStChatsCountOp,
       setStProfileHandle,
+      setStHideNoChats,
     ]);
 
   const opData = [
@@ -66,12 +86,22 @@ export function ChatsSection() {
       <Select
         label={t("filters.stProfile")}
         data={profileData as any}
-        value={profile ?? ANY_PROFILE_VALUE}
-        onChange={(v) =>
-          onSetProfile(
-            typeof v === "string" && v !== ANY_PROFILE_VALUE ? v : undefined
-          )
-        }
+        value={profile ?? null}
+        placeholder={t("filters.triAny")}
+        onChange={(v) => {
+          if (v === ANY_PROFILE_VALUE || v == null) {
+            onSetProfile(undefined);
+            return;
+          }
+          onSetProfile(v);
+        }}
+        clearable={Boolean(profile)}
+      />
+
+      <Checkbox
+        label={t("filters.hideNoChats")}
+        checked={Boolean(hideNoChats)}
+        onChange={(e) => onSetHideNoChats(e.currentTarget.checked)}
       />
     </>
   );

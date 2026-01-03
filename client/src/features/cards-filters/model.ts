@@ -65,6 +65,7 @@ const DEFAULT_FILTERS: CardsFiltersState = {
   st_chats_count: undefined,
   st_chats_count_op: "gte",
   st_profile_handle: undefined,
+  st_hide_no_chats: false,
 };
 
 function toLocalDayStartMs(dateStr: string): number | undefined {
@@ -147,6 +148,7 @@ function toQuery(state: CardsFiltersState): CardsQuery {
       state.st_profile_handle.trim().length > 0
         ? state.st_profile_handle.trim()
         : undefined,
+    st_has_chats: state.st_hide_no_chats ? "1" : undefined,
   };
 
   return query;
@@ -247,6 +249,7 @@ export const setPatterns = createEvent<TriState>();
 export const setStChatsCount = createEvent<number | undefined>();
 export const setStChatsCountOp = createEvent<"eq" | "gte" | "lte">();
 export const setStProfileHandle = createEvent<string | undefined>();
+export const setStHideNoChats = createEvent<boolean>();
 export const resetFilters = createEvent<void>();
 export const applyFilters = createEvent<void>();
 export const applyFiltersSilent = createEvent<void>();
@@ -340,6 +343,10 @@ $filters
       typeof st_profile_handle === "string" && st_profile_handle.trim().length > 0
         ? st_profile_handle.trim()
         : undefined,
+  }))
+  .on(setStHideNoChats, (s, st_hide_no_chats) => ({
+    ...s,
+    st_hide_no_chats: Boolean(st_hide_no_chats),
   }))
   .on(applyTagsBulkEditToSelectedTags, (s, payload) => {
     const normalize = (x: string) => x.trim().toLowerCase();
@@ -472,6 +479,7 @@ const immediateApplyClock = [
   setStChatsCount,
   setStChatsCountOp,
   setStProfileHandle,
+  setStHideNoChats,
 ];
 
 sample({
@@ -553,6 +561,7 @@ const persistNonTextChanged = merge([
   setStChatsCount,
   setStChatsCountOp,
   setStProfileHandle,
+  setStHideNoChats,
   applyTagsBulkEditToSelectedTags,
   resetFilters,
 ]);

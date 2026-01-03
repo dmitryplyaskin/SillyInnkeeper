@@ -52,6 +52,7 @@ const en = {
   },
   empty: {
     dash: "—",
+    none: "none",
     notFoundCards: "No cards found",
   },
   home: {
@@ -182,6 +183,7 @@ const en = {
     chatsCount: "Chats count",
     chatsCountOp: "Compare",
     stProfile: "ST profile",
+    hideNoChats: "Hide cards without chats",
     opEq: "Exact (=)",
     opGte: "Greater or equal (≥)",
     opLte: "Less or equal (≤)",
@@ -231,6 +233,9 @@ const en = {
     mainFile: "File",
     createdAt: "Created",
     tokensApprox: "Tokens (≈)",
+    stChatsCount: "Chats count (ST)",
+    stLastChat: "Last chat (ST)",
+    stFirstChat: "First chat (ST)",
     tabsMain: "Main",
     tabsAlt: "Alt greetings",
     tabsSystem: "System",
