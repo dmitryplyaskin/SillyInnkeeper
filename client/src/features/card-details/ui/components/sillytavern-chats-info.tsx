@@ -21,18 +21,25 @@ export function SillyTavernChatsInfo({
   const meta = Array.isArray(filesMeta) ? filesMeta : [];
 
   const totalChats = meta.reduce(
-    (acc, m) => acc + (Number.isFinite(m.st_chats_count) ? (m.st_chats_count as number) : 0),
+    (acc, m) =>
+      acc +
+      (Number.isFinite(m.st_chats_count) ? (m.st_chats_count as number) : 0),
     0
   );
 
   const lastChatAt = meta.reduce(
     (acc, m) =>
-      Math.max(acc, Number.isFinite(m.st_last_chat_at) ? (m.st_last_chat_at as number) : 0),
+      Math.max(
+        acc,
+        Number.isFinite(m.st_last_chat_at) ? (m.st_last_chat_at as number) : 0
+      ),
     0
   );
 
   const firstChatAt = meta.reduce((acc, m) => {
-    const v = Number.isFinite(m.st_first_chat_at) ? (m.st_first_chat_at as number) : 0;
+    const v = Number.isFinite(m.st_first_chat_at)
+      ? (m.st_first_chat_at as number)
+      : 0;
     if (v <= 0) return acc;
     return acc === 0 ? v : Math.min(acc, v);
   }, 0);
@@ -43,7 +50,9 @@ export function SillyTavernChatsInfo({
         <Text size="sm" c="dimmed">
           {i18n.t("cardDetails.stChatsCount")}
         </Text>
-        <Text size="sm">{totalChats > 0 ? String(totalChats) : i18n.t("empty.none")}</Text>
+        <Text size="sm">
+          {totalChats > 0 ? String(totalChats) : i18n.t("empty.none")}
+        </Text>
       </Group>
 
       <Group justify="space-between" wrap="nowrap">
@@ -62,5 +71,3 @@ export function SillyTavernChatsInfo({
     </>
   );
 }
-
-
