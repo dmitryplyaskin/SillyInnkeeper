@@ -8,6 +8,8 @@ const $op = $filters.map((s) => s.st_chats_count_op ?? "gte");
 const $profile = $filters.map((s) => s.st_profile_handle);
 const $profilesOptions = $filtersData.map((s) => s.st_profiles ?? []);
 
+const ANY_PROFILE_VALUE = "__any__";
+
 export function ChatsSection() {
   const { t } = useTranslation();
   const [count, op, profile, profiles, onSetCount, onSetOp, onSetProfile] =
@@ -28,7 +30,7 @@ export function ChatsSection() {
   ] as const;
 
   const profileData = [
-    { value: "", label: t("filters.triAny") },
+    { value: ANY_PROFILE_VALUE, label: t("filters.triAny") },
     ...profiles.map((p) => ({
       value: p.value,
       label: `${p.value} (${p.count})`,
@@ -39,7 +41,7 @@ export function ChatsSection() {
     <>
       <Divider label={t("filters.chats")} />
 
-      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <NumberInput
           label={t("filters.chatsCount")}
           min={0}
@@ -59,14 +61,18 @@ export function ChatsSection() {
           value={op}
           onChange={(v) => onSetOp(((v as any) ?? "gte") as any)}
         />
-
-        <Select
-          label={t("filters.stProfile")}
-          data={profileData as any}
-          value={profile ?? ""}
-          onChange={(v) => onSetProfile(v && v.length > 0 ? v : undefined)}
-        />
       </SimpleGrid>
+
+      <Select
+        label={t("filters.stProfile")}
+        data={profileData as any}
+        value={profile ?? ANY_PROFILE_VALUE}
+        onChange={(v) =>
+          onSetProfile(
+            typeof v === "string" && v !== ANY_PROFILE_VALUE ? v : undefined
+          )
+        }
+      />
     </>
   );
 }

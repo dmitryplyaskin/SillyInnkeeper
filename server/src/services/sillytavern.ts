@@ -11,6 +11,7 @@ type PngFileEntry = {
   stChatsFolderPath: string;
   stChatsCount: number;
   stLastChatAt: number;
+  stFirstChatAt: number;
 };
 
 function isFinitePositive(n: unknown): n is number {
@@ -36,16 +37,17 @@ function getMtimeMsSafe(filePath: string): number {
 
 async function getChatsFolderStats(
   chatsFolderPath: string
-): Promise<{ chatsCount: number; lastChatAt: number }> {
+): Promise<{ chatsCount: number; lastChatAt: number; firstChatAt: number }> {
   // Fast path: no folder => 0
   if (!existsSync(chatsFolderPath)) {
-    return { chatsCount: 0, lastChatAt: 0 };
+    return { chatsCount: 0, lastChatAt: 0, firstChatAt: 0 };
   }
 
   try {
     const files = await readdir(chatsFolderPath, { withFileTypes: true });
     let chatsCount = 0;
     let lastChatAt = 0;
+    let firstChatAt = 0;
 
     for (const f of files) {
       if (!f.isFile()) continue;
@@ -54,12 +56,15 @@ async function getChatsFolderStats(
       if (!name.toLowerCase().endsWith(".jsonl")) continue;
       chatsCount += 1;
       const mtime = getMtimeMsSafe(join(chatsFolderPath, name));
-      if (mtime > lastChatAt) lastChatAt = mtime;
+      if (mtime > 0) {
+        if (mtime > lastChatAt) lastChatAt = mtime;
+        if (firstChatAt === 0 || mtime < firstChatAt) firstChatAt = mtime;
+      }
     }
 
-    return { chatsCount, lastChatAt };
+    return { chatsCount, lastChatAt, firstChatAt };
   } catch {
-    return { chatsCount: 0, lastChatAt: 0 };
+    return { chatsCount: 0, lastChatAt: 0, firstChatAt: 0 };
   }
 }
 
@@ -114,7 +119,7 @@ export async function listSillyTavernCharactersDirPngs(
         const p = parse(name);
         const avatarBase = p.name;
         const stChatsFolderPath = join(dataDir, profileHandle, "chats", avatarBase);
-        const { chatsCount, lastChatAt } = await getChatsFolderStats(
+        const { chatsCount, lastChatAt, firstChatAt } = await getChatsFolderStats(
           stChatsFolderPath
         );
         pngEntries.push({
@@ -126,6 +131,7 @@ export async function listSillyTavernCharactersDirPngs(
           stChatsFolderPath,
           stChatsCount: chatsCount,
           stLastChatAt: lastChatAt,
+          stFirstChatAt: firstChatAt,
         });
       } catch {
         // If file disappears during listing, ignore.

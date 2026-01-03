@@ -68,6 +68,7 @@ export class ScanService {
       stChatsFolderPath?: string;
       stChatsCount?: number;
       stLastChatAt?: number;
+      stFirstChatAt?: number;
     }
   ): Promise<void> {
     await this.processFile(filePath, stMeta);
@@ -193,6 +194,7 @@ export class ScanService {
               stChatsFolderPath: entry.stChatsFolderPath,
               stChatsCount: entry.stChatsCount,
               stLastChatAt: entry.stLastChatAt,
+              stFirstChatAt: entry.stFirstChatAt,
             });
           } finally {
             processedFiles += 1;
@@ -269,6 +271,7 @@ export class ScanService {
               stChatsFolderPath: entry.stChatsFolderPath,
               stChatsCount: entry.stChatsCount,
               stLastChatAt: entry.stLastChatAt,
+              stFirstChatAt: entry.stFirstChatAt,
             });
           } finally {
             processedFiles += 1;
@@ -351,6 +354,7 @@ export class ScanService {
       stChatsFolderPath?: string;
       stChatsCount?: number;
       stLastChatAt?: number;
+      stFirstChatAt?: number;
     }
   ): Promise<void> {
     try {
@@ -389,6 +393,7 @@ export class ScanService {
         st_chats_folder_path?: string | null;
         st_chats_count?: number | null;
         st_last_chat_at?: number | null;
+        st_first_chat_at?: number | null;
       }>(
         `SELECT 
           cf.card_id,
@@ -401,6 +406,7 @@ export class ScanService {
           cf.st_chats_folder_path,
           cf.st_chats_count,
           cf.st_last_chat_at,
+          cf.st_first_chat_at,
           c.prompt_tokens_est as prompt_tokens_est
         FROM card_files cf
         LEFT JOIN cards c ON c.id = cf.card_id
@@ -435,6 +441,11 @@ export class ScanService {
             Number.isFinite(stMeta!.stLastChatAt)
               ? stMeta!.stLastChatAt
               : null;
+          const nextFirstChatAt =
+            typeof stMeta!.stFirstChatAt === "number" &&
+            Number.isFinite(stMeta!.stFirstChatAt)
+              ? stMeta!.stFirstChatAt
+              : null;
 
           const needUpdate =
             (existingFile.st_profile_handle ?? null) !==
@@ -449,7 +460,9 @@ export class ScanService {
             (nextChatsCount != null &&
               (existingFile.st_chats_count ?? 0) !== nextChatsCount) ||
             (nextLastChatAt != null &&
-              (existingFile.st_last_chat_at ?? 0) !== nextLastChatAt);
+              (existingFile.st_last_chat_at ?? 0) !== nextLastChatAt) ||
+            (nextFirstChatAt != null &&
+              (existingFile.st_first_chat_at ?? 0) !== nextFirstChatAt);
 
           if (needUpdate) {
             this.dbService.execute(
@@ -459,7 +472,8 @@ export class ScanService {
                    st_avatar_base = ?,
                    st_chats_folder_path = COALESCE(?, st_chats_folder_path),
                    st_chats_count = COALESCE(?, st_chats_count),
-                   st_last_chat_at = COALESCE(?, st_last_chat_at)
+                   st_last_chat_at = COALESCE(?, st_last_chat_at),
+                   st_first_chat_at = COALESCE(?, st_first_chat_at)
                WHERE file_path = ?`,
               [
                 stMeta!.stProfileHandle,
@@ -468,6 +482,7 @@ export class ScanService {
                 nextChatsFolderPath,
                 nextChatsCount,
                 nextLastChatAt,
+                nextFirstChatAt,
                 filePath,
               ]
             );
@@ -727,7 +742,8 @@ export class ScanService {
                 st_avatar_base = COALESCE(?, st_avatar_base),
                 st_chats_folder_path = COALESCE(?, st_chats_folder_path),
                 st_chats_count = COALESCE(?, st_chats_count),
-                st_last_chat_at = COALESCE(?, st_last_chat_at)
+                st_last_chat_at = COALESCE(?, st_last_chat_at),
+                st_first_chat_at = COALESCE(?, st_first_chat_at)
               WHERE file_path = ?`,
               [
                 fileMtime,
@@ -748,6 +764,11 @@ export class ScanService {
                     ? stMeta!.stLastChatAt
                     : null
                   : null,
+                shouldSetStMeta
+                  ? typeof stMeta!.stFirstChatAt === "number"
+                    ? stMeta!.stFirstChatAt
+                    : null
+                  : null,
                 filePath,
               ]
             );
@@ -763,7 +784,8 @@ export class ScanService {
                 st_avatar_base = ?,
                 st_chats_folder_path = ?,
                 st_chats_count = ?,
-                st_last_chat_at = ?
+                st_last_chat_at = ?,
+                st_first_chat_at = ?
               WHERE file_path = ?`,
               [
                 fileMtime,
@@ -774,8 +796,9 @@ export class ScanService {
                 null,
                 null,
                 null,
-                null,
-                null,
+                0,
+                0,
+                0,
                 filePath,
               ]
             );
@@ -924,9 +947,10 @@ export class ScanService {
               st_avatar_base,
               st_chats_folder_path,
               st_chats_count,
-              st_last_chat_at
+              st_last_chat_at,
+              st_first_chat_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               filePath,
               cardId,
@@ -946,6 +970,11 @@ export class ScanService {
               shouldSetStMeta
                 ? typeof stMeta!.stLastChatAt === "number"
                   ? stMeta!.stLastChatAt
+                  : 0
+                : 0,
+              shouldSetStMeta
+                ? typeof stMeta!.stFirstChatAt === "number"
+                  ? stMeta!.stFirstChatAt
                   : 0
                 : 0,
             ]

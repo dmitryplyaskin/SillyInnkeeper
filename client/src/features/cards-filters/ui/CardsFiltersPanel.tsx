@@ -31,10 +31,10 @@ export function CardsFiltersPanel() {
 
       <SearchAndSortSection />
       <SourceSection />
-      <ChatsSection />
       <HiddenSection />
       <FavoritesSection />
       <TextSearchSection />
+      <ChatsSection />
       <MetaSection />
       <CreatedAtSection />
       <TokensSection />

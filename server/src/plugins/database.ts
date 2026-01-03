@@ -516,6 +516,11 @@ function initializeSchema(db: Database.Database): void {
     "st_last_chat_at",
     "st_last_chat_at INTEGER NOT NULL DEFAULT 0"
   );
+  addColumnIfMissing(
+    "card_files",
+    "st_first_chat_at",
+    "st_first_chat_at INTEGER NOT NULL DEFAULT 0"
+  );
   // card_files: file_birthtime — время создания файла (нужно для корректного created_at карточки)
   // NOT NULL + DEFAULT нужен для старых БД.
   addColumnIfMissing(

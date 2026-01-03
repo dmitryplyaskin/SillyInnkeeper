@@ -639,7 +639,8 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
           cf.st_avatar_base,
           cf.st_chats_folder_path,
           cf.st_chats_count,
-          cf.st_last_chat_at
+          cf.st_last_chat_at,
+          cf.st_first_chat_at
         FROM card_files cf
         WHERE cf.card_id = ?
         ORDER BY cf.file_birthtime ASC, cf.file_path ASC
@@ -654,6 +655,7 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
       st_chats_folder_path: string | null;
       st_chats_count: number | null;
       st_last_chat_at: number | null;
+      st_first_chat_at: number | null;
     }>;
 
     const file_paths = fileRows
@@ -753,6 +755,9 @@ router.get("/cards/:id", async (req: Request, res: Response) => {
           : 0,
         st_last_chat_at: Number.isFinite(r.st_last_chat_at as number)
           ? (r.st_last_chat_at as number)
+          : 0,
+        st_first_chat_at: Number.isFinite(r.st_first_chat_at as number)
+          ? (r.st_first_chat_at as number)
           : 0,
       })),
 

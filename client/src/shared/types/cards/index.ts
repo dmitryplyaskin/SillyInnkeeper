@@ -67,6 +67,7 @@ export interface CardDetails {
     st_chats_folder_path: string | null;
     st_chats_count: number;
     st_last_chat_at: number;
+    st_first_chat_at: number;
   }>;
 
   data_json: unknown | null;

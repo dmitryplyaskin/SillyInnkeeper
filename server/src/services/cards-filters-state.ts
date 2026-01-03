@@ -12,6 +12,10 @@ export type CardsSort =
   | "name_desc"
   | "prompt_tokens_desc"
   | "prompt_tokens_asc"
+  | "st_chats_count_desc"
+  | "st_chats_count_asc"
+  | "st_last_chat_at_desc"
+  | "st_last_chat_at_asc"
   | "relevance";
 
 export type CardsFtsField =
@@ -52,6 +56,11 @@ export interface CardsFiltersState {
   has_alternate_greetings: TriState;
   alternate_greetings_min: number;
   patterns: TriState;
+
+  // SillyTavern chats filters
+  st_chats_count?: number;
+  st_chats_count_op?: "eq" | "gte" | "lte";
+  st_profile_handle?: string;
 }
 
 const CARDS_FILTERS_STATE_FILE_PATH = join(
@@ -97,6 +106,9 @@ const DEFAULT_STATE: CardsFiltersState = {
   has_alternate_greetings: "any",
   alternate_greetings_min: 0,
   patterns: "any",
+  st_chats_count: undefined,
+  st_chats_count_op: "gte",
+  st_profile_handle: undefined,
 };
 
 const SORT_VALUES: CardsSort[] = [
@@ -106,6 +118,10 @@ const SORT_VALUES: CardsSort[] = [
   "name_desc",
   "prompt_tokens_desc",
   "prompt_tokens_asc",
+  "st_chats_count_desc",
+  "st_chats_count_asc",
+  "st_last_chat_at_desc",
+  "st_last_chat_at_asc",
   "relevance",
 ];
 
@@ -142,6 +158,25 @@ function normalizeInt(v: unknown, fallback: number): number {
   const n = Number(v);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(0, Math.floor(n));
+}
+
+function normalizeOptionalNonNegativeInt(v: unknown): number | undefined {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return undefined;
+  if (n < 0) return undefined;
+  return Math.floor(n);
+}
+
+function normalizeOptionalString(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const s = v.trim();
+  return s.length > 0 ? s : undefined;
+}
+
+function normalizeChatsCountOp(
+  v: unknown
+): "eq" | "gte" | "lte" | undefined {
+  return v === "eq" || v === "gte" || v === "lte" ? v : undefined;
 }
 
 function isIsoDate(value: unknown): value is string {
@@ -254,6 +289,10 @@ function normalizeState(raw: unknown): CardsFiltersState {
       DEFAULT_STATE.alternate_greetings_min
     ),
     patterns: normalizeTriState(src.patterns, DEFAULT_STATE.patterns),
+
+    st_chats_count: normalizeOptionalNonNegativeInt(src.st_chats_count),
+    st_chats_count_op: normalizeChatsCountOp(src.st_chats_count_op),
+    st_profile_handle: normalizeOptionalString(src.st_profile_handle),
   };
 }
 
