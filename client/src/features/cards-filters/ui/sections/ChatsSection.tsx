@@ -1,4 +1,4 @@
-import { Checkbox, Divider, NumberInput, Select, SimpleGrid } from "@mantine/core";
+import { Checkbox, Divider, MultiSelect, NumberInput, Select, SimpleGrid } from "@mantine/core";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -9,14 +9,13 @@ import {
   setStHideNoChats,
   setStProfileHandle,
 } from "../../model";
+import { mergeOptions } from "../shared/mergeOptions";
 
 const $count = $filters.map((s) => s.st_chats_count);
 const $op = $filters.map((s) => s.st_chats_count_op ?? "gte");
 const $profile = $filters.map((s) => s.st_profile_handle);
 const $hideNoChats = $filters.map((s) => s.st_hide_no_chats);
 const $profilesOptions = $filtersData.map((s) => s.st_profiles ?? []);
-
-const ANY_PROFILE_VALUE = "__st_any_profile__";
 
 export function ChatsSection() {
   const { t } = useTranslation();
@@ -49,13 +48,7 @@ export function ChatsSection() {
     { value: "lte", label: t("filters.opLte") },
   ] as const;
 
-  const profileData = [
-    { value: ANY_PROFILE_VALUE, label: t("filters.triAny") },
-    ...profiles.map((p) => ({
-      value: p.value,
-      label: `${p.value} (${p.count})`,
-    })),
-  ];
+  const profileData = mergeOptions(profile, profiles);
 
   return (
     <>
@@ -83,19 +76,14 @@ export function ChatsSection() {
         />
       </SimpleGrid>
 
-      <Select
+      <MultiSelect
         label={t("filters.stProfile")}
-        data={profileData as any}
-        value={profile ?? null}
+        data={profileData}
+        value={profile}
         placeholder={t("filters.triAny")}
-        onChange={(v) => {
-          if (v === ANY_PROFILE_VALUE || v == null) {
-            onSetProfile(undefined);
-            return;
-          }
-          onSetProfile(v);
-        }}
-        clearable={Boolean(profile)}
+        onChange={onSetProfile}
+        searchable
+        clearable
       />
 
       <Checkbox

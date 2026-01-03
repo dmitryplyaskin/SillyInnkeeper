@@ -57,6 +57,6 @@ export interface CardsQuery {
   // SillyTavern chats filters (computed on backend from card_files)
   st_chats_count?: number;
   st_chats_count_op?: "eq" | "gte" | "lte";
-  st_profile_handle?: string;
+  st_profile_handle?: string[];
   st_has_chats?: "1";
 }

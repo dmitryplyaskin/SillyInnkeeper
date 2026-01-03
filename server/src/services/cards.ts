@@ -82,7 +82,7 @@ export interface SearchCardsParams {
   st_chats_count?: number;
   st_chats_count_op?: "eq" | "gte" | "lte";
   // Filter by SillyTavern profile (stored in card_files.st_profile_handle)
-  st_profile_handle?: string;
+  st_profile_handle?: string[];
   // Filter: only cards that have at least one ST chat (aggregated across all profiles)
   st_has_chats?: boolean;
 }
@@ -253,16 +253,22 @@ export class CardsService {
     }
 
     // ST profile filter: profile-specific meta stored in card_files
-    if (params.st_profile_handle && params.st_profile_handle.trim().length > 0) {
+    const stProfiles = Array.isArray(params.st_profile_handle)
+      ? params.st_profile_handle
+          .map((s) => String(s).trim())
+          .filter((s) => s.length > 0)
+      : [];
+    if (stProfiles.length > 0) {
+      const placeholders = stProfiles.map(() => "?").join(", ");
       where.push(
         `EXISTS (
           SELECT 1
           FROM card_files cf
           WHERE cf.card_id = c.id
-            AND cf.st_profile_handle = ?
+            AND cf.st_profile_handle IN (${placeholders})
         )`
       );
-      sqlParams.push(params.st_profile_handle.trim());
+      sqlParams.push(...stProfiles);
     }
 
     // pattern matches filter (cached)

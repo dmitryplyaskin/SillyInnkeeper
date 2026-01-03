@@ -63,8 +63,7 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
     params.set("st_chats_count", String(query.st_chats_count));
   if (query?.st_chats_count_op)
     params.set("st_chats_count_op", query.st_chats_count_op);
-  if (query?.st_profile_handle && query.st_profile_handle.trim().length > 0)
-    params.set("st_profile_handle", query.st_profile_handle.trim());
+  appendMany(params, "st_profile_handle", query?.st_profile_handle);
   if (query?.st_has_chats === "1") params.set("st_has_chats", "1");
 
   if (typeof query?.alternate_greetings_min === "number")

@@ -35,7 +35,7 @@ export interface CardsFiltersState {
   // SillyTavern chats filters
   st_chats_count?: number;
   st_chats_count_op?: "eq" | "gte" | "lte";
-  st_profile_handle?: string;
+  st_profile_handle: string[];
   st_hide_no_chats: boolean;
 }
 

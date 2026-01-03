@@ -64,7 +64,7 @@ const DEFAULT_FILTERS: CardsFiltersState = {
   patterns: "any",
   st_chats_count: undefined,
   st_chats_count_op: "gte",
-  st_profile_handle: undefined,
+  st_profile_handle: [],
   st_hide_no_chats: false,
 };
 
@@ -144,9 +144,10 @@ function toQuery(state: CardsFiltersState): CardsQuery {
         : undefined,
     st_chats_count_op: state.st_chats_count_op ?? undefined,
     st_profile_handle:
-      typeof state.st_profile_handle === "string" &&
-      state.st_profile_handle.trim().length > 0
-        ? state.st_profile_handle.trim()
+      Array.isArray(state.st_profile_handle) && state.st_profile_handle.length > 0
+        ? state.st_profile_handle
+            .map((s) => String(s).trim())
+            .filter((s) => s.length > 0)
         : undefined,
     st_has_chats: state.st_hide_no_chats ? "1" : undefined,
   };
@@ -248,7 +249,7 @@ export const setAlternateGreetingsMin = createEvent<number>();
 export const setPatterns = createEvent<TriState>();
 export const setStChatsCount = createEvent<number | undefined>();
 export const setStChatsCountOp = createEvent<"eq" | "gte" | "lte">();
-export const setStProfileHandle = createEvent<string | undefined>();
+export const setStProfileHandle = createEvent<string[]>();
 export const setStHideNoChats = createEvent<boolean>();
 export const resetFilters = createEvent<void>();
 export const applyFilters = createEvent<void>();
@@ -339,10 +340,11 @@ $filters
   }))
   .on(setStProfileHandle, (s, st_profile_handle) => ({
     ...s,
-    st_profile_handle:
-      typeof st_profile_handle === "string" && st_profile_handle.trim().length > 0
-        ? st_profile_handle.trim()
-        : undefined,
+    st_profile_handle: Array.isArray(st_profile_handle)
+      ? st_profile_handle
+          .map((x) => String(x).trim())
+          .filter((x) => x.length > 0)
+      : [],
   }))
   .on(setStHideNoChats, (s, st_hide_no_chats) => ({
     ...s,

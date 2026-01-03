@@ -60,7 +60,7 @@ export interface CardsFiltersState {
   // SillyTavern chats filters
   st_chats_count?: number;
   st_chats_count_op?: "eq" | "gte" | "lte";
-  st_profile_handle?: string;
+  st_profile_handle: string[];
   st_hide_no_chats: boolean;
 }
 
@@ -109,7 +109,7 @@ const DEFAULT_STATE: CardsFiltersState = {
   patterns: "any",
   st_chats_count: undefined,
   st_chats_count_op: "gte",
-  st_profile_handle: undefined,
+  st_profile_handle: [],
   st_hide_no_chats: false,
 };
 
@@ -209,6 +209,12 @@ function normalizeStringArray(value: unknown): string[] {
   return out;
 }
 
+function normalizeStringArrayOrSingle(value: unknown): string[] {
+  if (Array.isArray(value)) return normalizeStringArray(value);
+  if (typeof value === "string") return normalizeStringArray([value]);
+  return [];
+}
+
 function normalizeFtsFields(value: unknown): CardsFtsField[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const allowed = new Set(FTS_FIELD_VALUES);
@@ -301,7 +307,7 @@ function normalizeState(raw: unknown): CardsFiltersState {
 
     st_chats_count: normalizeOptionalNonNegativeInt(src.st_chats_count),
     st_chats_count_op: normalizeChatsCountOp(src.st_chats_count_op),
-    st_profile_handle: normalizeOptionalString(src.st_profile_handle),
+    st_profile_handle: normalizeStringArrayOrSingle(src.st_profile_handle),
     st_hide_no_chats: normalizeBoolean(
       src.st_hide_no_chats,
       DEFAULT_STATE.st_hide_no_chats
