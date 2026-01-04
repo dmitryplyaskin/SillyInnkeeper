@@ -603,6 +603,16 @@ const ru = {
     description:
       "Инструмент для приведения тегов к единообразию: выберите мусорные теги и замените их на один валидный тег или удалите без замены.",
 
+    scope: {
+      applyToLibrary: "Применить к обычной библиотеке?",
+      applyToSillyTavern: "Применить к карточкам из SillyTavern?",
+    },
+
+    stProfilesLabel: "Профили SillyTavern",
+    stProfilesPlaceholder: "Все профили",
+    stProfilesHint:
+      "Если профили не выбраны — изменения применятся ко всем профилям SillyTavern.",
+
     tabs: {
       replace: "Заменить",
       delete: "Удалить",
@@ -627,6 +637,7 @@ const ru = {
 
     validation: {
       fillRequired: "Заполните обязательные поля",
+      selectSource: "Выберите хотя бы один источник карточек",
     },
 
     startedTitle: "Редактирование тегов",

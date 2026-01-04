@@ -88,6 +88,8 @@ const ru = {
     "Неверный формат данных для массового редактирования тегов",
   "api.tags.bulk_edit.no_tags_selected":
     "Не выбраны теги для массового редактирования",
+  "api.tags.bulk_edit.no_targets_selected":
+    "Не выбран источник карточек для массового редактирования тегов",
   "api.tags.bulk_edit.target_required":
     "Не указан целевой тег для замены",
   "api.tags.bulk_edit.target_invalid": "Некорректный целевой тег для замены",
@@ -97,8 +99,15 @@ const ru = {
     "Массовое редактирование тегов уже выполняется",
   "api.tags.bulk_edit.cardsFolderPath_not_set":
     "Папка библиотеки не настроена (cardsFolderPath)",
+  "api.tags.bulk_edit.sillytavenrPath_not_set":
+    "Путь к SillyTavern не настроен (sillytavenrPath)",
+  "api.tags.bulk_edit.st_profiles_not_found":
+    "Профили SillyTavern не найдены: {handles}",
   "api.tags.bulk_edit.start_failed":
     "Не удалось запустить массовое редактирование тегов",
+
+  "warn.tags.bulk_edit_st_notify_failed":
+    "Не удалось уведомить SillyTavern о массовом изменении тегов (runId: {runId})",
 
   "api.cards.invalid_created_from": "Некорректный created_from",
   "api.cards.invalid_created_to": "Некорректный created_to",

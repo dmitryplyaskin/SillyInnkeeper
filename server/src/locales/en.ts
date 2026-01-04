@@ -79,13 +79,22 @@ const en = {
 
   "api.tags.bulk_edit.invalid_format": "Invalid bulk tags edit data format",
   "api.tags.bulk_edit.no_tags_selected": "No tags selected for bulk edit",
+  "api.tags.bulk_edit.no_targets_selected":
+    "No cards source selected for bulk tags edit",
   "api.tags.bulk_edit.target_required": "Target tag is required for replace",
   "api.tags.bulk_edit.target_invalid": "Invalid target tag for replace",
   "api.tags.bulk_edit.target_not_found": "Target tag was not found: {rawName}",
   "api.tags.bulk_edit.already_running": "Bulk tags edit is already running",
   "api.tags.bulk_edit.cardsFolderPath_not_set":
     "Library folder is not configured (cardsFolderPath)",
+  "api.tags.bulk_edit.sillytavenrPath_not_set":
+    "SillyTavern path is not configured (sillytavenrPath)",
+  "api.tags.bulk_edit.st_profiles_not_found":
+    "SillyTavern profiles were not found: {handles}",
   "api.tags.bulk_edit.start_failed": "Could not start bulk tags edit",
+
+  "warn.tags.bulk_edit_st_notify_failed":
+    "Failed to notify SillyTavern about bulk tags edit (runId: {runId})",
 
   "api.cards.invalid_created_from": "Invalid created_from",
   "api.cards.invalid_created_to": "Invalid created_to",

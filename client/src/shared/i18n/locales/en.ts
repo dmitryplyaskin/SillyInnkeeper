@@ -594,6 +594,16 @@ const en = {
     description:
       "A tool to normalize tags: select garbage tags and replace them with one valid tag, or delete them without replacement.",
 
+    scope: {
+      applyToLibrary: "Apply to library cards?",
+      applyToSillyTavern: "Apply to SillyTavern cards?",
+    },
+
+    stProfilesLabel: "SillyTavern profiles",
+    stProfilesPlaceholder: "All profiles",
+    stProfilesHint:
+      "If no profiles are selected, changes will be applied to all SillyTavern profiles.",
+
     tabs: {
       replace: "Replace",
       delete: "Delete",
@@ -618,6 +628,7 @@ const en = {
 
     validation: {
       fillRequired: "Fill required fields",
+      selectSource: "Select at least one cards source",
     },
 
     startedTitle: "Tags editor",
