@@ -15,7 +15,6 @@ import type {
   TagsBulkEditFailedEvent,
 } from "@/shared/types/events";
 import {
-  applyFilters,
   applyFiltersSilent,
   loadCardsFiltersFx,
   applyTagsBulkEditToSelectedTags,

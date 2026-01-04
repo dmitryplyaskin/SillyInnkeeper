@@ -26,9 +26,15 @@ export type CardActionsMenuProps = {
   cardId: string;
   filePath: string | null;
   isHidden: boolean;
+  isSillyTavern: boolean;
 };
 
-export function CardActionsMenu({ cardId, filePath, isHidden }: CardActionsMenuProps) {
+export function CardActionsMenu({
+  cardId,
+  filePath,
+  isHidden,
+  isSillyTavern,
+}: CardActionsMenuProps) {
   const { t } = useTranslation();
 
   const [isPlaying, isTogglingHidden, isOpeningInExplorer] = useUnit([
@@ -147,7 +153,7 @@ export function CardActionsMenu({ cardId, filePath, isHidden }: CardActionsMenuP
           leftSection={<IconTrash size={16} />}
           onClick={(e) => {
             e.stopPropagation();
-            onOpenDelete({ cardId });
+            onOpenDelete({ cardId, isSillyTavern });
           }}
         >
           {t("cardDetails.delete")}

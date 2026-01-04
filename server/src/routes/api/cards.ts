@@ -3,9 +3,10 @@ import Database from "better-sqlite3";
 import { existsSync, statSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { rename, unlink } from "fs-extra";
+import { remove, rename, unlink } from "fs-extra";
 import { dirname, join } from "node:path";
 import { createCardsService } from "../../services/cards";
+import { resolveCardChatsFolderPath } from "../../services/card-chats";
 import { logger } from "../../utils/logger";
 import type {
   CardsFtsField,
@@ -63,6 +64,22 @@ function normalizeStringArray(value: unknown): string[] {
 function parseBoolean(value: unknown): boolean | undefined {
   if (typeof value === "boolean") return value;
   return undefined;
+}
+
+function parseTruthyQueryFlag(value: unknown): boolean {
+  const v = parseString(value);
+  if (!v) return false;
+  const s = v.toLowerCase();
+  return s === "1" || s === "true" || s === "yes" || s === "y";
+}
+
+function isDangerousRootPath(p: string): boolean {
+  const s = p.trim();
+  if (!s) return true;
+  if (s === "/" || s === "\\") return true;
+  // Windows drive roots like "C:" or "C:\"
+  if (/^[a-z]:\\?$/i.test(s)) return true;
+  return false;
 }
 
 function safeJsonStringify(value: unknown): string {
@@ -1537,6 +1554,7 @@ router.delete("/cards/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const db = getDb(req);
+    const deleteChatsRequested = parseTruthyQueryFlag((req.query as any)?.delete_chats);
 
     const cardRow = db
       .prepare(
@@ -1568,6 +1586,16 @@ router.delete("/cards/:id", async (req: Request, res: Response) => {
           }>)
         : [];
 
+    const shouldDeleteChats = Boolean(
+      cardRow.is_sillytavern === 1 && deleteChatsRequested
+    );
+
+    let chats_deleted: boolean | undefined = undefined;
+    let chats_delete_error: string | undefined = undefined;
+    const chatsFolderPath = shouldDeleteChats
+      ? resolveCardChatsFolderPath(db, id)
+      : null;
+
     const fileRows = db
       .prepare(
         `
@@ -1591,6 +1619,33 @@ router.delete("/cards/:id", async (req: Request, res: Response) => {
         if (e && (e.code === "ENOENT" || e.code === "ENOTDIR")) return;
         throw e;
       });
+    }
+
+    // Optional: delete SillyTavern chats folder (best-effort)
+    if (shouldDeleteChats) {
+      try {
+        const p = (chatsFolderPath ?? "").trim();
+        if (!p) {
+          chats_deleted = true;
+        } else if (isDangerousRootPath(p)) {
+          chats_deleted = false;
+          chats_delete_error = "invalid_chats_folder_path";
+        } else if (!existsSync(p)) {
+          chats_deleted = true;
+        } else {
+          const st = statSync(p);
+          if (!st.isDirectory()) {
+            chats_deleted = false;
+            chats_delete_error = "chats_path_not_directory";
+          } else {
+            await remove(p);
+            chats_deleted = true;
+          }
+        }
+      } catch (e: unknown) {
+        chats_deleted = false;
+        chats_delete_error = "chats_delete_failed";
+      }
     }
 
     // Затем удаляем карточку из БД (card_files/card_tags удалятся каскадом)
@@ -1630,7 +1685,11 @@ router.delete("/cards/:id", async (req: Request, res: Response) => {
       }
     }
 
-    res.json({ ok: true });
+    res.json({
+      ok: true,
+      ...(typeof chats_deleted === "boolean" ? { chats_deleted } : {}),
+      ...(chats_delete_error ? { chats_delete_error } : {}),
+    });
   } catch (error) {
     logger.errorKey(error, "api.cards.delete_card_failed");
     return sendError(res, error, {

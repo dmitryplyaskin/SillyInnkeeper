@@ -29,9 +29,13 @@ export const closeRenameMainFileModal = createEvent<void>();
 export const renameMainFileValueChanged = createEvent<string>();
 export const renameMainFileConfirmed = createEvent<void>();
 
-export const openDeleteCardModal = createEvent<{ cardId: string }>();
+export const openDeleteCardModal = createEvent<{
+  cardId: string;
+  isSillyTavern: boolean;
+}>();
 export const closeDeleteCardModal = createEvent<void>();
 export const deleteCardConfirmed = createEvent<void>();
+export const deleteChatsToggled = createEvent<boolean>();
 
 const playInSillyTavernFx = createEffect<{ cardId: string }, void, Error>(
   async ({ cardId }) => {
@@ -71,12 +75,14 @@ const renameMainFileFx = createEffect<
   return { cardId };
 });
 
-const deleteCardFx = createEffect<{ cardId: string }, { cardId: string }, Error>(
-  async ({ cardId }) => {
-    await deleteCard(cardId);
-    return { cardId };
-  }
-);
+const deleteCardFx = createEffect<
+  { cardId: string; deleteChats: boolean },
+  { cardId: string; chats_deleted?: boolean; chats_delete_error?: string },
+  Error
+>(async ({ cardId, deleteChats }) => {
+  const res = await deleteCard(cardId, { deleteChats });
+  return { cardId, ...res };
+});
 
 export const $isPlayingInSillyTavern = combine(
   playInSillyTavernFx.pending,
@@ -97,6 +103,8 @@ type RenameModalState = {
 type DeleteModalState = {
   opened: boolean;
   cardId: string | null;
+  isSillyTavern: boolean;
+  deleteChats: boolean;
 };
 
 export const $renameMainFileModal = createStore<RenameModalState>({
@@ -125,9 +133,25 @@ export const $renameMainFileModal = createStore<RenameModalState>({
 export const $deleteCardModal = createStore<DeleteModalState>({
   opened: false,
   cardId: null,
+  isSillyTavern: false,
+  deleteChats: false,
 })
-  .on(openDeleteCardModal, (_, p) => ({ opened: true, cardId: p.cardId }))
-  .on(closeDeleteCardModal, () => ({ opened: false, cardId: null }));
+  .on(openDeleteCardModal, (_, p) => ({
+    opened: true,
+    cardId: p.cardId,
+    isSillyTavern: p.isSillyTavern,
+    deleteChats: false,
+  }))
+  .on(closeDeleteCardModal, () => ({
+    opened: false,
+    cardId: null,
+    isSillyTavern: false,
+    deleteChats: false,
+  }))
+  .on(deleteChatsToggled, (s, v) => ({
+    ...s,
+    deleteChats: Boolean(v),
+  }));
 
 sample({
   clock: playInSillyTavernRequested,
@@ -253,16 +277,29 @@ sample({
   clock: deleteCardConfirmed,
   source: $deleteCardModal,
   filter: (m) => Boolean(m.opened && m.cardId),
-  fn: (m) => ({ cardId: m.cardId as string }),
+  fn: (m) => ({
+    cardId: m.cardId as string,
+    deleteChats: Boolean(m.isSillyTavern && m.deleteChats),
+  }),
   target: deleteCardFx,
 });
 
-deleteCardFx.doneData.watch(() => {
+deleteCardFx.doneData.watch(({ chats_delete_error }) => {
   notifications.show({
     title: i18n.t("cardDetails.delete"),
     message: i18n.t("cardDetails.cardDeleted"),
     color: "green",
   });
+
+  const err = (chats_delete_error ?? "").trim();
+  if (err) {
+    notifications.show({
+      title: i18n.t("cardDetails.delete"),
+      message: i18n.t("cardDetails.chatsDeleteFailed"),
+      color: "yellow",
+      autoClose: 6500,
+    });
+  }
 });
 deleteCardFx.fail.watch(() => {
   notifications.show({

@@ -294,6 +294,10 @@ const en = {
     confirmDeleteCardTitle: "Delete card?",
     confirmDeleteCardMessage:
       "The card will be deleted completely: all files (including duplicates) will be removed from disk and from the database. This action cannot be undone.",
+    confirmDeleteCardStWarning:
+      "Deleting this card will also remove it from SillyTavern.",
+    deleteChatsLabel: "Delete chats?",
+    chatsDeleteFailed: "Failed to delete chats",
     cardDeleted: "Card deleted",
     cardDeleteFailed: "Failed to delete card",
     hide: "Hide",

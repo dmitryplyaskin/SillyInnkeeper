@@ -454,7 +454,10 @@ export function CardDetailsActionsPanel({
             disabled={!details?.id}
             onClick={() => {
               if (!details?.id) return;
-              onOpenDeleteModal({ cardId: details.id });
+              onOpenDeleteModal({
+                cardId: details.id,
+                isSillyTavern: Boolean(details.is_sillytavern),
+              });
             }}
           >
             {i18n.t("cardDetails.delete")}

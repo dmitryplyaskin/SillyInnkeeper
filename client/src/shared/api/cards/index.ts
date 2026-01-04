@@ -216,8 +216,19 @@ export async function deleteCardFileDuplicate(
   return response.json();
 }
 
-export async function deleteCard(cardId: string): Promise<{ ok: true }> {
-  const response = await fetch(`/api/cards/${encodeURIComponent(cardId)}`, {
+export async function deleteCard(
+  cardId: string,
+  opts?: { deleteChats?: boolean }
+): Promise<{ ok: true; chats_deleted?: boolean; chats_delete_error?: string }> {
+  const params = new URLSearchParams();
+  if (opts?.deleteChats === true) params.set("delete_chats", "1");
+
+  const url =
+    params.toString().length > 0
+      ? `/api/cards/${encodeURIComponent(cardId)}?${params.toString()}`
+      : `/api/cards/${encodeURIComponent(cardId)}`;
+
+  const response = await fetch(url, {
     method: "DELETE",
   });
 

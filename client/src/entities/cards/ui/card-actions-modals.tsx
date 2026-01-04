@@ -1,4 +1,4 @@
-import { Button, Group, Modal, Stack, Text, TextInput } from "@mantine/core";
+import { Button, Checkbox, Group, Modal, Stack, Text, TextInput } from "@mantine/core";
 import { useUnit } from "effector-react";
 import i18n from "@/shared/i18n/i18n";
 import {
@@ -9,6 +9,7 @@ import {
   closeDeleteCardModal,
   closeRenameMainFileModal,
   deleteCardConfirmed,
+  deleteChatsToggled,
   renameMainFileConfirmed,
   renameMainFileValueChanged,
 } from "../model.actions";
@@ -27,12 +28,14 @@ export function CardActionsModals() {
     onRenameConfirm,
     onCloseDelete,
     onDeleteConfirm,
+    onDeleteChatsToggled,
   ] = useUnit([
     closeRenameMainFileModal,
     renameMainFileValueChanged,
     renameMainFileConfirmed,
     closeDeleteCardModal,
     deleteCardConfirmed,
+    deleteChatsToggled,
   ]);
 
   return (
@@ -83,6 +86,18 @@ export function CardActionsModals() {
       >
         <Stack gap="md">
           <Text size="sm">{i18n.t("cardDetails.confirmDeleteCardMessage")}</Text>
+          {deleteModal.isSillyTavern ? (
+            <Text size="sm" c="red" fw={650}>
+              {i18n.t("cardDetails.confirmDeleteCardStWarning")}
+            </Text>
+          ) : null}
+          {deleteModal.isSillyTavern ? (
+            <Checkbox
+              label={i18n.t("cardDetails.deleteChatsLabel")}
+              checked={deleteModal.deleteChats}
+              onChange={(e) => onDeleteChatsToggled(e.currentTarget.checked)}
+            />
+          ) : null}
           <Group justify="flex-end">
             <Button
               variant="default"

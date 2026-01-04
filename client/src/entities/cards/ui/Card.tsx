@@ -276,6 +276,7 @@ export function Card({
               cardId={card.id}
               filePath={card.file_path}
               isHidden={Boolean(card.innkeeperMeta?.isHidden)}
+              isSillyTavern={isSillyTavern}
             />
           </Group>
 

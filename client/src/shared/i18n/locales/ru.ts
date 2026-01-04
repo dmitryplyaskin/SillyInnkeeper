@@ -297,6 +297,10 @@ const ru = {
     confirmDeleteCardTitle: "Удалить карточку?",
     confirmDeleteCardMessage:
       "Карточка будет удалена полностью: все файлы (включая дубликаты) будут удалены с диска и из базы данных. Это действие нельзя отменить.",
+    confirmDeleteCardStWarning:
+      "Удаление этой карточки также удалит её из SillyTavern.",
+    deleteChatsLabel: "Удалить чаты?",
+    chatsDeleteFailed: "Не удалось удалить чаты",
     cardDeleted: "Карточка удалена",
     cardDeleteFailed: "Не удалось удалить карточку",
     hide: "Скрыть",
