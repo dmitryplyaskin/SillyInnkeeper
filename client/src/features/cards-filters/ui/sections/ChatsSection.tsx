@@ -58,7 +58,8 @@ export function ChatsSection() {
         <NumberInput
           label={t("filters.chatsCount")}
           min={0}
-          value={typeof count === "number" ? count : undefined}
+          // Mantine NumberInput: keep it controlled; use "" to visually clear on reset
+          value={typeof count === "number" ? count : ""}
           onChange={(v) => {
             if (typeof v !== "number" || !Number.isFinite(v)) {
               onSetCount(undefined);

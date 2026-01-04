@@ -230,6 +230,9 @@ export const setQFields = createEvent<CardsFtsField[]>();
 export const setCreators = createEvent<string[]>();
 export const setSpecVersions = createEvent<string[]>();
 export const setTags = createEvent<string[]>();
+// Internal: used when backend lists are refreshed (e.g. live sync) to sanitize
+// selected tags without triggering "loud" cards reload + loader.
+const syncTagsFromOptions = createEvent<string[]>();
 export const setCreatedFrom = createEvent<string | undefined>();
 export const setCreatedTo = createEvent<string | undefined>();
 export const setPromptTokensMin = createEvent<number>();
@@ -272,6 +275,7 @@ $filters
   .on(setCreators, (s, creator) => ({ ...s, creator }))
   .on(setSpecVersions, (s, spec_version) => ({ ...s, spec_version }))
   .on(setTags, (s, tags) => ({ ...s, tags }))
+  .on(syncTagsFromOptions, (s, tags) => ({ ...s, tags }))
   .on(setCreatedFrom, (s, created_from) => ({ ...s, created_from }))
   .on(setCreatedTo, (s, created_to) => ({ ...s, created_to }))
   .on(setIsSillyTavern, (s, is_sillytavern) => ({ ...s, is_sillytavern }))
@@ -400,6 +404,18 @@ sample({
 sample({
   clock: loadCardsFiltersFx.doneData,
   source: $filters,
+  filter: (filters, data) => {
+    const normalize = (x: string) => x.trim().toLowerCase();
+    const existing = new Set(data.tags.map((t) => normalize(t.value)));
+    const current = (filters.tags ?? []).map((t) => String(t));
+    const next = current.filter((t) => existing.has(normalize(t)));
+
+    if (current.length !== next.length) return true;
+    for (let i = 0; i < current.length; i++) {
+      if (normalize(current[i]) !== normalize(next[i])) return true;
+    }
+    return false;
+  },
   fn: (filters, data) => {
     const normalize = (x: string) => x.trim().toLowerCase();
     const existing = new Set(data.tags.map((t) => normalize(t.value)));
@@ -408,7 +424,14 @@ sample({
     );
     return nextTags;
   },
-  target: setTags,
+  target: syncTagsFromOptions,
+});
+
+// If backend lists refresh caused sanitization of selected tags, refresh cards silently
+// to avoid loader "jitter" during live sync.
+sample({
+  clock: syncTagsFromOptions,
+  target: applyFiltersSilent,
 });
 
 sample({
@@ -543,6 +566,7 @@ const persistNonTextChanged = merge([
   setCreators,
   setSpecVersions,
   setTags,
+  syncTagsFromOptions,
   setCreatedFrom,
   setCreatedTo,
   setPromptTokensMin,
