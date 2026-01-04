@@ -99,6 +99,11 @@ const en = {
   "api.cards.save_failed": "Could not save card",
   "api.cards.cardsFolderPath_not_set":
     "Library folder is not configured (cardsFolderPath)",
+  "api.cards.chats_list_failed": "Could not get chats list",
+  "api.cards.chat_failed": "Could not get chat",
+  "api.cards.invalid_chatId": "Invalid chatId",
+  "api.cards.chats_folder_not_found": "Chats folder was not found",
+  "api.cards.chat_not_found": "Chat was not found",
 
   "api.cardsImport.invalid_format":
     "Invalid data format. Expected object with sourceFolderPath, importMode, duplicatesMode",

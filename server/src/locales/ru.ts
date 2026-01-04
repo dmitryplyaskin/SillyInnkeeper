@@ -112,6 +112,11 @@ const ru = {
   "api.cards.save_failed": "Не удалось сохранить карточку",
   "api.cards.cardsFolderPath_not_set":
     "Папка библиотеки не настроена (cardsFolderPath)",
+  "api.cards.chats_list_failed": "Не удалось получить список чатов",
+  "api.cards.chat_failed": "Не удалось получить чат",
+  "api.cards.invalid_chatId": "Некорректный chatId",
+  "api.cards.chats_folder_not_found": "Папка чатов не найдена",
+  "api.cards.chat_not_found": "Чат не найден",
 
   "api.cardsImport.invalid_format":
     "Неверный формат данных. Ожидается объект с полями sourceFolderPath, importMode, duplicatesMode",

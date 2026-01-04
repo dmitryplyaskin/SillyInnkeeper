@@ -1,4 +1,5 @@
 import type { CardDetails, CardListItem } from "@/shared/types/cards";
+import type { CardChatDetails, CardChatSummary } from "@/shared/types/card-chats";
 import type { CardsQuery } from "@/shared/types/cards-query";
 import type { CardsFiltersResponse } from "@/shared/types/cards-filters";
 import i18n from "@/shared/i18n/i18n";
@@ -158,6 +159,36 @@ export async function getCardDetails(id: string): Promise<CardDetails> {
     const errorText = (await response.text().catch(() => "")).trim();
     if (errorText) throw new Error(errorText);
     throw new Error(`${i18n.t("errors.loadCard")}: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function getCardChats(cardId: string): Promise<CardChatSummary[]> {
+  const response = await fetch(`/api/cards/${encodeURIComponent(cardId)}/chats`);
+
+  if (!response.ok) {
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(`${i18n.t("errors.loadChats")}: ${response.statusText}`);
+  }
+
+  const data = (await response.json()) as { chats?: CardChatSummary[] };
+  return Array.isArray(data?.chats) ? data.chats : [];
+}
+
+export async function getCardChat(
+  cardId: string,
+  chatId: string
+): Promise<CardChatDetails> {
+  const response = await fetch(
+    `/api/cards/${encodeURIComponent(cardId)}/chats/${encodeURIComponent(chatId)}`
+  );
+
+  if (!response.ok) {
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(`${i18n.t("errors.loadChat")}: ${response.statusText}`);
   }
 
   return response.json();
