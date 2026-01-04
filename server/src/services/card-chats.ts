@@ -18,7 +18,11 @@ export interface CardChatMessage {
   mes: string;
   swipes?: string[];
   swipe_id?: number;
-  send_date: string | number | null;
+  /**
+   * Normalized ISO timestamp (UTC) or null if unavailable.
+   * We intentionally do not return raw original formats from ST.
+   */
+  send_date: string | null;
   send_date_ms: number;
 }
 
@@ -37,12 +41,95 @@ function isNonEmptyString(v: unknown): v is string {
 }
 
 function toSafeMs(v: unknown): number {
-  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "number" && Number.isFinite(v)) {
+    // Heuristic: seconds vs milliseconds
+    if (v > 0 && v < 1e12) return Math.floor(v * 1000);
+    return Math.floor(v);
+  }
   if (typeof v === "string") {
     const s = v.trim();
     if (!s) return 0;
     const n = Number(s);
-    if (Number.isFinite(n)) return n;
+    if (Number.isFinite(n)) {
+      if (n > 0 && n < 1e12) return Math.floor(n * 1000);
+      return Math.floor(n);
+    }
+    // Common SillyTavern formats:
+    // - 2025-05-23@17h35m00s
+    // - 2025-05-23 @17h35m00s
+    // - 23.05.2025, 17:58:29
+    // - November 11, 2025 3:17am
+    {
+      const m =
+        /^(\d{4})-(\d{2})-(\d{2})\s*@\s*(\d{2})h(\d{2})m(\d{2})s$/i.exec(s);
+      if (m) {
+        const [, yy, mm, dd, hh, mi, ss] = m;
+        const iso = `${yy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
+        const t = Date.parse(iso);
+        return Number.isFinite(t) ? t : 0;
+      }
+    }
+    {
+      const m =
+        /^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:,\s*|\s+)(\d{1,2}):(\d{2})(?::(\d{2}))?$/i.exec(
+          s
+        );
+      if (m) {
+        const [, dd, mm, yy, hh, mi, ss = "0"] = m;
+        const iso = `${yy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(
+          2,
+          "0"
+        )}T${String(hh).padStart(2, "0")}:${mi}:${String(ss).padStart(2, "0")}`;
+        const t = Date.parse(iso);
+        return Number.isFinite(t) ? t : 0;
+      }
+    }
+    {
+      const m =
+        /^([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})(?:,\s*|\s+)(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp])[Mm]$/.exec(
+          s
+        );
+      if (m) {
+        const [, monthRaw, ddRaw, yyRaw, hhRaw, miRaw, ssRaw = "0", apRaw] = m;
+        const monthKey = monthRaw.toLowerCase();
+        const monthMap: Record<string, number> = {
+          january: 0,
+          february: 1,
+          march: 2,
+          april: 3,
+          may: 4,
+          june: 5,
+          july: 6,
+          august: 7,
+          september: 8,
+          october: 9,
+          november: 10,
+          december: 11,
+        };
+        const month = monthMap[monthKey];
+        if (typeof month === "number") {
+          const yy = Number(yyRaw);
+          const dd = Number(ddRaw);
+          let hh = Number(hhRaw);
+          const mi = Number(miRaw);
+          const ss = Number(ssRaw);
+          if (
+            Number.isFinite(yy) &&
+            Number.isFinite(dd) &&
+            Number.isFinite(hh) &&
+            Number.isFinite(mi) &&
+            Number.isFinite(ss)
+          ) {
+            const isPm = apRaw.toLowerCase() === "p";
+            if (hh === 12) hh = isPm ? 12 : 0;
+            else if (isPm) hh += 12;
+            const t = new Date(yy, month, dd, hh, mi, ss).getTime();
+            return Number.isFinite(t) ? t : 0;
+          }
+        }
+      }
+    }
+
     const t = Date.parse(s);
     return Number.isFinite(t) ? t : 0;
   }
@@ -78,9 +165,7 @@ function getDbCardMainFilePath(
   const primary = row.primary_file_path?.trim()
     ? row.primary_file_path.trim()
     : null;
-  const first = row.first_file_path?.trim()
-    ? row.first_file_path.trim()
-    : null;
+  const first = row.first_file_path?.trim() ? row.first_file_path.trim() : null;
   return primary ?? first;
 }
 
@@ -172,7 +257,7 @@ async function scanChatFileForSummary(filePath: string): Promise<{
       messagesCount += 1;
       try {
         const obj = JSON.parse(trimmed) as any;
-        const ms = toSafeMs(obj?.send_date);
+        const ms = toSafeMs(obj?.send_date_ms ?? obj?.send_date);
         if (ms > lastMessageAt) lastMessageAt = ms;
       } catch {
         // ignore malformed message lines
@@ -285,8 +370,10 @@ export async function readCardChat(
 
       try {
         const obj = JSON.parse(trimmed) as any;
-        const sendDateRaw = obj?.send_date ?? null;
+        const sendDateRaw = obj?.send_date_ms ?? obj?.send_date ?? null;
         const sendDateMs = toSafeMs(sendDateRaw);
+        const sendDateIso =
+          sendDateMs > 0 ? new Date(sendDateMs).toISOString() : null;
         messages.push({
           name: isNonEmptyString(obj?.name) ? obj.name : "",
           is_user: Boolean(obj?.is_user),
@@ -299,7 +386,7 @@ export async function readCardChat(
             typeof obj?.swipe_id === "number" && Number.isFinite(obj.swipe_id)
               ? obj.swipe_id
               : undefined,
-          send_date: sendDateRaw,
+          send_date: sendDateIso,
           send_date_ms: sendDateMs,
         });
       } catch {
@@ -317,5 +404,3 @@ export async function readCardChat(
     messages,
   };
 }
-
-

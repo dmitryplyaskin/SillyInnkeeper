@@ -15,7 +15,10 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import i18n from "@/shared/i18n/i18n";
-import type { CardChatMessage, CardChatSummary } from "@/shared/types/card-chats";
+import type {
+  CardChatMessage,
+  CardChatSummary,
+} from "@/shared/types/card-chats";
 import {
   $chat,
   $chatError,
@@ -30,7 +33,16 @@ import {
 function formatDateOrDash(ms: number): string {
   if (!(ms > 0)) return i18n.t("empty.dash");
   const locale = i18n.language === "ru" ? "ru-RU" : "en-US";
-  return new Date(ms).toLocaleString(locale);
+  // Keep date format consistent (numeric) and avoid locale-specific month names / AM-PM.
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(ms));
 }
 
 function ChatListItem({
@@ -72,11 +84,7 @@ function ChatListItem({
   );
 }
 
-function ChatMessage({
-  msg,
-}: {
-  msg: CardChatMessage;
-}) {
+function ChatMessage({ msg }: { msg: CardChatMessage }) {
   const header = useMemo(() => {
     const who = msg.name?.trim() ? msg.name.trim() : msg.is_user ? "You" : "";
     const date = formatDateOrDash(msg.send_date_ms);
@@ -150,11 +158,21 @@ export function CardChatsTab() {
   }, [chat?.id, chat?.messages.length, isChatLoading]);
 
   const hasChats = chats.length > 0;
+  // Fill modal height better: modal is 100% height; subtract title + tabs + paddings.
+  const paneHeight = "calc(100vh - 220px)";
 
   return (
     <Grid gutter="md" columns={24}>
       <Grid.Col span={{ base: 24, md: 7 }}>
-        <Paper p="md" withBorder style={{ height: 680 }}>
+        <Paper
+          p="md"
+          withBorder
+          style={{
+            height: paneHeight,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           <Group justify="space-between" align="center" mb="sm">
             <Text fw={650}>{t("cardDetails.chats.title")}</Text>
             {isChatsLoading ? <Loader size="sm" /> : null}
@@ -169,7 +187,7 @@ export function CardChatsTab() {
           {!isChatsLoading && !hasChats ? (
             <Text c="dimmed">{t("cardDetails.chats.empty")}</Text>
           ) : (
-            <ScrollArea h={610} type="auto" offsetScrollbars>
+            <ScrollArea style={{ flex: 1 }} type="auto" offsetScrollbars>
               <Stack gap="xs" pr={6}>
                 {chats.map((c) => (
                   <ChatListItem
@@ -186,7 +204,15 @@ export function CardChatsTab() {
       </Grid.Col>
 
       <Grid.Col span={{ base: 24, md: 17 }}>
-        <Paper p="md" withBorder style={{ height: 680 }}>
+        <Paper
+          p="md"
+          withBorder
+          style={{
+            height: paneHeight,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           <Group justify="space-between" align="center" mb="sm">
             <Text fw={650}>
               {chat?.title
@@ -205,11 +231,11 @@ export function CardChatsTab() {
           {!selectedChatId ? (
             <Text c="dimmed">{t("cardDetails.chats.selectChatHint")}</Text>
           ) : !chat && isChatLoading ? (
-            <Group justify="center" align="center" style={{ height: 600 }}>
+            <Group justify="center" align="center" style={{ flex: 1 }}>
               <Loader />
             </Group>
           ) : chat ? (
-            <ScrollArea h={610} type="auto" offsetScrollbars>
+            <ScrollArea style={{ flex: 1 }} type="auto" offsetScrollbars>
               <Stack gap="sm" pr={6}>
                 {chat.messages.map((m, idx) => (
                   <ChatMessage key={`${idx}-${m.send_date_ms}`} msg={m} />
@@ -225,5 +251,3 @@ export function CardChatsTab() {
     </Grid>
   );
 }
-
-

@@ -12,7 +12,7 @@ export interface CardChatMessage {
   mes: string;
   swipes?: string[];
   swipe_id?: number;
-  send_date: string | number | null;
+  send_date: string | null; // normalized ISO timestamp (UTC) or null
   send_date_ms: number;
 }
 
