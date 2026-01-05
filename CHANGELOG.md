@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.4.0](https://github.com/dmitryplyaskin/SillyInnkeeper/compare/v0.3.0...v0.4.0) (2026-01-05)
+
+
+### 🚀 New Features
+
+* add date chat new sort ([da2ec2f](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/da2ec2f7b3844682191631fb5543bd5a35652303))
+* add delete card chats ([f405c71](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/f405c7167076d6778958b2263ccdb0c6c43669fa))
+* add fact card action button ([8a480d2](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/8a480d29c4e0fcf94b166e0a801b2956ab1e1e35))
+* add fav filter ([dc2a97f](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/dc2a97f4063b1b406f487c3d1c33b2cb1ad1c6c0))
+* add fav icon ([8c8bebc](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/8c8bebc9e4fd099a9b4d37a83bf505631f781c03))
+* add folder picker for SillyTavern path in settings form ([eab0966](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/eab0966ed0825dc4b9e37682ee3f35f4c844c706))
+* add hide card ([30fe133](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/30fe13341b5b717aa5d3f1a47000efd752f4ba41))
+* add metadata ([7165c86](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/7165c864f908d33a0cc2b678e4ac153103a00ee5))
+* add play to st card native with ext ([36cfcbc](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/36cfcbca12cc482e4f67cc3059cd822ea1391950))
+* add save/load filters ([2ec8ef2](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/2ec8ef24adc8ac0a4e2d0457ebb6d09306b98a3e))
+* add scan cards from sillytavern folder ([da28f03](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/da28f03900040e21af06c303b6b24691bd221d51))
+* add scan st chats ([bccdd2e](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/bccdd2e32e441cd35d21feffaa560bf1029198c3))
+* add setting to bulk tags editor ([9b3b173](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/9b3b173140b25e2a8b7f40858585f0fa67f6be4c))
+* add show chats ([b19f2fd](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/b19f2fd71c49526c411384e6b4576ff32ad55e41))
+* add sort by chats and new filters: by st user and st chats count ([88eb51b](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/88eb51ba0565e29f77e633f9e2ccb4dec6a9232b))
+* new watcher and sync st folder path ([3507ab2](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/3507ab2357ed096eb1b9befa98f6968ec4a9b788))
+* save st card ([78d2a69](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/78d2a69b9d432f6e601402fa599ffedc4f42f1b3))
+
+
+### 🐛 Bug Fixes
+
+* chat dates ([908ab9b](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/908ab9b773c8c56dded028231d0a1b53ba6f6ee3))
+* fav icon ([791a7b4](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/791a7b4bcf8b25d737f598654f0a6cd42fcaa59e))
+* filters ([75e4ca0](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/75e4ca05d5eaad885f16bdcc52e372ff448782c0))
+* filters reset bug ([a3903f2](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/a3903f29941e07898da6e2edc29a04ab9505e2f9))
+* modal zIndex ([807c885](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/807c8855b2cf408cb4939c8c638e705ad7304c42))
+* profile filter ([aa57c01](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/aa57c013e0b4db7277cb77058959d8380477ad03))
+* show preloader ([d3e3f61](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/d3e3f612d354f9b88902f38fbbc5771f54e183bd))
+* sync st ([faa8469](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/faa84695c121b293e23ad06f3c4b13cc87c7b227))
+* update readme ([49cd14a](https://github.com/dmitryplyaskin/SillyInnkeeper/commit/49cd14ab07a862ae824b53d97a7bc5b43fd4ff62))
+
 ## [0.3.0](https://github.com/dmitryplyaskin/SillyInnkeeper/compare/v0.2.0...v0.3.0) (2025-12-27)
 
 
