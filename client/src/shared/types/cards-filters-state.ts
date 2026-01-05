@@ -38,5 +38,3 @@ export interface CardsFiltersState {
   st_profile_handle: string[];
   st_hide_no_chats: boolean;
 }
-
-

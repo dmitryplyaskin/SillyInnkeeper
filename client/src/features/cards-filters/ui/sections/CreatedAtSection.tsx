@@ -11,8 +11,8 @@ import { useTranslation } from "react-i18next";
 import { InfoTip } from "../shared/InfoTip";
 import { $filters, setCreatedFrom, setCreatedTo } from "../../model";
 
-const $createdFrom = $filters.map((s) => s.created_from);
-const $createdTo = $filters.map((s) => s.created_to);
+const $createdFrom = $filters.map((s) => s.created_from, { skipVoid: false });
+const $createdTo = $filters.map((s) => s.created_to, { skipVoid: false });
 
 export function CreatedAtSection() {
   const { t } = useTranslation();

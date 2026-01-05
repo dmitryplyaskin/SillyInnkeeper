@@ -25,48 +25,50 @@ import type { PatternRulesStatus } from "@/shared/types/pattern-rules-status";
 import { getPatternRulesStatus } from "@/shared/api/pattern-rules";
 import { loadCards, loadCardsSilent } from "@/entities/cards";
 
-const DEFAULT_FILTERS: CardsFiltersState = {
-  sort: "created_at_desc",
-  name: "",
-  q: "",
-  q_mode: "like",
-  q_fields: [
-    "description",
-    "personality",
-    "scenario",
-    "first_mes",
-    "mes_example",
-    "creator_notes",
-    "system_prompt",
-    "post_history_instructions",
-    "alternate_greetings",
-    "group_only_greetings",
-  ],
-  creator: [],
-  spec_version: [],
-  tags: [],
-  created_from: undefined,
-  created_to: undefined,
-  prompt_tokens_min: 0,
-  prompt_tokens_max: 0,
-  is_sillytavern: "any",
-  is_hidden: "0",
-  fav: "any",
-  has_creator_notes: "any",
-  has_system_prompt: "any",
-  has_post_history_instructions: "any",
-  has_personality: "any",
-  has_scenario: "any",
-  has_mes_example: "any",
-  has_character_book: "any",
-  has_alternate_greetings: "any",
-  alternate_greetings_min: 0,
-  patterns: "any",
-  st_chats_count: undefined,
-  st_chats_count_op: "gte",
-  st_profile_handle: [],
-  st_hide_no_chats: false,
-};
+function makeDefaultFilters(): CardsFiltersState {
+  return {
+    sort: "created_at_desc",
+    name: "",
+    q: "",
+    q_mode: "like",
+    q_fields: [
+      "description",
+      "personality",
+      "scenario",
+      "first_mes",
+      "mes_example",
+      "creator_notes",
+      "system_prompt",
+      "post_history_instructions",
+      "alternate_greetings",
+      "group_only_greetings",
+    ],
+    creator: [],
+    spec_version: [],
+    tags: [],
+    created_from: undefined,
+    created_to: undefined,
+    prompt_tokens_min: 0,
+    prompt_tokens_max: 0,
+    is_sillytavern: "any",
+    is_hidden: "0",
+    fav: "any",
+    has_creator_notes: "any",
+    has_system_prompt: "any",
+    has_post_history_instructions: "any",
+    has_personality: "any",
+    has_scenario: "any",
+    has_mes_example: "any",
+    has_character_book: "any",
+    has_alternate_greetings: "any",
+    alternate_greetings_min: 0,
+    patterns: "any",
+    st_chats_count: undefined,
+    st_chats_count_op: "gte",
+    st_profile_handle: [],
+    st_hide_no_chats: false,
+  };
+}
 
 function toLocalDayStartMs(dateStr: string): number | undefined {
   const d = new Date(`${dateStr}T00:00:00`);
@@ -144,7 +146,8 @@ function toQuery(state: CardsFiltersState): CardsQuery {
         : undefined,
     st_chats_count_op: state.st_chats_count_op ?? undefined,
     st_profile_handle:
-      Array.isArray(state.st_profile_handle) && state.st_profile_handle.length > 0
+      Array.isArray(state.st_profile_handle) &&
+      state.st_profile_handle.length > 0
         ? state.st_profile_handle
             .map((s) => String(s).trim())
             .filter((s) => s.length > 0)
@@ -204,7 +207,7 @@ export const initCardsFiltersFx = createEffect<void, void, Error>(async () => {
 });
 
 // Stores
-export const $filters = createStore<CardsFiltersState>(DEFAULT_FILTERS);
+export const $filters = createStore<CardsFiltersState>(makeDefaultFilters());
 export const $filtersReady = createStore<boolean>(false);
 export const $filtersData = createStore<CardsFiltersResponse>({
   creators: [],
@@ -389,7 +392,7 @@ $filters
 
     return { ...s, tags: out };
   })
-  .on(resetFilters, () => DEFAULT_FILTERS);
+  .on(resetFilters, () => makeDefaultFilters());
 
 $filters.on(hydrateFilters, (_, next) => next);
 $filtersReady.on(setFiltersReady, (_, v) => v);
@@ -453,7 +456,7 @@ sample({ clock: loadCardsFiltersFx, target: loadPatternRulesStatusFx });
 sample({ clock: loadCardsFiltersStateFx.doneData, target: hydrateFilters });
 sample({
   clock: loadCardsFiltersStateFx.failData,
-  fn: () => DEFAULT_FILTERS,
+  fn: () => makeDefaultFilters(),
   target: hydrateFilters,
 });
 
@@ -552,7 +555,7 @@ sample({
   clock: resetFilters,
   source: $filtersReady,
   filter: (ready) => ready,
-  fn: () => toQuery(DEFAULT_FILTERS),
+  fn: () => toQuery(makeDefaultFilters()),
   target: loadCards,
 });
 

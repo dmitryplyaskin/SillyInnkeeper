@@ -1,4 +1,11 @@
-import { Checkbox, Divider, MultiSelect, NumberInput, Select, SimpleGrid } from "@mantine/core";
+import {
+  Checkbox,
+  Divider,
+  MultiSelect,
+  NumberInput,
+  Select,
+  SimpleGrid,
+} from "@mantine/core";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -11,7 +18,7 @@ import {
 } from "../../model";
 import { mergeOptions } from "../shared/mergeOptions";
 
-const $count = $filters.map((s) => s.st_chats_count);
+const $count = $filters.map((s) => s.st_chats_count, { skipVoid: false });
 const $op = $filters.map((s) => s.st_chats_count_op ?? "gte");
 const $profile = $filters.map((s) => s.st_profile_handle);
 const $hideNoChats = $filters.map((s) => s.st_hide_no_chats);
@@ -29,18 +36,17 @@ export function ChatsSection() {
     onSetOp,
     onSetProfile,
     onSetHideNoChats,
-  ] =
-    useUnit([
-      $count,
-      $op,
-      $profile,
-      $hideNoChats,
-      $profilesOptions,
-      setStChatsCount,
-      setStChatsCountOp,
-      setStProfileHandle,
-      setStHideNoChats,
-    ]);
+  ] = useUnit([
+    $count,
+    $op,
+    $profile,
+    $hideNoChats,
+    $profilesOptions,
+    setStChatsCount,
+    setStChatsCountOp,
+    setStProfileHandle,
+    setStHideNoChats,
+  ]);
 
   const opData = [
     { value: "eq", label: t("filters.opEq") },
@@ -59,9 +65,16 @@ export function ChatsSection() {
           label={t("filters.chatsCount")}
           min={0}
           // Mantine NumberInput: keep it controlled; use "" to visually clear on reset
-          value={typeof count === "number" ? count : ""}
+          value={
+            typeof count === "number" && Number.isFinite(count) ? count : ""
+          }
           onChange={(v) => {
-            if (typeof v !== "number" || !Number.isFinite(v)) {
+            if (
+              v === "" ||
+              v === null ||
+              typeof v !== "number" ||
+              !Number.isFinite(v)
+            ) {
               onSetCount(undefined);
               return;
             }
@@ -95,5 +108,3 @@ export function ChatsSection() {
     </>
   );
 }
-
-
