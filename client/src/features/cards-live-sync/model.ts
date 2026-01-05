@@ -15,7 +15,6 @@ import type {
   TagsBulkEditFailedEvent,
 } from "@/shared/types/events";
 import {
-  applyFilters,
   applyFiltersSilent,
   loadCardsFiltersFx,
   applyTagsBulkEditToSelectedTags,
@@ -90,7 +89,7 @@ sample({
 
 sample({
   clock: cardsResynced,
-  target: applyFilters,
+  target: applyFiltersSilent,
 });
 
 // При подключении: один раз синхронизируем UI (важно, если стартовый scan прошёл до подключения SSE)
@@ -101,7 +100,7 @@ sample({
 
 sample({
   clock: connected,
-  target: applyFilters,
+  target: applyFiltersSilent,
 });
 
 // Прогресс сканирования (через Notifications)

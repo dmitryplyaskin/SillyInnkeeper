@@ -19,6 +19,9 @@ export async function startBulkEditTags(payload: {
   to?:
     | { kind: "existing"; rawName: string }
     | { kind: "new"; name: string };
+  apply_to_library: boolean;
+  apply_to_st: boolean;
+  st_profile_handles?: string[];
 }): Promise<{ run_id: string }> {
   const response = await fetch("/api/tags/bulk-edit", {
     method: "POST",

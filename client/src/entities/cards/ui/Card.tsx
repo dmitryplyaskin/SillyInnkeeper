@@ -12,8 +12,10 @@ import {
   Box,
   useMantineTheme,
 } from "@mantine/core";
+import { IconStarFilled } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { CardListItem } from "@/shared/types/cards";
+import { CardActionsMenu } from "./card-actions-menu";
 
 interface CardProps {
   card: CardListItem;
@@ -53,7 +55,9 @@ export function Card({
   const [opened, setOpened] = useState(false);
   const theme = useMantineTheme();
 
-  const checkboxBg = isSelected ? theme.colors.blue[6] : "rgba(255,255,255,0.75)";
+  const checkboxBg = isSelected
+    ? theme.colors.blue[6]
+    : "rgba(255,255,255,0.75)";
   const checkboxColor = isSelected ? theme.white : theme.colors.gray[7];
 
   const tags = card.tags ?? [];
@@ -71,6 +75,8 @@ export function Card({
   const greetingsCount = Number((card as any).alternate_greetings_count) || 0;
   const hasBook = Boolean((card as any).has_character_book);
   const tokensEstimate = formatTokensEstimate((card as any).prompt_tokens_est);
+  const isSillyTavern = Boolean((card as any).is_sillytavern);
+  const isFav = Boolean(card.fav);
 
   return (
     <>
@@ -132,41 +138,98 @@ export function Card({
             />
           </Box>
 
-          {isSelectionMode && (
+          {(isSelectionMode || isFav || isSillyTavern) && (
             <Box
               style={{
                 position: "absolute",
                 top: "8px",
                 left: "8px",
                 zIndex: 12,
-                width: "22px",
-                height: "22px",
-                borderRadius: "999px",
                 display: "flex",
+                gap: "6px",
                 alignItems: "center",
-                justifyContent: "center",
-                border: `1px solid var(--mantine-color-default-border)`,
-                background: checkboxBg,
-                color: checkboxColor,
-                backdropFilter: "blur(6px)",
               }}
-              aria-hidden
             >
-              {isSelected ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              {isSelectionMode && (
+                <Box
+                  style={{
+                    width: "22px",
+                    height: "22px",
+                    borderRadius: "999px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: `1px solid var(--mantine-color-default-border)`,
+                    background: checkboxBg,
+                    color: checkboxColor,
+                    backdropFilter: "blur(6px)",
+                  }}
+                  aria-hidden
                 >
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-              ) : null}
+                  {isSelected ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  ) : null}
+                </Box>
+              )}
+
+              {isFav && isSillyTavern && (
+                <Tooltip label={t("card.favBadgeTip")} withArrow>
+                  <Box
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "999px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: theme.colors.yellow[6],
+                      color: theme.black,
+                      border: `1px solid rgba(0,0,0,0.12)`,
+                      boxShadow: theme.shadows.xs,
+                    }}
+                    aria-label={t("card.favBadgeTip")}
+                  >
+                    <IconStarFilled size={18} style={{ color: theme.white }} />
+                  </Box>
+                </Tooltip>
+              )}
+
+              {isSillyTavern && (
+                <Tooltip label={t("card.stBadgeTip")} withArrow>
+                  <Box
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "999px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      letterSpacing: "0.2px",
+                      background: theme.colors.orange[6],
+                      color: theme.white,
+                      border: `1px solid rgba(0,0,0,0.12)`,
+                      boxShadow: theme.shadows.xs,
+                    }}
+                    aria-label={t("card.stBadgeTip")}
+                  >
+                    ST
+                  </Box>
+                </Tooltip>
+              )}
             </Box>
           )}
 
@@ -205,9 +268,17 @@ export function Card({
         </MantineCard.Section>
 
         <Stack gap={6} mt="sm" style={{ flex: 1, overflow: "hidden" }}>
-          <Text fw={600} size="lg" lineClamp={1}>
-            {card.name || t("card.untitled")}
-          </Text>
+          <Group gap={6} wrap="nowrap" justify="space-between" align="center">
+            <Text fw={600} size="lg" lineClamp={1} style={{ flex: 1 }}>
+              {card.name || t("card.untitled")}
+            </Text>
+            <CardActionsMenu
+              cardId={card.id}
+              filePath={card.file_path}
+              isHidden={Boolean(card.innkeeperMeta?.isHidden)}
+              isSillyTavern={isSillyTavern}
+            />
+          </Group>
 
           {card.creator && (
             <Text size="sm" c="dimmed" lineClamp={1}>

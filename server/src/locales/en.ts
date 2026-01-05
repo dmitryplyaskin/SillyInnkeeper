@@ -79,13 +79,22 @@ const en = {
 
   "api.tags.bulk_edit.invalid_format": "Invalid bulk tags edit data format",
   "api.tags.bulk_edit.no_tags_selected": "No tags selected for bulk edit",
+  "api.tags.bulk_edit.no_targets_selected":
+    "No cards source selected for bulk tags edit",
   "api.tags.bulk_edit.target_required": "Target tag is required for replace",
   "api.tags.bulk_edit.target_invalid": "Invalid target tag for replace",
   "api.tags.bulk_edit.target_not_found": "Target tag was not found: {rawName}",
   "api.tags.bulk_edit.already_running": "Bulk tags edit is already running",
   "api.tags.bulk_edit.cardsFolderPath_not_set":
     "Library folder is not configured (cardsFolderPath)",
+  "api.tags.bulk_edit.sillytavenrPath_not_set":
+    "SillyTavern path is not configured (sillytavenrPath)",
+  "api.tags.bulk_edit.st_profiles_not_found":
+    "SillyTavern profiles were not found: {handles}",
   "api.tags.bulk_edit.start_failed": "Could not start bulk tags edit",
+
+  "warn.tags.bulk_edit_st_notify_failed":
+    "Failed to notify SillyTavern about bulk tags edit (runId: {runId})",
 
   "api.cards.invalid_created_from": "Invalid created_from",
   "api.cards.invalid_created_to": "Invalid created_to",
@@ -97,6 +106,13 @@ const en = {
   "api.cards.export_failed": "Could not export card PNG",
   "api.cards.invalid_card_json": "Invalid card data for save",
   "api.cards.save_failed": "Could not save card",
+  "api.cards.cardsFolderPath_not_set":
+    "Library folder is not configured (cardsFolderPath)",
+  "api.cards.chats_list_failed": "Could not get chats list",
+  "api.cards.chat_failed": "Could not get chat",
+  "api.cards.invalid_chatId": "Invalid chatId",
+  "api.cards.chats_folder_not_found": "Chats folder was not found",
+  "api.cards.chat_not_found": "Chat was not found",
 
   "api.cardsImport.invalid_format":
     "Invalid data format. Expected object with sourceFolderPath, importMode, duplicatesMode",
@@ -178,6 +194,10 @@ const en = {
 
   "api.st.invalid_cardId": "Invalid cardId",
   "api.st.invalid_ok": "Invalid ok field (expected boolean)",
+  "api.st.missing_st_profile":
+    "Missing SillyTavern profile data to open this card (re-scan SillyTavern library)",
+  "api.st.missing_st_avatar":
+    "Missing SillyTavern avatar filename to open this card (re-scan SillyTavern library)",
   "api.st.play_failed": "Could not send Play command to SillyTavern",
   "api.st.import_result_failed":
     "Could not accept import result from SillyTavern",

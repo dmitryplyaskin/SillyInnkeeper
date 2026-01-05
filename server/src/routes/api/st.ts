@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import Database from "better-sqlite3";
 import { existsSync } from "node:fs";
+import { basename } from "node:path";
 import { AppError } from "../../errors/app-error";
 import { sendError } from "../../errors/http";
 import type { SseHub } from "../../services/sse-hub";
@@ -27,11 +28,21 @@ type StCardPlayPayload = {
   filename: string;
 };
 
+type StCardOpenPayload = {
+  type: "st:card_open";
+  ts: number;
+  cardId: string;
+  stProfileHandle: string;
+  stAvatarFile: string;
+  stAvatarBase: string;
+};
+
 type StImportResultPayload = {
   type: "st:import_result";
   ts: number;
   cardId: string;
   ok: boolean;
+  action?: "import" | "open";
   message?: string;
   stCharacterId?: string;
 };
@@ -51,6 +62,7 @@ router.post("/st/play", (req: Request, res: Response) => {
         SELECT
           c.id,
           c.name,
+          c.is_sillytavern,
           c.primary_file_path,
           (
             SELECT cf.file_path
@@ -68,6 +80,7 @@ router.post("/st/play", (req: Request, res: Response) => {
       | {
           id: string;
           name: string | null;
+          is_sillytavern: number;
           primary_file_path: string | null;
           file_path: string | null;
         }
@@ -82,6 +95,56 @@ router.post("/st/play", (req: Request, res: Response) => {
     }
     if (!existsSync(mainFilePath)) {
       throw new AppError({ status: 404, code: "api.image.file_not_found" });
+    }
+
+    // If this is a SillyTavern-origin card, do NOT export+import.
+    // Instead, ask the ST extension to open an existing character by avatar file.
+    if (row.is_sillytavern === 1) {
+      const meta = db
+        .prepare(
+          `
+          SELECT st_profile_handle, st_avatar_file, st_avatar_base
+          FROM card_files
+          WHERE file_path = ?
+          LIMIT 1
+        `
+        )
+        .get(mainFilePath) as
+        | {
+            st_profile_handle: string | null;
+            st_avatar_file: string | null;
+            st_avatar_base: string | null;
+          }
+        | undefined;
+
+      const stProfileHandle = meta?.st_profile_handle?.trim() ?? "";
+      const stAvatarFile = meta?.st_avatar_file?.trim() ?? basename(mainFilePath);
+      const stAvatarBase =
+        meta?.st_avatar_base?.trim() ??
+        stAvatarFile.replace(/\.png$/i, "");
+
+      if (!stProfileHandle) {
+        throw new AppError({ status: 409, code: "api.st.missing_st_profile" });
+      }
+      if (!stAvatarFile) {
+        throw new AppError({ status: 409, code: "api.st.missing_st_avatar" });
+      }
+
+      const payload: StCardOpenPayload = {
+        type: "st:card_open",
+        ts: Date.now(),
+        cardId: row.id,
+        stProfileHandle,
+        stAvatarFile,
+        stAvatarBase,
+      };
+
+      logger.infoKey("log.st.playRequested", { cardId: row.id });
+      getHub(req).broadcast("st:card_open", payload, { id: payload.ts });
+      logger.infoKey("log.st.playBroadcasted", { cardId: row.id });
+
+      res.json({ ok: true });
+      return;
     }
 
     const base = sanitizeWindowsFilenameBase(row.name, `card-${row.id}`);
@@ -130,11 +193,18 @@ router.post("/st/import-result", (req: Request, res: Response) => {
         ? body.stCharacterId.trim()
         : undefined;
 
+    const actionRaw = typeof body.action === "string" ? body.action.trim() : "";
+    const action =
+      actionRaw === "import" || actionRaw === "open"
+        ? (actionRaw as "import" | "open")
+        : undefined;
+
     const payload: StImportResultPayload = {
       type: "st:import_result",
       ts: Date.now(),
       cardId: cardId.trim(),
       ok,
+      ...(action ? { action } : {}),
       ...(shortMessage ? { message: shortMessage } : {}),
       ...(stCharacterId ? { stCharacterId } : {}),
     };

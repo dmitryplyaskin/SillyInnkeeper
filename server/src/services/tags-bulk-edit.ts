@@ -6,6 +6,7 @@ import { createDatabaseService } from "./database";
 import { createTagService, type Tag as DbTag } from "./tags";
 import { getSettings } from "./settings";
 import { getOrCreateLibraryId } from "./libraries";
+import { listSillyTavernProfileCharactersDirs } from "./sillytavern";
 
 export type TagsBulkEditAction = "replace" | "delete";
 
@@ -96,16 +97,110 @@ function patchCardDataJsonTags(dataJson: string, nextTags: string[]): string {
   }
 }
 
-async function resolveCurrentLibraryId(db: Database.Database): Promise<string> {
-  const settings = await getSettings();
-  const folderPath = settings.cardsFolderPath;
-  if (!folderPath) {
-    throw new AppError({
-      status: 400,
-      code: "api.tags.bulk_edit.cardsFolderPath_not_set",
-    });
+function uniqueStrings(items: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const s of items) {
+    const v = String(s ?? "").trim();
+    if (!v) continue;
+    if (seen.has(v)) continue;
+    seen.add(v);
+    out.push(v);
   }
-  return getOrCreateLibraryId(db, folderPath);
+  return out;
+}
+
+async function resolveTargetLibraryIds(
+  db: Database.Database,
+  opts: {
+    applyToLibrary: boolean;
+    applyToSt: boolean;
+    stProfileHandles?: string[] | undefined;
+  }
+): Promise<string[]> {
+  if (!opts.applyToLibrary && !opts.applyToSt) {
+    throw new AppError({ status: 400, code: "api.tags.bulk_edit.no_targets_selected" });
+  }
+
+  const settings = await getSettings();
+  const libraryIds: string[] = [];
+
+  if (opts.applyToLibrary) {
+    const folderPath = settings.cardsFolderPath;
+    if (!folderPath) {
+      throw new AppError({
+        status: 400,
+        code: "api.tags.bulk_edit.cardsFolderPath_not_set",
+      });
+    }
+    libraryIds.push(getOrCreateLibraryId(db, folderPath));
+  }
+
+  if (opts.applyToSt) {
+    const stRoot = settings.sillytavenrPath;
+    if (!stRoot) {
+      throw new AppError({
+        status: 400,
+        code: "api.tags.bulk_edit.sillytavenrPath_not_set",
+      });
+    }
+
+    const dirs = await listSillyTavernProfileCharactersDirs(stRoot);
+    const selectedHandles = uniqueStrings(opts.stProfileHandles ?? []);
+    const selectedDirs =
+      selectedHandles.length > 0
+        ? dirs.filter((d) => selectedHandles.includes(d.profileHandle))
+        : dirs;
+
+    if (selectedHandles.length > 0 && selectedDirs.length === 0) {
+      throw new AppError({
+        status: 400,
+        code: "api.tags.bulk_edit.st_profiles_not_found",
+        params: { handles: selectedHandles.join(", ") },
+      });
+    }
+
+    // If we cannot resolve per-profile dirs (no profiles), fall back to old root-library.
+    if (selectedDirs.length === 0) {
+      libraryIds.push(getOrCreateLibraryId(db, stRoot));
+    } else {
+      const perProfileLibraryIds = selectedDirs.map((d) =>
+        getOrCreateLibraryId(db, d.charactersDir)
+      );
+
+      // Backward-compat fallback:
+      // Older DBs stored ST cards under library_id = getOrCreateLibraryId(db, stRoot).
+      // If per-profile libraries are not populated yet (scan not run / still running),
+      // fall back to the old root-library so ST cards are still affected.
+      const usePerProfile = (() => {
+        if (perProfileLibraryIds.length === 0) return false;
+        const placeholders = perProfileLibraryIds.map(() => "?").join(", ");
+        const row = db
+          .prepare(
+            `
+            SELECT COUNT(*) as cnt
+            FROM cards
+            WHERE is_sillytavern = 1
+              AND library_id IN (${placeholders})
+          `
+          )
+          .get(...perProfileLibraryIds) as { cnt: number } | undefined;
+        return (row?.cnt ?? 0) > 0;
+      })();
+
+      if (usePerProfile) {
+        libraryIds.push(...perProfileLibraryIds);
+      } else {
+        libraryIds.push(getOrCreateLibraryId(db, stRoot));
+      }
+    }
+  }
+
+  return uniqueStrings(libraryIds);
+}
+
+function normalizeStProfileHandles(input: string[] | undefined): string[] {
+  return uniqueStrings(Array.isArray(input) ? input : []);
 }
 
 function normalizeFromRawNames(input: unknown): string[] {
@@ -201,6 +296,9 @@ export async function startTagsBulkEditRun(opts: {
   action: TagsBulkEditAction;
   from: unknown;
   to?: TagsBulkEditTarget;
+  applyToLibrary: boolean;
+  applyToSt: boolean;
+  stProfileHandles?: string[] | undefined;
 }): Promise<{ job: Promise<void> }> {
   const fromRawNames = normalizeFromRawNames(opts.from);
   if (fromRawNames.length === 0) {
@@ -214,7 +312,12 @@ export async function startTagsBulkEditRun(opts: {
     const startedAt = Date.now();
     const toPublic = toTag ? toPublicTag(toTag) : null;
     try {
-      const libraryId = await resolveCurrentLibraryId(opts.db);
+      const libraryIds = await resolveTargetLibraryIds(opts.db, {
+        applyToLibrary: Boolean(opts.applyToLibrary),
+        applyToSt: Boolean(opts.applyToSt),
+        stProfileHandles: opts.stProfileHandles,
+      });
+      const stProfileHandles = normalizeStProfileHandles(opts.stProfileHandles);
 
       opts.hub.broadcast(
         "tags:bulk_edit_started",
@@ -228,19 +331,20 @@ export async function startTagsBulkEditRun(opts: {
         { id: `${opts.runId}:bulk_edit_started` }
       );
 
-      // Find affected cards in current library.
+      // Find affected cards in selected libraries.
       const fromPlaceholders = fromRawNames.map(() => "?").join(", ");
+      const libPlaceholders = libraryIds.map(() => "?").join(", ");
       const affectedRows = opts.db
         .prepare(
           `
           SELECT DISTINCT ct.card_id as id
           FROM card_tags ct
           JOIN cards c ON c.id = ct.card_id
-          WHERE c.library_id = ?
+          WHERE c.library_id IN (${libPlaceholders})
             AND ct.tag_rawName IN (${fromPlaceholders})
         `
         )
-        .all(libraryId, ...fromRawNames) as Array<{ id: string }>;
+        .all(...libraryIds, ...fromRawNames) as Array<{ id: string }>;
 
       const affectedCardIds = affectedRows
         .map((r) => r.id)
@@ -285,16 +389,16 @@ export async function startTagsBulkEditRun(opts: {
 
       // Update card_tags links.
       dbService.transaction(() => {
-        // Delete old links inside current library.
+        // Delete old links inside selected libraries.
         opts.db
           .prepare(
             `
             DELETE FROM card_tags
             WHERE tag_rawName IN (${fromPlaceholders})
-              AND card_id IN (SELECT id FROM cards WHERE library_id = ?)
+              AND card_id IN (SELECT id FROM cards WHERE library_id IN (${libPlaceholders}))
           `
           )
-          .run(...fromRawNames, libraryId);
+          .run(...fromRawNames, ...libraryIds);
 
         if (opts.action === "replace" && toRawName) {
           const insert = opts.db.prepare(
@@ -319,6 +423,72 @@ export async function startTagsBulkEditRun(opts: {
         );
         for (const rawName of cleanupCandidates) {
           del.run(rawName, rawName);
+        }
+      }
+
+      // Notify SillyTavern extension to refresh tags (best-effort).
+      // We do NOT rewrite PNG files here; instead, we send the resulting tag list
+      // so the extension can apply tag assignments in SillyTavern.
+      if (opts.applyToSt) {
+        try {
+          for (let i = 0; i < affectedCardIds.length; i += 200) {
+            const batch = affectedCardIds.slice(i, i + 200);
+            const placeholders = batch.map(() => "?").join(", ");
+            const rows = opts.db
+              .prepare(
+                `
+                SELECT
+                  c.id as card_id,
+                  c.tags as tags_json,
+                  cf.st_profile_handle as st_profile_handle,
+                  cf.st_avatar_file as st_avatar_file,
+                  cf.st_avatar_base as st_avatar_base
+                FROM cards c
+                JOIN card_files cf ON cf.card_id = c.id
+                WHERE c.is_sillytavern = 1
+                  AND c.id IN (${placeholders})
+                  AND cf.st_profile_handle IS NOT NULL
+                  AND cf.st_avatar_file IS NOT NULL
+              `
+              )
+              .all(...batch) as Array<{
+              card_id: string;
+              tags_json: string | null;
+              st_profile_handle: string | null;
+              st_avatar_file: string | null;
+              st_avatar_base: string | null;
+            }>;
+
+            for (const r of rows) {
+              const stProfileHandle = String(r.st_profile_handle ?? "").trim();
+              const stAvatarFile = String(r.st_avatar_file ?? "").trim();
+              const stAvatarBase = String(r.st_avatar_base ?? "").trim();
+              if (!stProfileHandle || !stAvatarFile) continue;
+              if (stProfileHandles.length > 0 && !stProfileHandles.includes(stProfileHandle)) {
+                continue;
+              }
+
+              const tags = parseStringArrayJson(r.tags_json);
+              const payload = {
+                type: "st:cards_changed" as const,
+                ts: Date.now(),
+                cardId: r.card_id,
+                mode: "tags_bulk_edit",
+                stProfileHandle,
+                stAvatarFile,
+                ...(stAvatarBase ? { stAvatarBase } : {}),
+                tags,
+              };
+              opts.hub.broadcast("st:cards_changed", payload, {
+                id: `${opts.runId}:st:cards_changed:${r.card_id}:${stProfileHandle}:${stAvatarFile}`,
+              });
+            }
+
+            await sleepImmediate();
+          }
+        } catch (e) {
+          // Best-effort; do not fail bulk edit if ST notification fails.
+          logger.warnKey("warn.tags.bulk_edit_st_notify_failed", { runId: opts.runId }, e);
         }
       }
 

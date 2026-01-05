@@ -10,25 +10,35 @@ import {
   MultiSelect,
   TextInput,
   SegmentedControl,
+  Checkbox,
 } from "@mantine/core";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
+import { mergeOptions } from "@/features/cards-filters/ui/shared/mergeOptions";
 import {
   $action,
+  $applyToLibrary,
+  $applyToSt,
   $canApply,
   $from,
   $loading,
   $opened,
   $replaceMode,
+  $sourceValid,
+  $stProfileHandles,
+  $stProfilesOptions,
   $tags,
   $tagsError,
   $toExistingRawName,
   $toNewName,
   actionChanged,
+  applyToLibraryChanged,
+  applyToStChanged,
   applyClicked,
   closeTagsBulkEditModal,
   fromTagsChanged,
   replaceModeChanged,
+  stProfileHandlesChanged,
   toExistingRawNameChanged,
   toNewNameChanged,
 } from "../model";
@@ -116,23 +126,47 @@ const ReplaceTargetControls = memo(function ReplaceTargetControls() {
 
 export function TagsBulkEditModal() {
   const { t } = useTranslation();
-  const [opened, action, tagsError, loading, canApply] = useUnit([
+  const [
+    opened,
+    action,
+    tagsError,
+    loading,
+    canApply,
+    applyToLibrary,
+    applyToSt,
+    stProfileHandles,
+    stProfilesOptions,
+    sourceValid,
+  ] = useUnit([
     $opened,
     $action,
     $tagsError,
     $loading,
     $canApply,
+    $applyToLibrary,
+    $applyToSt,
+    $stProfileHandles,
+    $stProfilesOptions,
+    $sourceValid,
   ]);
 
   const [
     onClose,
     onApply,
     onActionChanged,
+    onApplyToLibraryChanged,
+    onApplyToStChanged,
+    onStProfileHandlesChanged,
   ] = useUnit([
     closeTagsBulkEditModal,
     applyClicked,
     actionChanged,
+    applyToLibraryChanged,
+    applyToStChanged,
+    stProfileHandlesChanged,
   ]);
+
+  const stProfileData = mergeOptions(stProfileHandles, stProfilesOptions);
 
   return (
     <Modal opened={opened} onClose={() => onClose()} title={t("tagsBulkEdit.title")} size="lg">
@@ -140,6 +174,45 @@ export function TagsBulkEditModal() {
         <Text size="sm" c="dimmed">
           {t("tagsBulkEdit.description")}
         </Text>
+
+        <Stack gap={6}>
+          <Checkbox
+            label={t("tagsBulkEdit.scope.applyToLibrary")}
+            checked={Boolean(applyToLibrary)}
+            onChange={(e) => onApplyToLibraryChanged(e.currentTarget.checked)}
+            disabled={loading.starting}
+          />
+          <Checkbox
+            label={t("tagsBulkEdit.scope.applyToSillyTavern")}
+            checked={Boolean(applyToSt)}
+            onChange={(e) => onApplyToStChanged(e.currentTarget.checked)}
+            disabled={loading.starting}
+          />
+
+          {applyToSt && (
+            <Stack gap={4}>
+              <MultiSelect
+                label={t("tagsBulkEdit.stProfilesLabel")}
+                data={stProfileData}
+                value={stProfileHandles}
+                placeholder={t("tagsBulkEdit.stProfilesPlaceholder")}
+                onChange={onStProfileHandlesChanged}
+                searchable
+                clearable
+                disabled={loading.starting}
+              />
+              <Text size="xs" c="dimmed">
+                {t("tagsBulkEdit.stProfilesHint")}
+              </Text>
+            </Stack>
+          )}
+
+          {!sourceValid && (
+            <Text size="xs" c="red">
+              {t("tagsBulkEdit.validation.selectSource")}
+            </Text>
+          )}
+        </Stack>
 
         {tagsError && (
           <Text size="sm" c="dimmed">

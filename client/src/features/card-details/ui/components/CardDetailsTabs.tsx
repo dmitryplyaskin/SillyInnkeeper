@@ -36,6 +36,7 @@ import { DraftNameField } from "./fields/DraftNameField";
 import { DraftTagsField } from "./fields/DraftTagsField";
 import { EditableGreetingsList } from "./EditableGreetingsList";
 import { LorebookEditor } from "./LorebookEditor";
+import { CardChatsTab } from "./chats/card-chats-tab";
 
 function JsonBlock({ value }: { value: unknown | null }) {
   const pretty = useMemo(() => {
@@ -147,6 +148,9 @@ export function CardDetailsTabs({
           <Tabs.Tab value="alt">{t("cardDetails.tabsAlt")}</Tabs.Tab>
           <Tabs.Tab value="system">{t("cardDetails.tabsSystem")}</Tabs.Tab>
           <Tabs.Tab value="lorebook">{t("cardDetails.tabsLorebook", "Lorebook")}</Tabs.Tab>
+          {details?.is_sillytavern === true && (
+            <Tabs.Tab value="chats">{t("cardDetails.tabsChats")}</Tabs.Tab>
+          )}
           <Tabs.Tab value="raw">{t("cardDetails.tabsRaw")}</Tabs.Tab>
         </Tabs.List>
 
@@ -318,6 +322,12 @@ export function CardDetailsTabs({
         <Tabs.Panel value="lorebook" pt="md">
           <LorebookEditor openedId={openedId} disabled={disabled} />
         </Tabs.Panel>
+
+        {details?.is_sillytavern === true && (
+          <Tabs.Panel value="chats" pt="md">
+            <CardChatsTab />
+          </Tabs.Panel>
+        )}
 
         <Tabs.Panel value="raw" pt="md">
           <JsonBlock value={details?.data_json ?? null} />
