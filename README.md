@@ -6,6 +6,8 @@
 
 > 🔗 **SillyTavern Extension**: [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper) — Install this extension in SillyTavern to integrate with SillyInnkeeper.
 
+> 📢 **Telegram Channel**: [@SillyInnkeeper](https://t.me/SillyInnkeeper) — news, updates, and project discussions.
+
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://opensource.org/licenses/AGPL-3.0)
 
 ![Main img](assets/main.webp)
@@ -24,21 +26,57 @@ SillyInnkeeper solves all these problems by providing a fast and convenient way 
 
 ## ✨ Key Features
 
+### Full SillyTavern Integration
+
+- **View and edit cards**: Full access to character card content from SillyTavern
+- **Chat management**: View information about chats associated with cards, filter by user profiles
+- **Data synchronization**: Automatic synchronization of metadata between SillyInnkeeper and SillyTavern
+- **One-click launch**: The "Play" button instantly imports the card into SillyTavern
+- **Automatic import**: The SillyTavern extension automatically receives cards from SillyInnkeeper
+
+### Powerful Search and Filtering
+
+- **Search by name**: Quick search for cards by character name
+- **Text search**: Full-text search through card content with two modes:
+  - "LIKE" mode — simple substring search
+  - "FTS" mode — full-text search with relevance ranking
+  - Search fields: description, personality, scenario, first message, message examples, creator notes, system prompts, post history instructions, alternate greetings, group-only greetings
+- **Metadata filtering**:
+  - By creator (single or multiple)
+  - By specification version (V1/V2/V3)
+  - By tags (multiple selection)
+  - By patterns (customizable rules)
+- **Date filtering**: Date range for card creation
+- **Size filtering**: Search by approximate number of prompt tokens (min/max)
+- **Field presence filtering**: Find cards with or without specific fields:
+  - Creator notes
+  - System prompts
+  - Post history instructions
+  - Personality
+  - Scenario
+  - Message examples
+  - Character Book (lorebook)
+- **Alternate greetings filtering**: Presence and minimum count
+- **Source filtering**: Cards from SillyTavern, from folder, or all
+- **Status filtering**: Hidden, favorite cards
+- **SillyTavern chats filtering**:
+  - Chat count (equal/greater than/less than)
+  - User profiles
+  - Hide cards without chats
+- **Flexible sorting**:
+  - By creation date (newest/oldest first)
+  - By name (A-Z / Z-A)
+  - By prompt tokens count (descending/ascending)
+  - By SillyTavern chats count (descending/ascending)
+  - By last chat date (newest/oldest first)
+  - By first chat date (newest/oldest first)
+  - By relevance (when using full-text search)
+
 ### Card Library Management
 
 - **Automatic scanning**: Just specify the folder with cards — the application will find and index all PNG files automatically
 - **Automatic updates**: When new cards are added or existing ones are changed, the application will automatically update the information
 - **Duplicate management**: Automatic detection of identical cards and convenient management of them
-
-### Powerful Search and Filtering
-
-- **Search by name**: Quick search for cards by character name
-- **Filter by creator**: Find all cards from a specific author
-- **Filter by tags**: Select multiple tags for precise search
-- **Filter by date**: Find cards created in a specific period
-- **Filter by content**: Find cards with specific fields (e.g., only with system prompt or with alternate greetings)
-- **Filter by size**: Search by approximate number of prompt tokens
-- **Flexible sorting**: Sort by creation date or by name
 
 ### Convenient Card Viewing
 
@@ -50,11 +88,6 @@ SillyInnkeeper solves all these problems by providing a fast and convenient way 
   - Raw JSON (for advanced users)
 - **Image viewing**: Zoom card images with optional blur (censorship)
 - **Metadata**: View ID, specification version, creation date, and other useful information
-
-### SillyTavern Integration
-
-- **One-click launch**: The "Play" button instantly imports the card into SillyTavern
-- **Automatic import**: The SillyTavern extension automatically receives cards from SillyInnkeeper
 - **Card export**: Download PNG files with correct metadata for use in other applications
 
 ### User Experience
@@ -73,8 +106,6 @@ SillyInnkeeper solves all these problems by providing a fast and convenient way 
 - **Node.js**: version 18.x or higher (recommended 20.x or 24.x)
 - **Yarn**: version 4.12.0 (or npm 9.x+)
 - **Operating system**: Windows 10/11, Linux, macOS
-- **RAM**: minimum 2 GB (recommended 4 GB+ for large collections)
-- **Free disk space**: minimum 500 MB for installation + space for database and cache
 
 ## 📦 Installation
 
@@ -175,8 +206,6 @@ You can configure **host/port** and SillyTavern integration via a root `.env` fi
   - `ST_PORT` — SillyTavern port for default CORS allowlist (default `8000`)
   - `CORS_ALLOW_ORIGINS` — extra allowed origins (comma-separated), e.g. `http://192.168.1.50:8001`
 
-**Note about LAN**: if you set `INNKEEPER_HOST=0.0.0.0`, open the app from another device using `http://<your-pc-lan-ip>:<INNKEEPER_PORT>` (you may also need to allow inbound traffic in your firewall).
-
 ## 🚀 Quick Start
 
 ### First Launch
@@ -204,15 +233,9 @@ You can configure **host/port** and SillyTavern integration via a root `.env` fi
 
 1. Install the [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper) extension in SillyTavern
 
-2. In the extension settings, specify the SillyInnkeeper URL:
+2. In the extension settings, specify the SillyInnkeeper URL: `http://127.0.0.1:48912`
 
-   ```
-   http://127.0.0.1:48912
-   ```
-
-   If SillyTavern is opened on a different machine, **do not use `localhost`** — use the Innkeeper machine IP/hostname instead (e.g. `http://192.168.1.10:48912`).
-
-   If SillyTavern is not on port 8000, set `ST_PORT` (and/or add its full origin to `CORS_ALLOW_ORIGINS`).
+   If SillyTavern is opened on a different machine, use the Innkeeper machine IP/hostname instead (e.g. `http://192.168.1.10:48912`).
 
 3. Enable "Auto-connect" for automatic connection
 
@@ -232,22 +255,27 @@ The main screen of the application consists of:
 
 1. **Open the filters panel** (the "Filters" button in the top panel)
 
-2. **Use available filters**:
+2. **Use search**:
+   - **Search by name**: Enter the character name for quick search
+   - **Text search**: Enter text to search through card content
+     - Choose search mode: "LIKE" (simple search) or "FTS" (full-text search with ranking)
+     - Select fields to search: description, personality, scenario, first message, message examples, creator notes, system prompts, post history instructions, alternate greetings, group-only greetings
 
-   - **Search by name**: Enter the character name
-   - **Creator**: Select one or more creators
-   - **Specification version**: Filter by Character Card version (V1/V2/V3)
-   - **Tags**: Select tags for filtering
+3. **Apply filters**:
+   - **Metadata**: Creator, specification version (V1/V2/V3), tags, patterns
    - **Creation date**: Specify a date range
-   - **Tokens**: Minimum and maximum number of tokens
+   - **Prompt tokens**: Minimum and maximum number of tokens
    - **Alternate greetings**: Presence and minimum count
-   - **Field presence**: Select fields that should be present/absent
+   - **Field presence**: Select fields that should be present/absent (creator notes, system prompts, post history instructions, personality, scenario, message examples, Character Book)
+   - **Source**: All cards, only from SillyTavern, only from folder
+   - **Status**: Hidden, favorite cards
+   - **SillyTavern chats**: Chat count (equal/≥/≤), user profiles, hide cards without chats
 
-3. **Choose sorting**: By creation date or by name
+4. **Choose sorting**: By creation date, name, token count, chat count, last/first chat date, or by relevance (when using full-text search)
 
-4. **Apply filters**: Results will update automatically
+5. **Results update automatically** when filters change
 
-5. **Reset filters**: Use the "Reset" button to clear all filters
+6. **Reset filters**: Use the "Reset" button to clear all filters
 
 ### Viewing a Card
 
@@ -265,12 +293,6 @@ The main screen of the application consists of:
    - **Download**: Download the PNG file of the card
    - **Rename**: Change the name of the main file
    - **Delete**: Delete the card or duplicate
-
-### Library Management
-
-- **Automatic updates**: When files in the cards folder are changed, the application will automatically update the index
-- **Manual scanning**: You can start a rescan through settings
-- **Duplicate management**: In the detailed card view, you can select the main file or delete duplicates
 
 ## 🔗 SillyTavern Integration
 
@@ -305,31 +327,16 @@ SillyInnkeeper integrates with SillyTavern through the [ST-Extension-SillyInnkee
 
 ### Planned Features
 
-1. **Full SillyTavern Integration and Scanning**
-
-   - Scanning cards from SillyTavern folder
-   - Managing and editing cards, chats, lorebooks, etc.
-   - Two-way synchronization between SillyInnkeeper and SillyTavern
-
-2. **Lorebook Support**
+1. **Lorebook Support (Character Book)**
 
    - Viewing and managing lorebooks from cards
    - Editing lorebooks
    - Export/import lorebooks
+   - This functionality will be redesigned to improve UX/UI
 
-3. **Multiple Directories Support**
+2. **Native Desktop Application**
 
-   - Support for multiple card libraries
-   - Switching between libraries
-   - Unified search across all libraries
-   - Library management through UI
-
-4. **Auto-Download and Auto-Import**
-
-   - Monitoring downloads folder
-   - Automatic scanning of new files
-   - Automatic import into SillyTavern (optional)
-   - Configuration rules for automatic card organization
+   - Possible implementation of a native desktop application for improved performance and usability
 
 ## 📄 License
 
@@ -340,9 +347,6 @@ This project is licensed under [AGPL-3.0](https://opensource.org/licenses/AGPL-3
 **Dmitry Plyaskin**
 
 - GitHub: [@dmitryplyaskin](https://github.com/dmitryplyaskin)
+- Telegram Channel: [@SillyInnkeeper](https://t.me/SillyInnkeeper)
 - Project: [SillyInnkeeper](https://github.com/dmitryplyaskin/SillyInnkeeper)
 - SillyTavern Extension: [ST-Extension-SillyInnkeeper](https://github.com/dmitryplyaskin/ST-Extension-SillyInnkeeper)
-
----
-
-**Note**: SillyInnkeeper is an independent project, not officially affiliated with SillyTavern. It is a community tool for improving work with character cards.

@@ -42,6 +42,7 @@ export class CardDataExtractor {
       scenario: this.getString(cardData.scenario, ""),
       first_mes: this.getString(cardData.first_mes, ""),
       mes_example: this.getString(cardData.mes_example, ""),
+      fav: typeof cardData.fav === "boolean" ? cardData.fav : false,
 
       // Поля V2/V3 (устанавливаем значения по умолчанию для V1)
       creator_notes: this.getString(
@@ -90,6 +91,7 @@ export class CardDataExtractor {
       scenario: this.getString(data.scenario, ""),
       first_mes: this.getString(data.first_mes, ""),
       mes_example: this.getString(data.mes_example, ""),
+      fav: typeof cardData.fav === "boolean" ? cardData.fav : false,
 
       // Поля V2
       creator_notes: this.getString(data.creator_notes, ""),
@@ -157,6 +159,7 @@ export class CardDataExtractor {
       scenario: this.getString(data.scenario, ""),
       first_mes: this.getString(data.first_mes, ""),
       mes_example: this.getString(data.mes_example, ""),
+      fav: typeof cardData.fav === "boolean" ? cardData.fav : false,
 
       // Поля V2/V3
       creator_notes: creatorNotes,

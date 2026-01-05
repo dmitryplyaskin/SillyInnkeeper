@@ -7,6 +7,12 @@ export type CardsSort =
   | "name_desc"
   | "prompt_tokens_desc"
   | "prompt_tokens_asc"
+  | "st_chats_count_desc"
+  | "st_chats_count_asc"
+  | "st_last_chat_at_desc"
+  | "st_last_chat_at_asc"
+  | "st_first_chat_at_desc"
+  | "st_first_chat_at_asc"
   | "relevance";
 
 export type CardsFtsField =
@@ -34,6 +40,9 @@ export interface CardsQuery {
   tags?: string[];
   created_from_ms?: number;
   created_to_ms?: number;
+  is_sillytavern?: TriState;
+  is_hidden?: TriState;
+  fav?: TriState;
   has_creator_notes?: TriState;
   has_system_prompt?: TriState;
   has_post_history_instructions?: TriState;
@@ -46,4 +55,10 @@ export interface CardsQuery {
   prompt_tokens_min?: number;
   prompt_tokens_max?: number;
   patterns?: TriState;
+
+  // SillyTavern chats filters (computed on backend from card_files)
+  st_chats_count?: number;
+  st_chats_count_op?: "eq" | "gte" | "lte";
+  st_profile_handle?: string[];
+  st_has_chats?: "1";
 }

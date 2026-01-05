@@ -13,6 +13,7 @@ export interface ExtractedCardData {
   scenario: string;
   first_mes: string;
   mes_example: string;
+  fav: boolean;
 
   // Поля V2/V3 (могут быть пустыми для V1)
   creator_notes: string;

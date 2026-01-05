@@ -1,4 +1,5 @@
 import type { CardDetails, CardListItem } from "@/shared/types/cards";
+import type { CardChatDetails, CardChatSummary } from "@/shared/types/card-chats";
 import type { CardsQuery } from "@/shared/types/cards-query";
 import type { CardsFiltersResponse } from "@/shared/types/cards-filters";
 import i18n from "@/shared/i18n/i18n";
@@ -53,7 +54,18 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
   if (query?.has_alternate_greetings)
     params.set("has_alternate_greetings", query.has_alternate_greetings);
 
+  if (query?.is_sillytavern) params.set("is_sillytavern", query.is_sillytavern);
+  if (query?.is_hidden) params.set("is_hidden", query.is_hidden);
+  if (query?.fav) params.set("fav", query.fav);
+
   if (query?.patterns) params.set("patterns", query.patterns);
+
+  if (typeof query?.st_chats_count === "number")
+    params.set("st_chats_count", String(query.st_chats_count));
+  if (query?.st_chats_count_op)
+    params.set("st_chats_count_op", query.st_chats_count_op);
+  appendMany(params, "st_profile_handle", query?.st_profile_handle);
+  if (query?.st_has_chats === "1") params.set("st_has_chats", "1");
 
   if (typeof query?.alternate_greetings_min === "number")
     params.set(
@@ -88,6 +100,44 @@ export async function getCards(query?: CardsQuery): Promise<CardListItem[]> {
   return response.json();
 }
 
+export async function setCardHidden(
+  cardId: string,
+  isHidden: boolean
+): Promise<{ ok: true; card_id: string; is_hidden: boolean }> {
+  const response = await fetch(`/api/cards/${encodeURIComponent(cardId)}/hidden`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ is_hidden: isHidden }),
+  });
+
+  if (!response.ok) {
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(response.statusText);
+  }
+
+  return response.json();
+}
+
+export async function setCardsHiddenBulk(
+  cardIds: string[],
+  isHidden: boolean
+): Promise<{ ok: true; updated: number; updated_ids: string[] }> {
+  const response = await fetch(`/api/cards/bulk-hidden`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ card_ids: cardIds, is_hidden: isHidden }),
+  });
+
+  if (!response.ok) {
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(response.statusText);
+  }
+
+  return response.json();
+}
+
 export async function getCardsFilters(): Promise<CardsFiltersResponse> {
   const response = await fetch("/api/cards/filters");
 
@@ -109,6 +159,36 @@ export async function getCardDetails(id: string): Promise<CardDetails> {
     const errorText = (await response.text().catch(() => "")).trim();
     if (errorText) throw new Error(errorText);
     throw new Error(`${i18n.t("errors.loadCard")}: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function getCardChats(cardId: string): Promise<CardChatSummary[]> {
+  const response = await fetch(`/api/cards/${encodeURIComponent(cardId)}/chats`);
+
+  if (!response.ok) {
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(`${i18n.t("errors.loadChats")}: ${response.statusText}`);
+  }
+
+  const data = (await response.json()) as { chats?: CardChatSummary[] };
+  return Array.isArray(data?.chats) ? data.chats : [];
+}
+
+export async function getCardChat(
+  cardId: string,
+  chatId: string
+): Promise<CardChatDetails> {
+  const response = await fetch(
+    `/api/cards/${encodeURIComponent(cardId)}/chats/${encodeURIComponent(chatId)}`
+  );
+
+  if (!response.ok) {
+    const errorText = (await response.text().catch(() => "")).trim();
+    if (errorText) throw new Error(errorText);
+    throw new Error(`${i18n.t("errors.loadChat")}: ${response.statusText}`);
   }
 
   return response.json();
@@ -136,8 +216,19 @@ export async function deleteCardFileDuplicate(
   return response.json();
 }
 
-export async function deleteCard(cardId: string): Promise<{ ok: true }> {
-  const response = await fetch(`/api/cards/${encodeURIComponent(cardId)}`, {
+export async function deleteCard(
+  cardId: string,
+  opts?: { deleteChats?: boolean }
+): Promise<{ ok: true; chats_deleted?: boolean; chats_delete_error?: string }> {
+  const params = new URLSearchParams();
+  if (opts?.deleteChats === true) params.set("delete_chats", "1");
+
+  const url =
+    params.toString().length > 0
+      ? `/api/cards/${encodeURIComponent(cardId)}?${params.toString()}`
+      : `/api/cards/${encodeURIComponent(cardId)}`;
+
+  const response = await fetch(url, {
     method: "DELETE",
   });
 
@@ -218,7 +309,8 @@ export type SaveCardMode =
   | "overwrite_main"
   | "overwrite_all_files"
   | "save_new"
-  | "save_new_delete_old_main";
+  | "save_new_delete_old_main"
+  | "save_new_to_library";
 
 export async function saveCard(opts: {
   cardId: string;

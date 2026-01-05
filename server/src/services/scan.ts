@@ -11,22 +11,46 @@ import { createTagService } from "./tags";
 import { computeContentHash } from "./card-hash";
 import { createLorebooksService, LorebooksService } from "./lorebooks";
 import { logger } from "../utils/logger";
+import {
+  listSillyTavernCharacterPngs,
+  listSillyTavernCharactersDirPngs,
+} from "./sillytavern";
 
-const CONCURRENT_LIMIT = 5;
+const CONCURRENT_LIMIT_FOLDER = 5;
+// SillyTavern scan tends to create more pressure on the event loop (lots of sync IO + parsing).
+// Keep it lower to improve server responsiveness during startup/rescans.
+const CONCURRENT_LIMIT_SILLYTAVERN = 2;
+const YIELD_EVERY_FILES_FOLDER = 80;
+const YIELD_EVERY_FILES_SILLYTAVERN = 40;
+
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}
 
 /**
  * Сервис для сканирования папки с карточками и синхронизации с базой данных
  */
 export class ScanService {
-  private limit = pLimit(CONCURRENT_LIMIT);
+  private limit: ReturnType<typeof pLimit>;
   private scannedFiles = new Set<string>();
   private cardParser: CardParser;
   private lorebooksService: LorebooksService;
+  private yieldCounter = 0;
+  private yieldEvery: number;
 
   constructor(
     private dbService: DatabaseService,
-    private libraryId: string = "cards"
+    private libraryId: string = "cards",
+    private isSillyTavern: boolean = false
   ) {
+    this.limit = pLimit(
+      this.isSillyTavern
+        ? CONCURRENT_LIMIT_SILLYTAVERN
+        : CONCURRENT_LIMIT_FOLDER
+    );
+    this.yieldEvery = this.isSillyTavern
+      ? YIELD_EVERY_FILES_SILLYTAVERN
+      : YIELD_EVERY_FILES_FOLDER;
     this.cardParser = new CardParser();
     this.lorebooksService = new LorebooksService(this.dbService);
   }
@@ -35,8 +59,19 @@ export class ScanService {
    * Обрабатывает один PNG файл (без полного рескана папки).
    * Полезно для точечного обновления БД при изменениях, сделанных приложением.
    */
-  async syncSingleFile(filePath: string): Promise<void> {
-    await this.processFile(filePath);
+  async syncSingleFile(
+    filePath: string,
+    stMeta?: {
+      stProfileHandle: string;
+      stAvatarFile: string;
+      stAvatarBase: string;
+      stChatsFolderPath?: string;
+      stChatsCount?: number;
+      stLastChatAt?: number;
+      stFirstChatAt?: number;
+    }
+  ): Promise<void> {
+    await this.processFile(filePath, stMeta);
   }
 
   /**
@@ -61,10 +96,11 @@ export class ScanService {
     try {
       // Рекурсивно получаем все файлы
       const files = await this.getAllPngFiles(folderPath);
-      logger.infoKey("log.scan.foundPngFiles", { count: files.length });
-      opts?.onStart?.(files.length);
+      const sortedFiles = this.sortFilesOldToNew(files);
+      logger.infoKey("log.scan.foundPngFiles", { count: sortedFiles.length });
+      opts?.onStart?.(sortedFiles.length);
 
-      const totalFiles = files.length;
+      const totalFiles = sortedFiles.length;
       let processedFiles = 0;
       let lastProgressAt = 0;
       const emitProgress = () => {
@@ -78,7 +114,7 @@ export class ScanService {
       };
 
       // Обрабатываем файлы с ограничением конкурентности
-      const promises = files.map((file) =>
+      const promises = sortedFiles.map((file) =>
         this.limit(async () => {
           try {
             await this.processFile(file);
@@ -108,6 +144,159 @@ export class ScanService {
   }
 
   /**
+   * Сканирует SillyTavern-карточки по структуре:
+   *   <sillytavenrPath>/data/<profile>/characters/*.png
+   *
+   * Подпапки внутри characters игнорируются (считаем их доп. изображениями).
+   */
+  async scanSillyTavern(
+    sillytavenrPath: string,
+    opts?: {
+      onStart?: (totalFiles: number) => void;
+      onProgress?: (processedFiles: number, totalFiles: number) => void;
+    }
+  ): Promise<{ totalFiles: number; processedFiles: number }> {
+    const root = String(sillytavenrPath ?? "").trim();
+    if (!root || !existsSync(root)) {
+      logger.errorMessageKey("error.scan.folderNotExists", {
+        folderPath: root,
+      });
+      return { totalFiles: 0, processedFiles: 0 };
+    }
+
+    logger.infoKey("log.scan.start", { folderPath: root });
+    this.scannedFiles.clear();
+
+    try {
+      const entries = await listSillyTavernCharacterPngs(root);
+      logger.infoKey("log.scan.foundPngFiles", { count: entries.length });
+      opts?.onStart?.(entries.length);
+
+      const totalFiles = entries.length;
+      let processedFiles = 0;
+      let lastProgressAt = 0;
+      const emitProgress = () => {
+        if (!opts?.onProgress) return;
+        const now = Date.now();
+        if (processedFiles >= totalFiles || now - lastProgressAt >= 300) {
+          lastProgressAt = now;
+          opts.onProgress(processedFiles, totalFiles);
+        }
+      };
+
+      const promises = entries.map((entry) =>
+        this.limit(async () => {
+          try {
+            await this.processFile(entry.filePath, {
+              stProfileHandle: entry.profileHandle,
+              stAvatarFile: entry.avatarFile,
+              stAvatarBase: entry.avatarBase,
+              stChatsFolderPath: entry.stChatsFolderPath,
+              stChatsCount: entry.stChatsCount,
+              stLastChatAt: entry.stLastChatAt,
+              stFirstChatAt: entry.stFirstChatAt,
+            });
+          } finally {
+            processedFiles += 1;
+            emitProgress();
+          }
+        })
+      );
+      await Promise.all(promises);
+
+      await this.cleanupDeletedFiles();
+
+      logger.infoKey("log.scan.done", { count: entries.length });
+      if (processedFiles !== totalFiles) processedFiles = totalFiles;
+      opts?.onProgress?.(processedFiles, totalFiles);
+
+      return { totalFiles, processedFiles };
+    } catch (error) {
+      logger.errorKey(error, "error.scan.scanFolderFailed", {
+        folderPath: root,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Сканирует SillyTavern-карточки для ОДНОГО профиля по структуре:
+   *   <sillytavenrPath>/data/<profile>/characters/*.png
+   *
+   * Входной параметр: путь до `.../data/<profile>/characters`.
+   * Подпапки внутри characters игнорируются (считаем их доп. изображениями).
+   */
+  async scanSillyTavernProfile(
+    charactersDir: string,
+    opts?: {
+      onStart?: (totalFiles: number) => void;
+      onProgress?: (processedFiles: number, totalFiles: number) => void;
+    }
+  ): Promise<{ totalFiles: number; processedFiles: number }> {
+    const dir = String(charactersDir ?? "").trim();
+    if (!dir || !existsSync(dir)) {
+      logger.errorMessageKey("error.scan.folderNotExists", {
+        folderPath: dir,
+      });
+      return { totalFiles: 0, processedFiles: 0 };
+    }
+
+    logger.infoKey("log.scan.start", { folderPath: dir });
+    this.scannedFiles.clear();
+
+    try {
+      const entries = await listSillyTavernCharactersDirPngs(dir);
+      logger.infoKey("log.scan.foundPngFiles", { count: entries.length });
+      opts?.onStart?.(entries.length);
+
+      const totalFiles = entries.length;
+      let processedFiles = 0;
+      let lastProgressAt = 0;
+      const emitProgress = () => {
+        if (!opts?.onProgress) return;
+        const now = Date.now();
+        if (processedFiles >= totalFiles || now - lastProgressAt >= 300) {
+          lastProgressAt = now;
+          opts.onProgress(processedFiles, totalFiles);
+        }
+      };
+
+      const promises = entries.map((entry) =>
+        this.limit(async () => {
+          try {
+            await this.processFile(entry.filePath, {
+              stProfileHandle: entry.profileHandle,
+              stAvatarFile: entry.avatarFile,
+              stAvatarBase: entry.avatarBase,
+              stChatsFolderPath: entry.stChatsFolderPath,
+              stChatsCount: entry.stChatsCount,
+              stLastChatAt: entry.stLastChatAt,
+              stFirstChatAt: entry.stFirstChatAt,
+            });
+          } finally {
+            processedFiles += 1;
+            emitProgress();
+          }
+        })
+      );
+      await Promise.all(promises);
+
+      await this.cleanupDeletedFiles();
+
+      logger.infoKey("log.scan.done", { count: entries.length });
+      if (processedFiles !== totalFiles) processedFiles = totalFiles;
+      opts?.onProgress?.(processedFiles, totalFiles);
+
+      return { totalFiles, processedFiles };
+    } catch (error) {
+      logger.errorKey(error, "error.scan.scanFolderFailed", {
+        folderPath: dir,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Рекурсивно получает все PNG файлы из папки
    */
   private async getAllPngFiles(dir: string): Promise<string[]> {
@@ -132,12 +321,50 @@ export class ScanService {
     return files;
   }
 
+  private sortFilesOldToNew(files: string[]): string[] {
+    const entries: Array<{ filePath: string; createdAtMs: number }> = [];
+    for (const p of files) {
+      try {
+        const st = statSync(p);
+        const birth = st.birthtimeMs;
+        const mtime = st.mtimeMs;
+        const createdAtMs = Number.isFinite(birth) && birth > 0 ? birth : mtime;
+        entries.push({ filePath: p, createdAtMs });
+      } catch {
+        // If file disappears during listing, ignore.
+      }
+    }
+    entries.sort((a, b) => {
+      if (a.createdAtMs !== b.createdAtMs) return a.createdAtMs - b.createdAtMs;
+      return a.filePath.localeCompare(b.filePath);
+    });
+    return entries.map((e) => e.filePath);
+  }
+
   /**
    * Обрабатывает один PNG файл
    * @param filePath Путь к файлу
    */
-  private async processFile(filePath: string): Promise<void> {
+  private async processFile(
+    filePath: string,
+    stMeta?: {
+      stProfileHandle: string;
+      stAvatarFile: string;
+      stAvatarBase: string;
+      stChatsFolderPath?: string;
+      stChatsCount?: number;
+      stLastChatAt?: number;
+      stFirstChatAt?: number;
+    }
+  ): Promise<void> {
     try {
+      // Prevent long event-loop blocking during large scans.
+      // Most work below is sync-heavy (statSync, parsing), so we yield periodically.
+      this.yieldCounter += 1;
+      if (this.yieldEvery > 0 && this.yieldCounter % this.yieldEvery === 0) {
+        await yieldToEventLoop();
+      }
+
       // Отмечаем файл как обработанный
       this.scannedFiles.add(filePath);
 
@@ -160,12 +387,26 @@ export class ScanService {
         file_birthtime: number;
         file_size: number;
         prompt_tokens_est?: number;
+        st_profile_handle?: string | null;
+        st_avatar_file?: string | null;
+        st_avatar_base?: string | null;
+        st_chats_folder_path?: string | null;
+        st_chats_count?: number | null;
+        st_last_chat_at?: number | null;
+        st_first_chat_at?: number | null;
       }>(
         `SELECT 
           cf.card_id,
           cf.file_mtime,
           cf.file_birthtime,
           cf.file_size,
+          cf.st_profile_handle,
+          cf.st_avatar_file,
+          cf.st_avatar_base,
+          cf.st_chats_folder_path,
+          cf.st_chats_count,
+          cf.st_last_chat_at,
+          cf.st_first_chat_at,
           c.prompt_tokens_est as prompt_tokens_est
         FROM card_files cf
         LEFT JOIN cards c ON c.id = cf.card_id
@@ -173,7 +414,10 @@ export class ScanService {
         [filePath]
       );
 
-      // Если файл не изменился, пропускаем
+      const shouldSetStMeta = Boolean(this.isSillyTavern && stMeta);
+
+      // Если файл не изменился, обычно пропускаем.
+      // Но для SillyTavern после миграций нам важно проставить st_* поля даже без изменения PNG.
       if (
         existingFile &&
         existingFile.file_mtime === fileMtime &&
@@ -182,6 +426,68 @@ export class ScanService {
         // Если оценка токенов ещё не заполнена (0 по умолчанию после миграции), делаем перерасчёт.
         (existingFile.prompt_tokens_est ?? 0) > 0
       ) {
+        if (shouldSetStMeta) {
+          const nextChatsFolderPath =
+            typeof stMeta!.stChatsFolderPath === "string"
+              ? stMeta!.stChatsFolderPath
+              : null;
+          const nextChatsCount =
+            typeof stMeta!.stChatsCount === "number" &&
+            Number.isFinite(stMeta!.stChatsCount)
+              ? stMeta!.stChatsCount
+              : null;
+          const nextLastChatAt =
+            typeof stMeta!.stLastChatAt === "number" &&
+            Number.isFinite(stMeta!.stLastChatAt)
+              ? stMeta!.stLastChatAt
+              : null;
+          const nextFirstChatAt =
+            typeof stMeta!.stFirstChatAt === "number" &&
+            Number.isFinite(stMeta!.stFirstChatAt)
+              ? stMeta!.stFirstChatAt
+              : null;
+
+          const needUpdate =
+            (existingFile.st_profile_handle ?? null) !==
+              (stMeta!.stProfileHandle ?? null) ||
+            (existingFile.st_avatar_file ?? null) !==
+              (stMeta!.stAvatarFile ?? null) ||
+            (existingFile.st_avatar_base ?? null) !==
+              (stMeta!.stAvatarBase ?? null) ||
+            (nextChatsFolderPath != null &&
+              (existingFile.st_chats_folder_path ?? null) !==
+                nextChatsFolderPath) ||
+            (nextChatsCount != null &&
+              (existingFile.st_chats_count ?? 0) !== nextChatsCount) ||
+            (nextLastChatAt != null &&
+              (existingFile.st_last_chat_at ?? 0) !== nextLastChatAt) ||
+            (nextFirstChatAt != null &&
+              (existingFile.st_first_chat_at ?? 0) !== nextFirstChatAt);
+
+          if (needUpdate) {
+            this.dbService.execute(
+              `UPDATE card_files
+               SET st_profile_handle = ?,
+                   st_avatar_file = ?,
+                   st_avatar_base = ?,
+                   st_chats_folder_path = COALESCE(?, st_chats_folder_path),
+                   st_chats_count = COALESCE(?, st_chats_count),
+                   st_last_chat_at = COALESCE(?, st_last_chat_at),
+                   st_first_chat_at = COALESCE(?, st_first_chat_at)
+               WHERE file_path = ?`,
+              [
+                stMeta!.stProfileHandle,
+                stMeta!.stAvatarFile,
+                stMeta!.stAvatarBase,
+                nextChatsFolderPath,
+                nextChatsCount,
+                nextLastChatAt,
+                nextFirstChatAt,
+                filePath,
+              ]
+            );
+          }
+        }
         return;
       }
 
@@ -327,6 +633,8 @@ export class ScanService {
       // Сохраняем оригинальные данные для экспорта
       const dataJson = JSON.stringify(extractedData.original_data);
       const createdAt = fileCreatedAt;
+      const isSillyTavern = this.isSillyTavern ? 1 : 0;
+      const isFav = extractedData.fav ? 1 : 0;
 
       // Записываем в БД в транзакции
       this.dbService.transaction((db) => {
@@ -339,6 +647,8 @@ export class ScanService {
           dbService.execute(
             `UPDATE cards SET 
               library_id = ?,
+              is_sillytavern = ?,
+              is_fav = ?,
               content_hash = ?,
               name = ?, 
               description = ?, 
@@ -369,6 +679,8 @@ export class ScanService {
             WHERE id = ?`,
             [
               this.libraryId,
+              isSillyTavern,
+              isFav,
               contentHash,
               name,
               description,
@@ -412,15 +724,85 @@ export class ScanService {
           }
 
           // Обновляем информацию о файле
-          dbService.execute(
-            `UPDATE card_files SET 
-              file_mtime = ?, 
-              file_birthtime = ?,
-              file_size = ?,
-              folder_path = ?
-            WHERE file_path = ?`,
-            [fileMtime, createdAt, fileSize, dirname(filePath), filePath]
-          );
+          // Важно:
+          // - Для SillyTavern-библиотеки st_* метаданные критичны для /api/st/play.
+          // - При точечном syncSingleFile() мы часто НЕ передаём stMeta (у нас только filePath).
+          // Поэтому:
+          // - если this.isSillyTavern=true и stMeta отсутствует — НЕ затираем st_* (оставляем как было)
+          // - если this.isSillyTavern=false — оставляем прежнее поведение (st_* = NULL)
+          if (this.isSillyTavern) {
+            dbService.execute(
+              `UPDATE card_files SET 
+                file_mtime = ?, 
+                file_birthtime = ?,
+                file_size = ?,
+                folder_path = ?,
+                st_profile_handle = COALESCE(?, st_profile_handle),
+                st_avatar_file = COALESCE(?, st_avatar_file),
+                st_avatar_base = COALESCE(?, st_avatar_base),
+                st_chats_folder_path = COALESCE(?, st_chats_folder_path),
+                st_chats_count = COALESCE(?, st_chats_count),
+                st_last_chat_at = COALESCE(?, st_last_chat_at),
+                st_first_chat_at = COALESCE(?, st_first_chat_at)
+              WHERE file_path = ?`,
+              [
+                fileMtime,
+                createdAt,
+                fileSize,
+                dirname(filePath),
+                shouldSetStMeta ? stMeta!.stProfileHandle : null,
+                shouldSetStMeta ? stMeta!.stAvatarFile : null,
+                shouldSetStMeta ? stMeta!.stAvatarBase : null,
+                shouldSetStMeta ? (stMeta!.stChatsFolderPath ?? null) : null,
+                shouldSetStMeta
+                  ? typeof stMeta!.stChatsCount === "number"
+                    ? stMeta!.stChatsCount
+                    : null
+                  : null,
+                shouldSetStMeta
+                  ? typeof stMeta!.stLastChatAt === "number"
+                    ? stMeta!.stLastChatAt
+                    : null
+                  : null,
+                shouldSetStMeta
+                  ? typeof stMeta!.stFirstChatAt === "number"
+                    ? stMeta!.stFirstChatAt
+                    : null
+                  : null,
+                filePath,
+              ]
+            );
+          } else {
+            dbService.execute(
+              `UPDATE card_files SET 
+                file_mtime = ?, 
+                file_birthtime = ?,
+                file_size = ?,
+                folder_path = ?,
+                st_profile_handle = ?,
+                st_avatar_file = ?,
+                st_avatar_base = ?,
+                st_chats_folder_path = ?,
+                st_chats_count = ?,
+                st_last_chat_at = ?,
+                st_first_chat_at = ?
+              WHERE file_path = ?`,
+              [
+                fileMtime,
+                createdAt,
+                fileSize,
+                dirname(filePath),
+                null,
+                null,
+                null,
+                null,
+                0,
+                0,
+                0,
+                filePath,
+              ]
+            );
+          }
         } else {
           // Для новых file_path: либо создаём карточку, либо привязываем к существующей по (library_id, content_hash).
           if (createdNewCard && cardId) {
@@ -429,6 +811,8 @@ export class ScanService {
                 `INSERT INTO cards (
                   id,
                   library_id,
+                  is_sillytavern,
+                  is_fav,
                   content_hash,
                   name,
                   description,
@@ -456,10 +840,12 @@ export class ScanService {
                   has_mes_example,
                   has_character_book,
                   prompt_tokens_est
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                   cardId,
                   this.libraryId,
+                  isSillyTavern,
+                  isFav,
                   contentHash,
                   name,
                   description,
@@ -549,8 +935,22 @@ export class ScanService {
 
           // Привязываем файл к cardId (и для новой карточки, и для дубля по хэшу)
           dbService.execute(
-            `INSERT INTO card_files (file_path, card_id, file_mtime, file_birthtime, file_size, folder_path)
-            VALUES (?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO card_files (
+              file_path,
+              card_id,
+              file_mtime,
+              file_birthtime,
+              file_size,
+              folder_path,
+              st_profile_handle,
+              st_avatar_file,
+              st_avatar_base,
+              st_chats_folder_path,
+              st_chats_count,
+              st_last_chat_at,
+              st_first_chat_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               filePath,
               cardId,
@@ -558,6 +958,25 @@ export class ScanService {
               createdAt,
               fileSize,
               dirname(filePath),
+              shouldSetStMeta ? stMeta!.stProfileHandle : null,
+              shouldSetStMeta ? stMeta!.stAvatarFile : null,
+              shouldSetStMeta ? stMeta!.stAvatarBase : null,
+              shouldSetStMeta ? (stMeta!.stChatsFolderPath ?? null) : null,
+              shouldSetStMeta
+                ? typeof stMeta!.stChatsCount === "number"
+                  ? stMeta!.stChatsCount
+                  : 0
+                : 0,
+              shouldSetStMeta
+                ? typeof stMeta!.stLastChatAt === "number"
+                  ? stMeta!.stLastChatAt
+                  : 0
+                : 0,
+              shouldSetStMeta
+                ? typeof stMeta!.stFirstChatAt === "number"
+                  ? stMeta!.stFirstChatAt
+                  : 0
+                : 0,
             ]
           );
 
@@ -764,8 +1183,9 @@ export class ScanService {
  */
 export function createScanService(
   db: Database.Database,
-  libraryId: string = "cards"
+  libraryId: string = "cards",
+  isSillyTavern: boolean = false
 ): ScanService {
   const dbService = createDatabaseService(db);
-  return new ScanService(dbService, libraryId);
+  return new ScanService(dbService, libraryId, isSillyTavern);
 }

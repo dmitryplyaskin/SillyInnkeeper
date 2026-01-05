@@ -4,10 +4,16 @@ import {
   createStore,
   sample,
   combine,
+  merge,
 } from "effector";
 import { debounce } from "patronum/debounce";
 import { getCardsFilters } from "@/shared/api/cards";
+import {
+  getCardsFiltersState,
+  updateCardsFiltersState,
+} from "@/shared/api/cards-filters-state";
 import type { CardsFiltersResponse } from "@/shared/types/cards-filters";
+import type { CardsFiltersState } from "@/shared/types/cards-filters-state";
 import type {
   CardsFtsField,
   CardsQuery,
@@ -19,66 +25,50 @@ import type { PatternRulesStatus } from "@/shared/types/pattern-rules-status";
 import { getPatternRulesStatus } from "@/shared/api/pattern-rules";
 import { loadCards, loadCardsSilent } from "@/entities/cards";
 
-export interface CardsFiltersState {
-  sort: CardsSort;
-  name: string;
-  q: string;
-  q_mode: CardsTextSearchMode;
-  q_fields: CardsFtsField[];
-  creator: string[];
-  spec_version: string[];
-  tags: string[];
-  created_from?: string; // YYYY-MM-DD
-  created_to?: string; // YYYY-MM-DD
-  prompt_tokens_min: number;
-  prompt_tokens_max: number;
-  has_creator_notes: TriState;
-  has_system_prompt: TriState;
-  has_post_history_instructions: TriState;
-  has_personality: TriState;
-  has_scenario: TriState;
-  has_mes_example: TriState;
-  has_character_book: TriState;
-  has_alternate_greetings: TriState;
-  alternate_greetings_min: number;
-  patterns: TriState;
+function makeDefaultFilters(): CardsFiltersState {
+  return {
+    sort: "created_at_desc",
+    name: "",
+    q: "",
+    q_mode: "like",
+    q_fields: [
+      "description",
+      "personality",
+      "scenario",
+      "first_mes",
+      "mes_example",
+      "creator_notes",
+      "system_prompt",
+      "post_history_instructions",
+      "alternate_greetings",
+      "group_only_greetings",
+    ],
+    creator: [],
+    spec_version: [],
+    tags: [],
+    created_from: undefined,
+    created_to: undefined,
+    prompt_tokens_min: 0,
+    prompt_tokens_max: 0,
+    is_sillytavern: "any",
+    is_hidden: "0",
+    fav: "any",
+    has_creator_notes: "any",
+    has_system_prompt: "any",
+    has_post_history_instructions: "any",
+    has_personality: "any",
+    has_scenario: "any",
+    has_mes_example: "any",
+    has_character_book: "any",
+    has_alternate_greetings: "any",
+    alternate_greetings_min: 0,
+    patterns: "any",
+    st_chats_count: undefined,
+    st_chats_count_op: "gte",
+    st_profile_handle: [],
+    st_hide_no_chats: false,
+  };
 }
-
-const DEFAULT_FILTERS: CardsFiltersState = {
-  sort: "created_at_desc",
-  name: "",
-  q: "",
-  q_mode: "like",
-  q_fields: [
-    "description",
-    "personality",
-    "scenario",
-    "first_mes",
-    "mes_example",
-    "creator_notes",
-    "system_prompt",
-    "post_history_instructions",
-    "alternate_greetings",
-    "group_only_greetings",
-  ],
-  creator: [],
-  spec_version: [],
-  tags: [],
-  created_from: undefined,
-  created_to: undefined,
-  prompt_tokens_min: 0,
-  prompt_tokens_max: 0,
-  has_creator_notes: "any",
-  has_system_prompt: "any",
-  has_post_history_instructions: "any",
-  has_personality: "any",
-  has_scenario: "any",
-  has_mes_example: "any",
-  has_character_book: "any",
-  has_alternate_greetings: "any",
-  alternate_greetings_min: 0,
-  patterns: "any",
-};
 
 function toLocalDayStartMs(dateStr: string): number | undefined {
   const d = new Date(`${dateStr}T00:00:00`);
@@ -130,6 +120,9 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     tags: state.tags,
     created_from_ms,
     created_to_ms,
+    is_sillytavern: state.is_sillytavern,
+    is_hidden: state.is_hidden,
+    fav: state.fav,
     prompt_tokens_min:
       state.prompt_tokens_min > 0 ? state.prompt_tokens_min : undefined,
     prompt_tokens_max:
@@ -145,6 +138,21 @@ function toQuery(state: CardsFiltersState): CardsQuery {
     alternate_greetings_min:
       hasAlt === "0" ? undefined : effectiveMin > 0 ? effectiveMin : undefined,
     patterns: state.patterns,
+    st_chats_count:
+      typeof state.st_chats_count === "number" &&
+      Number.isFinite(state.st_chats_count) &&
+      state.st_chats_count >= 0
+        ? state.st_chats_count
+        : undefined,
+    st_chats_count_op: state.st_chats_count_op ?? undefined,
+    st_profile_handle:
+      Array.isArray(state.st_profile_handle) &&
+      state.st_profile_handle.length > 0
+        ? state.st_profile_handle
+            .map((s) => String(s).trim())
+            .filter((s) => s.length > 0)
+        : undefined,
+    st_has_chats: state.st_hide_no_chats ? "1" : undefined,
   };
 
   return query;
@@ -167,12 +175,45 @@ export const loadPatternRulesStatusFx = createEffect<
   return await getPatternRulesStatus();
 });
 
+export const loadCardsFiltersStateFx = createEffect<
+  void,
+  CardsFiltersState,
+  Error
+>(async () => {
+  return await getCardsFiltersState();
+});
+
+export const saveCardsFiltersStateFx = createEffect<
+  CardsFiltersState,
+  CardsFiltersState,
+  Error
+>(async (state) => {
+  return await updateCardsFiltersState(state);
+});
+
+// Kick-off init sequence (hydrate + then allow auto-apply)
+export const initCardsFiltersFx = createEffect<void, void, Error>(async () => {
+  // fire-and-forget; store graph handles success/fail
+  try {
+    void loadCardsFiltersFx();
+  } catch {
+    // ignore
+  }
+  try {
+    void loadCardsFiltersStateFx();
+  } catch {
+    // ignore
+  }
+});
+
 // Stores
-export const $filters = createStore<CardsFiltersState>(DEFAULT_FILTERS);
+export const $filters = createStore<CardsFiltersState>(makeDefaultFilters());
+export const $filtersReady = createStore<boolean>(false);
 export const $filtersData = createStore<CardsFiltersResponse>({
   creators: [],
   spec_versions: [],
   tags: [],
+  st_profiles: [],
 });
 export const $filtersError = createStore<string | null>(null);
 export const $filtersLoading = combine(loadCardsFiltersFx.pending, (p) => p);
@@ -192,10 +233,16 @@ export const setQFields = createEvent<CardsFtsField[]>();
 export const setCreators = createEvent<string[]>();
 export const setSpecVersions = createEvent<string[]>();
 export const setTags = createEvent<string[]>();
+// Internal: used when backend lists are refreshed (e.g. live sync) to sanitize
+// selected tags without triggering "loud" cards reload + loader.
+const syncTagsFromOptions = createEvent<string[]>();
 export const setCreatedFrom = createEvent<string | undefined>();
 export const setCreatedTo = createEvent<string | undefined>();
 export const setPromptTokensMin = createEvent<number>();
 export const setPromptTokensMax = createEvent<number>();
+export const setIsSillyTavern = createEvent<TriState>();
+export const setIsHidden = createEvent<TriState>();
+export const setFav = createEvent<TriState>();
 export const setHasCreatorNotes = createEvent<TriState>();
 export const setHasSystemPrompt = createEvent<TriState>();
 export const setHasPostHistoryInstructions = createEvent<TriState>();
@@ -206,9 +253,16 @@ export const setHasCharacterBook = createEvent<TriState>();
 export const setHasAlternateGreetings = createEvent<TriState>();
 export const setAlternateGreetingsMin = createEvent<number>();
 export const setPatterns = createEvent<TriState>();
+export const setStChatsCount = createEvent<number | undefined>();
+export const setStChatsCountOp = createEvent<"eq" | "gte" | "lte">();
+export const setStProfileHandle = createEvent<string[]>();
+export const setStHideNoChats = createEvent<boolean>();
 export const resetFilters = createEvent<void>();
 export const applyFilters = createEvent<void>();
 export const applyFiltersSilent = createEvent<void>();
+const hydrateFilters = createEvent<CardsFiltersState>();
+const hydrationFinished = createEvent<void>();
+const setFiltersReady = createEvent<boolean>();
 export const applyTagsBulkEditToSelectedTags = createEvent<{
   action: "replace" | "delete";
   from_raw: string[]; // rawName (normalized)
@@ -224,8 +278,12 @@ $filters
   .on(setCreators, (s, creator) => ({ ...s, creator }))
   .on(setSpecVersions, (s, spec_version) => ({ ...s, spec_version }))
   .on(setTags, (s, tags) => ({ ...s, tags }))
+  .on(syncTagsFromOptions, (s, tags) => ({ ...s, tags }))
   .on(setCreatedFrom, (s, created_from) => ({ ...s, created_from }))
   .on(setCreatedTo, (s, created_to) => ({ ...s, created_to }))
+  .on(setIsSillyTavern, (s, is_sillytavern) => ({ ...s, is_sillytavern }))
+  .on(setIsHidden, (s, is_hidden) => ({ ...s, is_hidden }))
+  .on(setFav, (s, fav) => ({ ...s, fav }))
   .on(setPromptTokensMin, (s, prompt_tokens_min) => {
     const min = Number.isFinite(prompt_tokens_min)
       ? Math.max(0, Math.floor(prompt_tokens_min))
@@ -276,6 +334,29 @@ $filters
       : 0,
   }))
   .on(setPatterns, (s, patterns) => ({ ...s, patterns }))
+  .on(setStChatsCount, (s, st_chats_count) => ({
+    ...s,
+    st_chats_count:
+      typeof st_chats_count === "number" && Number.isFinite(st_chats_count)
+        ? Math.max(0, Math.floor(st_chats_count))
+        : undefined,
+  }))
+  .on(setStChatsCountOp, (s, st_chats_count_op) => ({
+    ...s,
+    st_chats_count_op,
+  }))
+  .on(setStProfileHandle, (s, st_profile_handle) => ({
+    ...s,
+    st_profile_handle: Array.isArray(st_profile_handle)
+      ? st_profile_handle
+          .map((x) => String(x).trim())
+          .filter((x) => x.length > 0)
+      : [],
+  }))
+  .on(setStHideNoChats, (s, st_hide_no_chats) => ({
+    ...s,
+    st_hide_no_chats: Boolean(st_hide_no_chats),
+  }))
   .on(applyTagsBulkEditToSelectedTags, (s, payload) => {
     const normalize = (x: string) => x.trim().toLowerCase();
     const fromSet = new Set(payload.from_raw.map((x) => normalize(String(x))));
@@ -311,7 +392,10 @@ $filters
 
     return { ...s, tags: out };
   })
-  .on(resetFilters, () => DEFAULT_FILTERS);
+  .on(resetFilters, () => makeDefaultFilters());
+
+$filters.on(hydrateFilters, (_, next) => next);
+$filtersReady.on(setFiltersReady, (_, v) => v);
 
 // sync filters response
 sample({
@@ -323,6 +407,18 @@ sample({
 sample({
   clock: loadCardsFiltersFx.doneData,
   source: $filters,
+  filter: (filters, data) => {
+    const normalize = (x: string) => x.trim().toLowerCase();
+    const existing = new Set(data.tags.map((t) => normalize(t.value)));
+    const current = (filters.tags ?? []).map((t) => String(t));
+    const next = current.filter((t) => existing.has(normalize(t)));
+
+    if (current.length !== next.length) return true;
+    for (let i = 0; i < current.length; i++) {
+      if (normalize(current[i]) !== normalize(next[i])) return true;
+    }
+    return false;
+  },
   fn: (filters, data) => {
     const normalize = (x: string) => x.trim().toLowerCase();
     const existing = new Set(data.tags.map((t) => normalize(t.value)));
@@ -331,7 +427,14 @@ sample({
     );
     return nextTags;
   },
-  target: setTags,
+  target: syncTagsFromOptions,
+});
+
+// If backend lists refresh caused sanitization of selected tags, refresh cards silently
+// to avoid loader "jitter" during live sync.
+sample({
+  clock: syncTagsFromOptions,
+  target: applyFiltersSilent,
 });
 
 sample({
@@ -349,12 +452,33 @@ sample({
 // Keep patterns status fresh when filters lists are refreshed
 sample({ clock: loadCardsFiltersFx, target: loadPatternRulesStatusFx });
 
+// Hydrate from persisted state on startup.
+sample({ clock: loadCardsFiltersStateFx.doneData, target: hydrateFilters });
+sample({
+  clock: loadCardsFiltersStateFx.failData,
+  fn: () => makeDefaultFilters(),
+  target: hydrateFilters,
+});
+
+sample({ clock: hydrateFilters, target: hydrationFinished });
+
+// Allow auto-apply only after hydration is finished (even if we fell back to defaults)
+sample({ clock: hydrationFinished, fn: () => true, target: setFiltersReady });
+
+// First load: only after filters are hydrated
+sample({
+  clock: hydrationFinished,
+  source: $filters,
+  fn: (state) => toQuery(state),
+  target: loadCards,
+});
+
 // Auto-apply:
 // - name changes are debounced
 // - q changes are debounced
 // - other changes apply immediately
-const nameDebounced = debounce({ source: setName, timeout: 450 });
-const qDebounced = debounce({ source: setQ, timeout: 450 });
+const nameDebounced = debounce({ source: setName, timeout: 500 });
+const qDebounced = debounce({ source: setQ, timeout: 500 });
 
 const immediateApplyClock = [
   setSort,
@@ -367,6 +491,9 @@ const immediateApplyClock = [
   setCreatedTo,
   setPromptTokensMin,
   setPromptTokensMax,
+  setIsSillyTavern,
+  setIsHidden,
+  setFav,
   setHasCreatorNotes,
   setHasSystemPrompt,
   setHasPostHistoryInstructions,
@@ -377,46 +504,112 @@ const immediateApplyClock = [
   setHasAlternateGreetings,
   setAlternateGreetingsMin,
   setPatterns,
+  setStChatsCount,
+  setStChatsCountOp,
+  setStProfileHandle,
+  setStHideNoChats,
 ];
 
 sample({
   clock: immediateApplyClock,
-  source: $filters,
-  fn: (state) => toQuery(state),
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => toQuery(state),
   target: loadCards,
 });
 
 sample({
   clock: nameDebounced,
-  source: $filters,
-  fn: (state) => toQuery(state),
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => toQuery(state),
   target: loadCards,
 });
 
 sample({
   clock: qDebounced,
-  source: $filters,
-  fn: (state) => toQuery(state),
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => toQuery(state),
   target: loadCards,
 });
 
 sample({
   clock: applyFilters,
-  source: $filters,
-  fn: (state) => toQuery(state),
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => toQuery(state),
   target: loadCards,
 });
 
 sample({
   clock: applyFiltersSilent,
-  source: $filters,
-  fn: (state) => toQuery(state),
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => toQuery(state),
   target: loadCardsSilent,
 });
 
 // Reset should deterministically apply defaults
 sample({
   clock: resetFilters,
-  fn: () => toQuery(DEFAULT_FILTERS),
+  source: $filtersReady,
+  filter: (ready) => ready,
+  fn: () => toQuery(makeDefaultFilters()),
   target: loadCards,
+});
+
+// Persist filters state to backend with debounce (500ms).
+// Important: for text inputs (name/q) we persist only after their own debounce
+// to avoid save request per keystroke.
+const persistNonTextChanged = merge([
+  setSort,
+  setQMode,
+  setQFields,
+  setCreators,
+  setSpecVersions,
+  setTags,
+  syncTagsFromOptions,
+  setCreatedFrom,
+  setCreatedTo,
+  setPromptTokensMin,
+  setPromptTokensMax,
+  setIsSillyTavern,
+  setIsHidden,
+  setFav,
+  setHasCreatorNotes,
+  setHasSystemPrompt,
+  setHasPostHistoryInstructions,
+  setHasPersonality,
+  setHasScenario,
+  setHasMesExample,
+  setHasCharacterBook,
+  setHasAlternateGreetings,
+  setAlternateGreetingsMin,
+  setPatterns,
+  setStChatsCount,
+  setStChatsCountOp,
+  setStProfileHandle,
+  setStHideNoChats,
+  applyTagsBulkEditToSelectedTags,
+  resetFilters,
+]);
+
+const persistNonTextDebounced = debounce({
+  source: persistNonTextChanged,
+  timeout: 500,
+});
+
+const persistClock = merge([
+  persistNonTextDebounced,
+  nameDebounced,
+  qDebounced,
+]);
+
+sample({
+  clock: persistClock,
+  source: { state: $filters, ready: $filtersReady },
+  filter: ({ ready }) => ready,
+  fn: ({ state }) => state,
+  target: saveCardsFiltersStateFx,
 });

@@ -183,6 +183,24 @@ function initializeSchema(db: Database.Database): void {
     "library_id",
     "library_id TEXT NOT NULL DEFAULT 'cards'"
   );
+  // cards: metadata for SillyInnkeeper (app-specific)
+  addColumnIfMissing(
+    "cards",
+    "innkeeper_meta_json",
+    "innkeeper_meta_json TEXT NOT NULL DEFAULT '{}'"
+  );
+  // cards: helper column for fast filtering (mirrors innkeeperMeta.isHidden)
+  addColumnIfMissing(
+    "cards",
+    "is_hidden",
+    "is_hidden INTEGER NOT NULL DEFAULT 0"
+  );
+  addColumnIfMissing("cards", "is_fav", "is_fav INTEGER NOT NULL DEFAULT 0");
+  addColumnIfMissing(
+    "cards",
+    "is_sillytavern",
+    "is_sillytavern INTEGER NOT NULL DEFAULT 0"
+  );
   addColumnIfMissing("cards", "content_hash", "content_hash TEXT");
   addColumnIfMissing("cards", "personality", "personality TEXT");
   addColumnIfMissing("cards", "scenario", "scenario TEXT");
@@ -259,6 +277,9 @@ function initializeSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_cards_creator ON cards(creator);
     CREATE INDEX IF NOT EXISTS idx_cards_spec_version ON cards(spec_version);
     CREATE INDEX IF NOT EXISTS idx_cards_library_id ON cards(library_id);
+    CREATE INDEX IF NOT EXISTS idx_cards_is_sillytavern ON cards(is_sillytavern);
+    CREATE INDEX IF NOT EXISTS idx_cards_is_hidden ON cards(is_hidden);
+    CREATE INDEX IF NOT EXISTS idx_cards_is_fav ON cards(is_fav);
     CREATE INDEX IF NOT EXISTS idx_cards_content_hash ON cards(content_hash);
     CREATE INDEX IF NOT EXISTS idx_cards_has_creator_notes ON cards(has_creator_notes);
     CREATE INDEX IF NOT EXISTS idx_cards_has_system_prompt ON cards(has_system_prompt);
@@ -469,6 +490,37 @@ function initializeSchema(db: Database.Database): void {
 
   // card_files: folder_path для фильтрации/группировки по папкам
   addColumnIfMissing("card_files", "folder_path", "folder_path TEXT");
+  // card_files: SillyTavern metadata (для запуска/открытия в ST без импорта)
+  // Храним на уровне file_path (а не cards), т.к. одна и та же карточка может существовать в разных профилях.
+  addColumnIfMissing(
+    "card_files",
+    "st_profile_handle",
+    "st_profile_handle TEXT"
+  );
+  addColumnIfMissing("card_files", "st_avatar_file", "st_avatar_file TEXT");
+  addColumnIfMissing("card_files", "st_avatar_base", "st_avatar_base TEXT");
+  // card_files: SillyTavern chats metadata (для быстрого поиска истории чатов)
+  // Храним на уровне file_path (profile-specific).
+  addColumnIfMissing(
+    "card_files",
+    "st_chats_folder_path",
+    "st_chats_folder_path TEXT"
+  );
+  addColumnIfMissing(
+    "card_files",
+    "st_chats_count",
+    "st_chats_count INTEGER NOT NULL DEFAULT 0"
+  );
+  addColumnIfMissing(
+    "card_files",
+    "st_last_chat_at",
+    "st_last_chat_at INTEGER NOT NULL DEFAULT 0"
+  );
+  addColumnIfMissing(
+    "card_files",
+    "st_first_chat_at",
+    "st_first_chat_at INTEGER NOT NULL DEFAULT 0"
+  );
   // card_files: file_birthtime — время создания файла (нужно для корректного created_at карточки)
   // NOT NULL + DEFAULT нужен для старых БД.
   addColumnIfMissing(
@@ -478,6 +530,9 @@ function initializeSchema(db: Database.Database): void {
   );
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_card_files_folder_path ON card_files(folder_path);
+    CREATE INDEX IF NOT EXISTS idx_card_files_st_profile_handle ON card_files(st_profile_handle);
+    CREATE INDEX IF NOT EXISTS idx_card_files_st_avatar_file ON card_files(st_avatar_file);
+    CREATE INDEX IF NOT EXISTS idx_card_files_st_chats_folder_path ON card_files(st_chats_folder_path);
   `);
 
   // Связь карточек и тегов для точной фильтрации

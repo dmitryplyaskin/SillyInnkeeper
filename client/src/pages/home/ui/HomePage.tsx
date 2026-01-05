@@ -28,11 +28,11 @@ import { PatternRulesModal } from "@/features/pattern-rules";
 import { TagsBulkEditModal } from "@/features/tags-bulk-edit";
 import {
   CardsFiltersPanel,
-  applyFilters,
-  loadCardsFiltersFx,
+  initCardsFiltersFx,
 } from "@/features/cards-filters";
 import { CardDetailsDrawer } from "@/features/card-details";
 import { AppSidebar } from "@/widgets/app-sidebar";
+import { CardActionsModals } from "@/entities/cards";
 
 function SunIcon() {
   return (
@@ -80,9 +80,8 @@ function MoonIcon() {
 
 export function HomePage() {
   const { t } = useTranslation();
-  const [loadFilters, onApply, colorScheme, cycleScheme] = useUnit([
-    loadCardsFiltersFx,
-    applyFilters,
+  const [initFilters, colorScheme, cycleScheme] = useUnit([
+    initCardsFiltersFx,
     $colorScheme,
     cycleColorScheme,
   ]);
@@ -94,9 +93,8 @@ export function HomePage() {
   });
 
   useEffect(() => {
-    loadFilters();
-    onApply();
-  }, [loadFilters, onApply]);
+    initFilters();
+  }, [initFilters]);
 
   const schemeLabel =
     colorScheme === "light"
@@ -204,6 +202,7 @@ export function HomePage() {
       <CardsImportModal />
       <PatternRulesModal />
       <TagsBulkEditModal />
+      <CardActionsModals />
 
       <CardDetailsDrawer />
     </AppShell>

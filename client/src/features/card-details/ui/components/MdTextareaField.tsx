@@ -371,6 +371,8 @@ export function MdTextareaField({
         onClose={() => setModalOpened(false)}
         centered
         size={1024}
+        zIndex={500}
+        overlayProps={{ zIndex: 499 }}
         styles={{
           content: {
             width: "70vw",

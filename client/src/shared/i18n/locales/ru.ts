@@ -34,7 +34,11 @@ const ru = {
     saveSettings: "Ошибка сохранения настроек",
     loadCards: "Ошибка загрузки карточек",
     loadCard: "Ошибка загрузки карточки",
+    loadChats: "Ошибка загрузки чатов",
+    loadChat: "Ошибка загрузки чата",
     loadFiltersTitle: "Ошибка загрузки фильтров",
+    loadFiltersStateTitle: "Ошибка загрузки сохранённых фильтров",
+    saveFiltersStateTitle: "Ошибка сохранения фильтров",
     loadViewSettings: "Ошибка загрузки настроек отображения",
     saveViewSettings: "Ошибка сохранения настроек отображения",
     loadTags: "Ошибка загрузки тегов",
@@ -50,6 +54,7 @@ const ru = {
   },
   empty: {
     dash: "—",
+    none: "none",
     notFoundCards: "Карточки не найдены",
   },
   home: {
@@ -153,6 +158,18 @@ const ru = {
     tags: "Теги",
     tagsTip: "Работает по AND: карточка должна содержать все выбранные теги.",
     localDayTip: "Фильтрация по суткам в локальном времени.",
+    source: "Источник",
+    sourceAll: "Все",
+    sourceOnlySt: "Только ST",
+    sourceOnlyFolder: "Только из папки",
+    hidden: "Скрытые",
+    hiddenExclude: "Не показывать",
+    hiddenInclude: "Показывать",
+    hiddenOnly: "Только скрытые",
+    fav: "Избранное",
+    favAll: "Все",
+    favOnly: "Только избранные",
+    favOnlyNot: "Только не избранные",
     triAny: "Не важно",
     triHas: "Только с",
     triHasNot: "Только без",
@@ -162,6 +179,20 @@ const ru = {
     sortNameDesc: "Имя: Я → А",
     sortTokensDesc: "Токены: больше → меньше",
     sortTokensAsc: "Токены: меньше → больше",
+    sortChatsCountDesc: "Чаты: больше → меньше (ST)",
+    sortChatsCountAsc: "Чаты: меньше → больше (ST)",
+    sortLastChatDesc: "Последний чат: новые → старые (ST)",
+    sortLastChatAsc: "Последний чат: старые → новые (ST)",
+    sortFirstChatDesc: "Первый чат: новые → старые (ST)",
+    sortFirstChatAsc: "Первый чат: старые → новые (ST)",
+    chats: "Чаты (ST)",
+    chatsCount: "Кол-во чатов",
+    chatsCountOp: "Сравнение",
+    stProfile: "Профиль ST",
+    hideNoChats: "Скрыть карточки без чатов",
+    opEq: "Точно (=)",
+    opGte: "Больше или равно (≥)",
+    opLte: "Меньше или равно (≤)",
     hasCreatorNotes: "Заметки автора",
     hasSystemPrompt: "Системный промпт",
     hasPostHistoryInstructions: "Инструкции истории",
@@ -187,6 +218,8 @@ const ru = {
     altGreetingsCount: "Альтернативные приветствия (кол-во)",
     tokensEstimateTip: "Оценка токенов (примерно)",
     createdAtTip: "Дата создания (по файлу)",
+    favBadgeTip: "Избранное из SillyTavern",
+    stBadgeTip: "Карточка из SillyTavern",
     imageTitleFallback: "Изображение карточки",
   },
   cardDetails: {
@@ -206,11 +239,24 @@ const ru = {
     mainFile: "Файл",
     createdAt: "Создано",
     tokensApprox: "Токены (≈)",
+    stChatsCount: "Кол-во чатов (ST)",
+    stLastChat: "Последний чат (ST)",
+    stFirstChat: "Первый чат (ST)",
     tabsMain: "Основное",
     tabsAlt: "Альтернативные приветствия",
     tabsSystem: "Системное",
     tabsLorebook: "Лорбук",
+    tabsChats: "Чаты",
     tabsRaw: "JSON",
+    chats: {
+      title: "Чаты",
+      empty: "Чатов нет",
+      pickChat: "Выберите чат",
+      selectChatHint: "Выберите чат слева",
+      chatTitle: "Чат: {{title}}",
+      chatTitleEmpty: "Чат",
+      messagesCount: "Сообщений: {{count}}",
+    },
     fieldName: "Имя",
     fieldTags: "Теги",
     fieldCreator: "Создатель",
@@ -251,8 +297,17 @@ const ru = {
     confirmDeleteCardTitle: "Удалить карточку?",
     confirmDeleteCardMessage:
       "Карточка будет удалена полностью: все файлы (включая дубликаты) будут удалены с диска и из базы данных. Это действие нельзя отменить.",
+    confirmDeleteCardStWarning:
+      "Удаление этой карточки также удалит её из SillyTavern.",
+    deleteChatsLabel: "Удалить чаты?",
+    chatsDeleteFailed: "Не удалось удалить чаты",
     cardDeleted: "Карточка удалена",
     cardDeleteFailed: "Не удалось удалить карточку",
+    hide: "Скрыть",
+    show: "Показать",
+    hideOk: "Карточка скрыта",
+    showOk: "Карточка показана",
+    hideFailed: "Не удалось изменить видимость карточки",
 
     renameMainFileTitle: "Переименовать файл",
     renameMainFileHint:
@@ -270,6 +325,8 @@ const ru = {
     saveOverwriteWithDuplicates: "Перезаписать карточку и дубли",
     saveAsNew: "Сохранить как новую",
     saveAsNewDeleteOld: "Сохранить как новую и удалить старую",
+    saveToFolder: "Сохранить в папке",
+    saveToFolderTip: "Сохранит копию в папке библиотеки: {{path}}",
 
     edit: "Редактирование",
     preview: "Предпросмотр",
@@ -546,6 +603,16 @@ const ru = {
     description:
       "Инструмент для приведения тегов к единообразию: выберите мусорные теги и замените их на один валидный тег или удалите без замены.",
 
+    scope: {
+      applyToLibrary: "Применить к обычной библиотеке?",
+      applyToSillyTavern: "Применить к карточкам из SillyTavern?",
+    },
+
+    stProfilesLabel: "Профили SillyTavern",
+    stProfilesPlaceholder: "Все профили",
+    stProfilesHint:
+      "Если профили не выбраны — изменения применятся ко всем профилям SillyTavern.",
+
     tabs: {
       replace: "Заменить",
       delete: "Удалить",
@@ -570,6 +637,7 @@ const ru = {
 
     validation: {
       fillRequired: "Заполните обязательные поля",
+      selectSource: "Выберите хотя бы один источник карточек",
     },
 
     startedTitle: "Редактирование тегов",

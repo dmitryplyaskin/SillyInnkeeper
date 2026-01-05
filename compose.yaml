@@ -1,0 +1,17 @@
+services:
+  sillyinnkeeper:
+    image: sillyinnkeeper:latest
+    build:
+      pull: true
+      context: .
+    pull_policy: build
+    container_name: sillyinnkeeper
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=UTC
+    volumes:
+      - /path/to/appdata:/app/data
+    ports:
+      - 48912:48912
+    restart: unless-stopped

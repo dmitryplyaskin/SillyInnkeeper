@@ -7,13 +7,16 @@ export interface CardListItem {
   name: string | null;
   tags: string[] | null;
   creator: string | null;
+  fav: boolean;
   avatar_url: string;
   file_path: string | null;
   spec_version: string | null;
   created_at: number;
+  is_sillytavern: boolean;
   alternate_greetings_count: number;
   has_character_book: boolean;
   prompt_tokens_est: number;
+  innkeeperMeta?: { isHidden: boolean };
 }
 
 export type TriState = "any" | "1" | "0";
@@ -25,6 +28,12 @@ export type CardsSort =
   | "name_desc"
   | "prompt_tokens_desc"
   | "prompt_tokens_asc"
+  | "st_chats_count_desc"
+  | "st_chats_count_asc"
+  | "st_last_chat_at_desc"
+  | "st_last_chat_at_asc"
+  | "st_first_chat_at_desc"
+  | "st_first_chat_at_asc"
   | "relevance";
 
 export type CardsFtsField =
@@ -43,6 +52,10 @@ export type CardsTextSearchMode = "like" | "fts";
 
 export interface SearchCardsParams {
   library_id?: string;
+  library_ids?: string[];
+  is_sillytavern?: TriState;
+  is_hidden?: TriState;
+  fav?: TriState;
   sort?: CardsSort;
   name?: string;
   q?: string;
@@ -65,6 +78,15 @@ export interface SearchCardsParams {
   prompt_tokens_min?: number;
   prompt_tokens_max?: number;
   patterns?: TriState;
+
+  // SillyTavern chats filters (computed from card_files)
+  // chats_count = number of *.jsonl files per character folder; aggregated per card via SUM over card_files
+  st_chats_count?: number;
+  st_chats_count_op?: "eq" | "gte" | "lte";
+  // Filter by SillyTavern profile (stored in card_files.st_profile_handle)
+  st_profile_handle?: string[];
+  // Filter: only cards that have at least one ST chat (aggregated across all profiles)
+  st_has_chats?: boolean;
 }
 
 /**
@@ -90,14 +112,38 @@ export class CardsService {
 
     const qRaw = typeof params.q === "string" ? params.q.trim() : "";
     const hasQ = qRaw.length > 0;
-    const qMode: CardsTextSearchMode =
-      params.q_mode === "fts" ? "fts" : "like";
+    const qMode: CardsTextSearchMode = params.q_mode === "fts" ? "fts" : "like";
 
     const sort = params.sort ?? "created_at_desc";
     const effectiveSort: Exclude<CardsSort, "relevance"> | "relevance" =
-      sort === "relevance" && (!hasQ || qMode !== "fts") ? "created_at_desc" : sort;
+      sort === "relevance" && (!hasQ || qMode !== "fts")
+        ? "created_at_desc"
+        : sort;
 
-    if (params.library_id && params.library_id.trim().length > 0) {
+    const needsStAgg =
+      effectiveSort === "st_chats_count_desc" ||
+      effectiveSort === "st_chats_count_asc" ||
+      effectiveSort === "st_last_chat_at_desc" ||
+      effectiveSort === "st_last_chat_at_asc" ||
+      effectiveSort === "st_first_chat_at_desc" ||
+      effectiveSort === "st_first_chat_at_asc" ||
+      params.st_has_chats === true ||
+      (typeof params.st_chats_count === "number" &&
+        Number.isFinite(params.st_chats_count) &&
+        params.st_chats_count >= 0);
+
+    const libraryIds =
+      Array.isArray(params.library_ids) && params.library_ids.length > 0
+        ? params.library_ids
+            .map((s) => String(s).trim())
+            .filter((s) => s.length > 0)
+        : [];
+
+    if (libraryIds.length > 0) {
+      const placeholders = libraryIds.map(() => "?").join(", ");
+      where.push(`c.library_id IN (${placeholders})`);
+      sqlParams.push(...libraryIds);
+    } else if (params.library_id && params.library_id.trim().length > 0) {
       where.push(`c.library_id = ?`);
       sqlParams.push(params.library_id.trim());
     }
@@ -150,6 +196,10 @@ export class CardsService {
       sqlParams.push(value === "1" ? 1 : 0);
     };
 
+    addTriState("c.is_sillytavern", params.is_sillytavern);
+    // Default behavior should hide hidden cards; caller can pass "any" / "1".
+    addTriState("c.is_hidden", params.is_hidden);
+    addTriState("c.is_fav", params.fav);
     addTriState("c.has_creator_notes", params.has_creator_notes);
     addTriState("c.has_system_prompt", params.has_system_prompt);
     addTriState(
@@ -206,6 +256,25 @@ export class CardsService {
       sqlParams.push(tokensMax);
     }
 
+    // ST profile filter: profile-specific meta stored in card_files
+    const stProfiles = Array.isArray(params.st_profile_handle)
+      ? params.st_profile_handle
+          .map((s) => String(s).trim())
+          .filter((s) => s.length > 0)
+      : [];
+    if (stProfiles.length > 0) {
+      const placeholders = stProfiles.map(() => "?").join(", ");
+      where.push(
+        `EXISTS (
+          SELECT 1
+          FROM card_files cf
+          WHERE cf.card_id = c.id
+            AND cf.st_profile_handle IN (${placeholders})
+        )`
+      );
+      sqlParams.push(...stProfiles);
+    }
+
     // pattern matches filter (cached)
     const patterns = params.patterns ?? "any";
     if (patterns !== "any") {
@@ -219,7 +288,8 @@ export class CardsService {
       `
       );
       const rulesHash =
-        typeof lastReady?.rules_hash === "string" && lastReady.rules_hash.trim().length > 0
+        typeof lastReady?.rules_hash === "string" &&
+        lastReady.rules_hash.trim().length > 0
           ? lastReady.rules_hash.trim()
           : null;
 
@@ -252,7 +322,9 @@ export class CardsService {
 
     if (hasQ) {
       const requestedFields = Array.isArray(params.q_fields)
-        ? (params.q_fields as CardsFtsField[]).filter((f) => typeof f === "string")
+        ? (params.q_fields as CardsFtsField[]).filter(
+            (f) => typeof f === "string"
+          )
         : [];
 
       const fieldToColumn = (f: CardsFtsField): string => {
@@ -313,7 +385,10 @@ export class CardsService {
 
         const escapeLike = (input: string): string => {
           // Escape order matters: backslash first.
-          return input.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+          return input
+            .replace(/\\/g, "\\\\")
+            .replace(/%/g, "\\%")
+            .replace(/_/g, "\\_");
         };
 
         const allColumns: string[] = [
@@ -330,7 +405,8 @@ export class CardsService {
         ];
 
         const cols = (() => {
-          if (!requestedFields || requestedFields.length === 0) return allColumns;
+          if (!requestedFields || requestedFields.length === 0)
+            return allColumns;
           const mapped = requestedFields.map((f) => fieldToColumn(f));
           // Keep unique and stable order.
           const seen = new Set<string>();
@@ -350,6 +426,41 @@ export class CardsService {
         where.push(`(${orSql})`);
         for (let i = 0; i < cols.length; i++) sqlParams.push(pattern);
       }
+    }
+
+    const stAggJoin = needsStAgg
+      ? `
+        LEFT JOIN (
+          SELECT
+            cf.card_id as card_id,
+            SUM(COALESCE(cf.st_chats_count, 0)) as st_chats_count_sum,
+            MAX(COALESCE(cf.st_last_chat_at, 0)) as st_last_chat_at_max,
+            MIN(NULLIF(cf.st_first_chat_at, 0)) as st_first_chat_at_min
+          FROM card_files cf
+          GROUP BY cf.card_id
+        ) stagg ON stagg.card_id = c.id
+      `
+      : "";
+
+    // ST chats count filter: applies to SUM(st_chats_count) aggregated per card.
+    if (
+      typeof params.st_chats_count === "number" &&
+      Number.isFinite(params.st_chats_count) &&
+      params.st_chats_count >= 0
+    ) {
+      const op = params.st_chats_count_op ?? "gte";
+      if (op === "eq") {
+        where.push(`COALESCE(stagg.st_chats_count_sum, 0) = ?`);
+      } else if (op === "lte") {
+        where.push(`COALESCE(stagg.st_chats_count_sum, 0) <= ?`);
+      } else {
+        where.push(`COALESCE(stagg.st_chats_count_sum, 0) >= ?`);
+      }
+      sqlParams.push(Math.floor(params.st_chats_count));
+    }
+
+    if (params.st_has_chats === true) {
+      where.push(`COALESCE(stagg.st_chats_count_sum, 0) > 0`);
     }
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
@@ -374,6 +485,18 @@ export class CardsService {
           return `ORDER BY c.prompt_tokens_est ASC, c.created_at DESC`;
         case "prompt_tokens_desc":
           return `ORDER BY c.prompt_tokens_est DESC, c.created_at DESC`;
+        case "st_chats_count_asc":
+          return `ORDER BY COALESCE(stagg.st_chats_count_sum, 0) ASC, c.created_at DESC`;
+        case "st_chats_count_desc":
+          return `ORDER BY COALESCE(stagg.st_chats_count_sum, 0) DESC, c.created_at DESC`;
+        case "st_last_chat_at_asc":
+          return `ORDER BY COALESCE(stagg.st_last_chat_at_max, 0) ASC, c.created_at DESC`;
+        case "st_last_chat_at_desc":
+          return `ORDER BY COALESCE(stagg.st_last_chat_at_max, 0) DESC, c.created_at DESC`;
+        case "st_first_chat_at_asc":
+          return `ORDER BY COALESCE(stagg.st_first_chat_at_min, 0) ASC, c.created_at DESC`;
+        case "st_first_chat_at_desc":
+          return `ORDER BY COALESCE(stagg.st_first_chat_at_min, 0) DESC, c.created_at DESC`;
         case "created_at_desc":
         default:
           return `ORDER BY c.created_at DESC`;
@@ -390,6 +513,9 @@ export class CardsService {
         c.creator,
         c.spec_version,
         c.created_at,
+        c.is_sillytavern,
+        c.is_hidden,
+        c.is_fav,
         c.alternate_greetings_count,
         c.has_character_book,
         c.prompt_tokens_est,
@@ -408,6 +534,7 @@ export class CardsService {
         ) as file_path
       FROM cards c
       ${joinSql}
+      ${stAggJoin}
       ${whereSql}
       ${orderBy}
     `;
@@ -419,6 +546,9 @@ export class CardsService {
       creator: string | null;
       spec_version: string | null;
       created_at: number;
+      is_sillytavern: number;
+      is_hidden: number;
+      is_fav: number;
       alternate_greetings_count: number;
       has_character_book: number;
       prompt_tokens_est: number;
@@ -445,10 +575,13 @@ export class CardsService {
         name: row.name,
         tags,
         creator: row.creator,
+        fav: row.is_fav === 1,
         avatar_url: avatarUrl,
         file_path: row.file_path,
         spec_version: row.spec_version,
         created_at: row.created_at,
+        is_sillytavern: row.is_sillytavern === 1,
+        innkeeperMeta: { isHidden: row.is_hidden === 1 },
         alternate_greetings_count: Number.isFinite(
           row.alternate_greetings_count
         )

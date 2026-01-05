@@ -4,6 +4,7 @@ import { getSettings } from "../services/settings";
 import { logger } from "../utils/logger";
 import type { CardsSyncOrchestrator } from "../services/cards-sync-orchestrator";
 import { getOrCreateLibraryId } from "../services/libraries";
+import { listSillyTavernProfileCharactersDirs } from "../services/sillytavern";
 
 /**
  * Инициализирует автоматическое сканирование при старте сервера
@@ -50,6 +51,29 @@ export async function initializeScannerWithOrchestrator(
       });
       const libraryId = getOrCreateLibraryId(db, settings.cardsFolderPath);
       orchestrator.requestScan("app", settings.cardsFolderPath, libraryId);
+    }
+
+    if (
+      settings.sillytavenrPath !== null &&
+      existsSync(settings.sillytavenrPath)
+    ) {
+      logger.infoKey("log.scanner.autoStart", {
+        folderPath: settings.sillytavenrPath,
+      });
+
+      // Scan per profile characters dir (library_id is profile-specific).
+      const dirs = await listSillyTavernProfileCharactersDirs(
+        settings.sillytavenrPath
+      );
+      for (const d of dirs) {
+        const libraryId = getOrCreateLibraryId(db, d.charactersDir);
+        orchestrator.requestScan(
+          "app",
+          d.charactersDir,
+          libraryId,
+          "sillytavern_profile"
+        );
+      }
     }
   } catch (error) {
     logger.errorKey(error, "error.scanner.readSettingsFailed");

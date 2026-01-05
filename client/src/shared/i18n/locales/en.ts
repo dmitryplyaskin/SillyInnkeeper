@@ -34,7 +34,11 @@ const en = {
     saveSettings: "Failed to save settings",
     loadCards: "Failed to load cards",
     loadCard: "Failed to load card",
+    loadChats: "Failed to load chats",
+    loadChat: "Failed to load chat",
     loadFiltersTitle: "Failed to load filters",
+    loadFiltersStateTitle: "Failed to load saved filters",
+    saveFiltersStateTitle: "Failed to save filters",
     loadViewSettings: "Failed to load view settings",
     saveViewSettings: "Failed to save view settings",
     loadTags: "Failed to load tags",
@@ -50,6 +54,7 @@ const en = {
   },
   empty: {
     dash: "—",
+    none: "none",
     notFoundCards: "No cards found",
   },
   home: {
@@ -151,6 +156,18 @@ const en = {
     tags: "Tags",
     tagsTip: "Works as AND: a card must contain all selected tags.",
     localDayTip: "Filtering by days in local time.",
+    source: "Source",
+    sourceAll: "All",
+    sourceOnlySt: "Only ST",
+    sourceOnlyFolder: "Only from folder",
+    hidden: "Hidden",
+    hiddenExclude: "Exclude",
+    hiddenInclude: "Include",
+    hiddenOnly: "Only hidden",
+    fav: "Favorites",
+    favAll: "All",
+    favOnly: "Only favorites",
+    favOnlyNot: "Only non-favorites",
     triAny: "Any",
     triHas: "Has",
     triHasNot: "Has not",
@@ -160,6 +177,20 @@ const en = {
     sortNameDesc: "Name: Z → A",
     sortTokensDesc: "Tokens: high → low",
     sortTokensAsc: "Tokens: low → high",
+    sortChatsCountDesc: "Chats: high → low (ST)",
+    sortChatsCountAsc: "Chats: low → high (ST)",
+    sortLastChatDesc: "Last chat: new → old (ST)",
+    sortLastChatAsc: "Last chat: old → new (ST)",
+    sortFirstChatDesc: "First chat: new → old (ST)",
+    sortFirstChatAsc: "First chat: old → new (ST)",
+    chats: "Chats (ST)",
+    chatsCount: "Chats count",
+    chatsCountOp: "Compare",
+    stProfile: "ST profile",
+    hideNoChats: "Hide cards without chats",
+    opEq: "Exact (=)",
+    opGte: "Greater or equal (≥)",
+    opLte: "Less or equal (≤)",
     hasCreatorNotes: "Creator notes",
     hasSystemPrompt: "System prompt",
     hasPostHistoryInstructions: "Post history instructions",
@@ -185,6 +216,8 @@ const en = {
     altGreetingsCount: "Alternate greetings (count)",
     tokensEstimateTip: "Tokens estimate (approx.)",
     createdAtTip: "Created date (from file)",
+    favBadgeTip: "Favorite from SillyTavern",
+    stBadgeTip: "Card from SillyTavern",
     imageTitleFallback: "Card image",
   },
   cardDetails: {
@@ -204,11 +237,24 @@ const en = {
     mainFile: "File",
     createdAt: "Created",
     tokensApprox: "Tokens (≈)",
+    stChatsCount: "Chats count (ST)",
+    stLastChat: "Last chat (ST)",
+    stFirstChat: "First chat (ST)",
     tabsMain: "Main",
     tabsAlt: "Alt greetings",
     tabsSystem: "System",
+    tabsChats: "Chats",
     tabsLorebook: "Lorebook",
     tabsRaw: "Raw",
+    chats: {
+      title: "Chats",
+      empty: "No chats",
+      pickChat: "Pick a chat",
+      selectChatHint: "Select a chat on the left",
+      chatTitle: "Chat: {{title}}",
+      chatTitleEmpty: "Chat",
+      messagesCount: "Messages: {{count}}",
+    },
     fieldName: "Name",
     fieldTags: "Tags",
     fieldCreator: "Creator",
@@ -248,8 +294,17 @@ const en = {
     confirmDeleteCardTitle: "Delete card?",
     confirmDeleteCardMessage:
       "The card will be deleted completely: all files (including duplicates) will be removed from disk and from the database. This action cannot be undone.",
+    confirmDeleteCardStWarning:
+      "Deleting this card will also remove it from SillyTavern.",
+    deleteChatsLabel: "Delete chats?",
+    chatsDeleteFailed: "Failed to delete chats",
     cardDeleted: "Card deleted",
     cardDeleteFailed: "Failed to delete card",
+    hide: "Hide",
+    show: "Show",
+    hideOk: "Card hidden",
+    showOk: "Card shown",
+    hideFailed: "Failed to change card visibility",
 
     renameMainFileTitle: "Rename file",
     renameMainFileHint:
@@ -267,6 +322,8 @@ const en = {
     saveOverwriteWithDuplicates: "Overwrite card and duplicates",
     saveAsNew: "Save as new",
     saveAsNewDeleteOld: "Save as new and delete old",
+    saveToFolder: "Save to folder",
+    saveToFolderTip: "Saves a copy into your library folder: {{path}}",
 
     edit: "Edit",
     preview: "Preview",
@@ -537,6 +594,16 @@ const en = {
     description:
       "A tool to normalize tags: select garbage tags and replace them with one valid tag, or delete them without replacement.",
 
+    scope: {
+      applyToLibrary: "Apply to library cards?",
+      applyToSillyTavern: "Apply to SillyTavern cards?",
+    },
+
+    stProfilesLabel: "SillyTavern profiles",
+    stProfilesPlaceholder: "All profiles",
+    stProfilesHint:
+      "If no profiles are selected, changes will be applied to all SillyTavern profiles.",
+
     tabs: {
       replace: "Replace",
       delete: "Delete",
@@ -561,6 +628,7 @@ const en = {
 
     validation: {
       fillRequired: "Fill required fields",
+      selectSource: "Select at least one cards source",
     },
 
     startedTitle: "Tags editor",

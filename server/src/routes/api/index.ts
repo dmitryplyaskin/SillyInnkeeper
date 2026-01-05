@@ -8,6 +8,7 @@ import settings from "./settings";
 import viewSettings from "./view-settings";
 import cardsImport from "./cards-import";
 import cards from "./cards";
+import cardChats from "./card-chats";
 import tags from "./tags";
 import thumbnail from "./thumbnail";
 import image from "./image";
@@ -17,6 +18,7 @@ import explorer from "./explorer";
 import lorebooks from "./lorebooks";
 import importSettings from "./import-settings";
 import patternRules from "./pattern-rules";
+import cardsFiltersState from "./cards-filters-state";
 
 const router = Router();
 
@@ -80,6 +82,7 @@ router.use(settings);
 router.use(viewSettings);
 router.use(cardsImport);
 router.use(cards);
+router.use(cardChats);
 router.use(tags);
 router.use(thumbnail);
 router.use(image);
@@ -89,5 +92,6 @@ router.use(explorer);
 router.use(lorebooks);
 router.use(importSettings);
 router.use(patternRules);
+router.use(cardsFiltersState);
 
 export default router;

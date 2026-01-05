@@ -65,6 +65,17 @@ router.post("/tags/bulk-edit", async (req: Request, res: Response) => {
 
     const from = body?.from;
 
+    // Optional scope flags (backward-compatible defaults)
+    const apply_to_library =
+      typeof body?.apply_to_library === "boolean" ? body.apply_to_library : true;
+    const apply_to_st =
+      typeof body?.apply_to_st === "boolean" ? body.apply_to_st : false;
+    const st_profile_handles: string[] | undefined = Array.isArray(body?.st_profile_handles)
+      ? (body.st_profile_handles as unknown[])
+          .map((x) => String(x ?? "").trim())
+          .filter((s) => s.length > 0)
+      : undefined;
+
     const toRaw = body?.to;
     const to: TagsBulkEditTarget | undefined =
       toRaw && typeof toRaw === "object"
@@ -91,6 +102,9 @@ router.post("/tags/bulk-edit", async (req: Request, res: Response) => {
       action,
       from,
       to,
+      applyToLibrary: apply_to_library,
+      applyToSt: apply_to_st,
+      stProfileHandles: st_profile_handles,
     });
 
     void job

@@ -13,6 +13,8 @@ import type { FsWatcherService } from "../../services/fs-watcher";
 import { setCurrentLanguage } from "../../i18n/language";
 import { AppError } from "../../errors/app-error";
 import { sendError } from "../../errors/http";
+import { buildWatchTargets } from "../../services/watch-targets";
+import { listSillyTavernProfileCharactersDirs } from "../../services/sillytavern";
 
 const router = Router();
 
@@ -81,20 +83,15 @@ router.put("/settings", async (req: Request, res: Response) => {
 
     const prevPath = prevSettings.cardsFolderPath;
     const nextPath = savedSettings.cardsFolderPath;
+    const prevStPath = prevSettings.sillytavenrPath;
+    const nextStPath = savedSettings.sillytavenrPath;
     const db = getDb(req);
 
-    // Перезапускаем watcher, если путь изменился
-    if (prevPath !== nextPath) {
-      try {
-        if (nextPath) {
-          const libraryId = getOrCreateLibraryId(db, nextPath);
-          getFsWatcher(req).restart(nextPath, libraryId);
-        } else {
-          getFsWatcher(req).restart(null);
-        }
-      } catch (error) {
-        logger.errorKey(error, "error.settings.restartFsWatcherFailed");
-      }
+    // Синхронизируем watcher'ы под актуальные настройки (cards + sillytavern)
+    try {
+      getFsWatcher(req).syncTargets(buildWatchTargets(savedSettings, db));
+    } catch (error) {
+      logger.errorKey(error, "error.settings.restartFsWatcherFailed");
     }
 
     // Запускаем scan через orchestrator (мгновенно, без debounce)
@@ -102,6 +99,24 @@ router.put("/settings", async (req: Request, res: Response) => {
       try {
         const libraryId = getOrCreateLibraryId(db, nextPath);
         getOrchestrator(req).requestScan("app", nextPath, libraryId);
+      } catch (error) {
+        logger.errorKey(error, "error.settings.postSettingsSyncFailed");
+      }
+    }
+
+    // Запускаем SillyTavern scan, если путь изменился (или был установлен)
+    if (prevStPath !== nextStPath && nextStPath !== null) {
+      try {
+        const dirs = await listSillyTavernProfileCharactersDirs(nextStPath);
+        for (const d of dirs) {
+          const libraryId = getOrCreateLibraryId(db, d.charactersDir);
+          getOrchestrator(req).requestScan(
+            "app",
+            d.charactersDir,
+            libraryId,
+            "sillytavern_profile"
+          );
+        }
       } catch (error) {
         logger.errorKey(error, "error.settings.postSettingsSyncFailed");
       }
