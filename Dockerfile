@@ -5,8 +5,8 @@ RUN corepack enable && corepack prepare yarn@4.12.0 --activate
 
 WORKDIR /app
 
-COPY SillyInnkeeper/package.json ./
-COPY SillyInnkeeper/client ./client
+COPY package.json ./
+COPY client ./client
 
 WORKDIR /app/client
 
@@ -23,7 +23,7 @@ RUN apk add --no-cache python3 make g++
 
 WORKDIR /app/server
 
-COPY SillyInnkeeper/server ./
+COPY server ./
 
 RUN yarn install
 RUN yarn build
@@ -44,7 +44,7 @@ RUN corepack enable && corepack prepare yarn@4.12.0 --activate
 WORKDIR /app
 
 # Copy server package files and install production dependencies
-COPY SillyInnkeeper/server/package.json SillyInnkeeper/server/yarn.lock ./
+COPY server/package.json server/yarn.lock ./
 RUN NODE_ENV=production yarn install
 
 # Copy built artifacts
