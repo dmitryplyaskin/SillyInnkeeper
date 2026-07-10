@@ -63,7 +63,7 @@ export class CardValidator {
     ];
 
     for (const field of requiredFields) {
-      if (!Object.hasOwnProperty.call(card, field)) {
+      if (!Object.prototype.hasOwnProperty.call(card, field)) {
         this.lastValidationError = `Missing required field: ${field}`;
         return false;
       }
@@ -114,7 +114,7 @@ export class CardValidator {
     const requiredFields = ["name", "description", "first_mes"];
 
     for (const field of requiredFields) {
-      if (!Object.hasOwnProperty.call(data, field)) {
+      if (!Object.prototype.hasOwnProperty.call(data, field)) {
         this.lastValidationError = `Missing required field in data: ${field}`;
         return false;
       }
@@ -136,33 +136,34 @@ export class CardValidator {
       return false;
     }
 
-    if (typeof data.mes_example !== "string") {
-      this.lastValidationError = "data.mes_example must be a string";
+
+    if (data.mes_example !== undefined && typeof data.mes_example !== "string") {
+      this.lastValidationError = "data.mes_example must be a string if present";
       return false;
     }
 
-    if (!Array.isArray(data.alternate_greetings)) {
-      this.lastValidationError = "data.alternate_greetings must be an array";
+    if (data.alternate_greetings !== undefined && !Array.isArray(data.alternate_greetings)) {
+      this.lastValidationError = "data.alternate_greetings must be an array if present";
       return false;
     }
 
-    if (!Array.isArray(data.tags)) {
-      this.lastValidationError = "data.tags must be an array";
+    if (data.tags !== undefined && !Array.isArray(data.tags)) {
+      this.lastValidationError = "data.tags must be an array if present";
       return false;
     }
 
-    if (typeof data.creator !== "string") {
-      this.lastValidationError = "data.creator must be a string";
+    if (data.creator !== undefined && typeof data.creator !== "string") {
+      this.lastValidationError = "data.creator must be a string if present";
       return false;
     }
 
-    if (typeof data.character_version !== "string") {
-      this.lastValidationError = "data.character_version must be a string";
+    if (data.character_version !== undefined && typeof data.character_version !== "string") {
+      this.lastValidationError = "data.character_version must be a string if present";
       return false;
     }
 
-    if (typeof data.extensions !== "object" || data.extensions === null) {
-      this.lastValidationError = "data.extensions must be an object";
+    if (data.extensions !== undefined && (typeof data.extensions !== "object" || data.extensions === null)) {
+      this.lastValidationError = "data.extensions must be an object if present";
       return false;
     }
 
@@ -230,13 +231,9 @@ export class CardValidator {
     const book = characterBook as Record<string, unknown>;
 
     // Обязательные поля character_book
-    const requiredFields = ["extensions", "entries"];
-
-    for (const field of requiredFields) {
-      if (!Object.hasOwnProperty.call(book, field)) {
-        this.lastValidationError = `Missing required field in character_book: ${field}`;
-        return false;
-      }
+    if (!Object.prototype.hasOwnProperty.call(book, "entries")) {
+      this.lastValidationError = "Missing required field in character_book: entries";
+      return false;
     }
 
     // Проверка типов
@@ -245,8 +242,8 @@ export class CardValidator {
       return false;
     }
 
-    if (typeof book.extensions !== "object" || book.extensions === null) {
-      this.lastValidationError = "character_book.extensions must be an object";
+    if (book.extensions !== undefined && (typeof book.extensions !== "object" || book.extensions === null)) {
+      this.lastValidationError = "character_book.extensions must be an object if present";
       return false;
     }
 
@@ -298,3 +295,4 @@ export class CardValidator {
     return true;
   }
 }
+

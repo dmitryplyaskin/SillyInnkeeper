@@ -82,91 +82,102 @@ export function parsePngMetadata(filePath: string): ParsedCardData | null {
 
     // Приоритет версий: сначала ищем ccv3 (V3), затем chara (V2)
     // Ищем ccv3 (V3) - наивысший приоритет
-    const ccv3Chunk = textChunks.find((chunk) => chunk.keyword === "ccv3");
-    if (ccv3Chunk) {
+    const ccv3Chunks = textChunks.filter((chunk) => chunk.keyword === "ccv3");
+    for (const chunk of ccv3Chunks) {
       try {
-        const decodedData = Buffer.from(ccv3Chunk.text, "base64").toString(
+        const decodedData = Buffer.from(chunk.text, "base64").toString(
           "utf-8"
         );
         const cardData = JSON.parse(decodedData);
 
-        // Определяем версию спецификации
-        let specVersion: "1.0" | "2.0" | "3.0" | "UNKNOWN" = "UNKNOWN";
-        if (cardData.spec === "chara_card_v3") {
-          specVersion = "3.0";
-        } else if (cardData.spec === "chara_card_v2") {
-          specVersion = "2.0";
-        } else if (!cardData.spec) {
-          // Если spec отсутствует, пытаемся определить V1 по обязательным полям
-          const v1RequiredFields = [
-            "name",
-            "description",
-            "personality",
-            "scenario",
-            "first_mes",
-            "mes_example",
-          ];
-          const hasAllV1Fields = v1RequiredFields.every((field) =>
-            cardData.hasOwnProperty(field)
-          );
-          if (hasAllV1Fields) {
-            specVersion = "1.0";
+        // Пропускаем ответы с ошибками (не карточки)
+        if (cardData && typeof cardData === "object" && (cardData.spec || cardData.name)) {
+          // Определяем версию спецификации
+          let specVersion: "1.0" | "2.0" | "3.0" | "UNKNOWN" = "UNKNOWN";
+          if (cardData.spec === "chara_card_v3") {
+            specVersion = "3.0";
+          } else if (cardData.spec === "chara_card_v2") {
+            specVersion = "2.0";
+          } else if (!cardData.spec) {
+            // Если spec отсутствует, пытаемся определить V1 по обязательным полям
+            const v1RequiredFields = [
+              "name",
+              "description",
+              "personality",
+              "scenario",
+              "first_mes",
+              "mes_example",
+            ];
+            const hasAllV1Fields = v1RequiredFields.every((field) =>
+              cardData.hasOwnProperty(field)
+            );
+            if (hasAllV1Fields) {
+              specVersion = "1.0";
+            }
           }
-        }
 
-        return {
-          data: cardData,
-          spec_version: specVersion,
-          chunk_type: "ccv3",
-        };
-      } catch (error) {
-        logger.errorKey(error, "error.png.decodeCcv3Failed", { filePath });
-        // Продолжаем поиск chara чанка
+          return {
+            data: cardData,
+            spec_version: specVersion,
+            chunk_type: "ccv3",
+          };
+        }
+      } catch {
+        // Пропускаем невалидный JSON и пробуем следующий чанк
       }
     }
 
     // Fallback: ищем chara (V2)
-    const charaChunk = textChunks.find((chunk) => chunk.keyword === "chara");
-    if (charaChunk) {
+    const charaChunks = textChunks.filter((chunk) => chunk.keyword === "chara");
+    for (const chunk of charaChunks) {
       try {
-        const decodedData = Buffer.from(charaChunk.text, "base64").toString(
+        const decodedData = Buffer.from(chunk.text, "base64").toString(
           "utf-8"
         );
         const cardData = JSON.parse(decodedData);
 
-        // Определяем версию спецификации
-        let specVersion: "1.0" | "2.0" | "3.0" | "UNKNOWN" = "UNKNOWN";
-        if (cardData.spec === "chara_card_v2") {
-          specVersion = "2.0";
-        } else if (cardData.spec === "chara_card_v3") {
-          specVersion = "3.0";
-        } else if (!cardData.spec) {
-          // Если spec отсутствует, пытаемся определить V1 по обязательным полям
-          const v1RequiredFields = [
-            "name",
-            "description",
-            "personality",
-            "scenario",
-            "first_mes",
-            "mes_example",
-          ];
-          const hasAllV1Fields = v1RequiredFields.every((field) =>
-            cardData.hasOwnProperty(field)
-          );
-          if (hasAllV1Fields) {
-            specVersion = "1.0";
+        // Пропускаем ответы с ошибками (не карточки)
+        if (cardData && typeof cardData === "object" && (cardData.spec || cardData.name)) {
+          // Определяем версию спецификации
+          let specVersion: "1.0" | "2.0" | "3.0" | "UNKNOWN" = "UNKNOWN";
+          if (cardData.spec === "chara_card_v2") {
+            specVersion = "2.0";
+          } else if (cardData.spec === "chara_card_v3") {
+            specVersion = "3.0";
+          } else if (!cardData.spec) {
+            // Если spec отсутствует, пытаемся определить V1 по обязательным полям
+            const v1RequiredFields = [
+              "name",
+              "description",
+              "personality",
+              "scenario",
+              "first_mes",
+              "mes_example",
+            ];
+            const hasAllV1Fields = v1RequiredFields.every((field) =>
+              cardData.hasOwnProperty(field)
+            );
+            if (hasAllV1Fields) {
+              specVersion = "1.0";
+            }
           }
-        }
 
-        return {
-          data: cardData,
-          spec_version: specVersion,
-          chunk_type: "chara",
-        };
-      } catch (error) {
-        logger.errorKey(error, "error.png.decodeCharaFailed", { filePath });
-        return null;
+          return {
+            data: cardData,
+            spec_version: specVersion,
+            chunk_type: "chara",
+          };
+        }
+      } catch {
+        // Пропускаем невалидный JSON и пробуем следующий чанк
       }
+    }
+
+    // Если чанки были найдены, но ни один не содержал валидную карточку
+    if (ccv3Chunks.length > 0) {
+      logger.errorMessageKey("error.png.decodeCcv3Failed", { filePath });
+    } else if (charaChunks.length > 0) {
+      logger.errorMessageKey("error.png.decodeCharaFailed", { filePath });
     }
 
     // Чанки ccv3 и chara не найдены
