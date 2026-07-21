@@ -49,20 +49,3 @@ export async function pickFolder(title?: string): Promise<PickFolderResult> {
     ...(title ? { title } : {}),
   });
 }
-
-export type ResolveFilePathResult = {
-  path: string | null;
-};
-
-/**
- * Given a filename (from the browser's native file picker),
- * ask the server to search the filesystem for it and return its parent directory.
- * Used on Android where native file dialogs don't expose the real filesystem path.
- */
-export async function resolveFilePath(
-  filename: string
-): Promise<ResolveFilePathResult> {
-  return postJson<ResolveFilePathResult>("/api/explorer/resolve-file-path", {
-    filename,
-  });
-}
