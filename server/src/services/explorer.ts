@@ -1,6 +1,5 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
-
 type SpawnResult = {
   code: number | null;
   signal: NodeJS.Signals | null;
@@ -119,6 +118,14 @@ export async function showFolder(folderPath: string): Promise<void> {
     return;
   }
 
+  if (platform === "android") {
+    const cmd = "termux-open";
+    const args = [folderPath];
+    const res = await spawnAndCapture(cmd, args);
+    ensureOk(cmd, args, res);
+    return;
+  }
+
   throw new ExplorerUnsupportedPlatformError(platform);
 }
 
@@ -151,6 +158,14 @@ export async function showFile(filePath: string): Promise<void> {
     const dir = path.dirname(filePath);
     const cmd = "xdg-open";
     const args = [dir];
+    const res = await spawnAndCapture(cmd, args);
+    ensureOk(cmd, args, res);
+    return;
+  }
+
+  if (platform === "android") {
+    const cmd = "termux-open";
+    const args = [filePath];
     const res = await spawnAndCapture(cmd, args);
     ensureOk(cmd, args, res);
     return;
@@ -262,6 +277,13 @@ export async function pickFolder(opts?: {
     }
 
     throw new ExplorerDialogNotAvailableError(platform);
+  }
+
+  if (platform === "android") {
+    // Android/Termux has no system GUI folder picker available from a server context.
+    // The frontend has text inputs — users can type the path directly.
+    // Return cancelled=true so the frontend shows no error, no spinner.
+    return { path: null, cancelled: true };
   }
 
   throw new ExplorerUnsupportedPlatformError(platform);

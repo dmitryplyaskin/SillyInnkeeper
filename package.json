@@ -6,7 +6,11 @@
   "author": "Dmitry Plyaskin",
   "license": "AGPL-3.0",
   "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"cd server && npm run dev\" \"cd client && npm run dev\"",
     "start:client": "cd client && yarn dev",
     "start:server": "cd server && yarn dev"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
   }
 }

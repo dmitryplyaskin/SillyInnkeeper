@@ -86,6 +86,10 @@ const ru = {
     pickFolderTooltip: "Выбрать папку",
     pickFolderDialogTitle: "Выберите папку",
     pickFolderFailed: "Не удалось открыть диалог выбора папки",
+    androidPlaceholder:
+      '/storage/emulated/0/… укажите полный путь к папке с картами',
+    androidPickFileNotFound:
+      "Не удалось найти этот файл на устройстве. Введите путь вручную.",
     sillyTavernPathLabel: "Путь к SillyTavern",
     sillyTavernPathPlaceholder: "C:\\path\\to\\sillytavern (опционально)",
   },

@@ -23,6 +23,7 @@
     "node-addon-api": "^8.5.0",
     "node-gyp": "^12.1.0",
     "p-limit": "^5.0.0",
+    "rebuild": "^0.1.2",
     "sharp": "^0.34.5"
   },
   "devDependencies": {
@@ -34,5 +35,8 @@
     "rimraf": "^5.0.0",
     "ts-node": "^10.4.0",
     "typescript": "~5.9.2"
+  },
+  "allowScripts": {
+    "node-gyp@12.1.0": true
   }
 }

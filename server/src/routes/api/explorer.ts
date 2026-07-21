@@ -1,5 +1,7 @@
+import { execFile } from "node:child_process";
+import { existsSync, statSync, readdirSync } from "node:fs";
+import os from "node:os";
 import { Router, type Request, type Response } from "express";
-import { existsSync, statSync } from "node:fs";
 import { AppError } from "../../errors/app-error";
 import { sendError } from "../../errors/http";
 import { logger } from "../../utils/logger";
@@ -11,6 +13,81 @@ import {
   showFile,
   showFolder,
 } from "../../services/explorer";
+
+/**
+ * Search for a file by name under a root directory (max depth).
+ * Returns the first match's parent directory, or null.
+ */
+function searchFileInDir(
+  root: string,
+  filename: string,
+  maxDepth: number
+): Promise<string | null> {
+  return new Promise((resolve) => {
+    const child = execFile(
+      "find",
+      [root, "-maxdepth", String(maxDepth), "-name", filename, "-type", "f"],
+      { timeout: 10_000, maxBuffer: 1024 * 1024 },
+      (err, stdout) => {
+        if (err) {
+          resolve(null);
+          return;
+        }
+        const lines = stdout.trim().split("\n").filter(Boolean);
+        if (lines.length === 0) {
+          resolve(null);
+          return;
+        }
+        // Return parent directory of the first match
+        resolve(lines[0].replace(/\/[^/]+$/, ""));
+      }
+    );
+  });
+}
+
+/**
+ * Attempt to resolve a file to a directory path on Android.
+ * Searches common storage locations for the given filename.
+ */
+async function resolveFilePathOnAndroid(
+  filename: string
+): Promise<string | null> {
+  const home = os.homedir();
+  const searchDirs: Array<{ root: string; depth: number }> = [
+    { root: "/storage/emulated/0", depth: 5 },
+    { root: home, depth: 5 },
+  ];
+
+  // Try to detect external SD card
+  try {
+    const entries = readdirSync("/storage");
+    for (const entry of entries) {
+      if (
+        entry !== "emulated" &&
+        entry !== "self"
+      ) {
+        const full = `/storage/${entry}`;
+        if (!searchDirs.some((d) => d.root === full)) {
+          searchDirs.push({ root: full, depth: 5 });
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  for (const { root, depth } of searchDirs) {
+    try {
+      if (!existsSync(root)) continue;
+      const result = await searchFileInDir(root, filename, depth);
+      if (result) return result;
+    } catch {
+      // continue searching
+    }
+  }
+
+  return null;
+}
 
 const router = Router();
 
@@ -149,6 +226,30 @@ router.post("/explorer/pick-folder", async (req: Request, res: Response) => {
 
     const result = await pickFolder({ title });
     res.json(result);
+  } catch (error) {
+    logger.errorKey(error, "api.explorer.open_failed");
+    return sendError(res, mapExplorerError(error));
+  }
+});
+
+// POST /api/explorer/resolve-file-path
+// Android: given a filename from the browser's native file picker,
+// search the filesystem for that file and return its parent directory.
+router.post("/explorer/resolve-file-path", async (req: Request, res: Response) => {
+  try {
+    const body = req.body as any;
+    if (
+      body == null ||
+      typeof body !== "object" ||
+      typeof body.filename !== "string" ||
+      !body.filename.trim()
+    ) {
+      throw new AppError({ status: 400, code: "api.explorer.invalid_format" });
+    }
+
+    const filename = body.filename.trim();
+    const dir = await resolveFilePathOnAndroid(filename);
+    res.json({ path: dir ?? null });
   } catch (error) {
     logger.errorKey(error, "api.explorer.open_failed");
     return sendError(res, mapExplorerError(error));
