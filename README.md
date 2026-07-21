@@ -195,6 +195,77 @@ npm start
 http://127.0.0.1:48912
 ```
 
+### Method 3: Android/Termux Installation
+
+1. Install Termux from [F-Droid](https://f-droid.org/packages/com.termux/) (Google Play version is outdated).
+
+2. Install the required packages:
+
+```bash
+pkg update && pkg upgrade
+pkg install nodejs-lts git binutils build-essential python libvips imagemagick
+```
+
+> **What these packages are for:**
+> - `nodejs-lts` — Node.js runtime
+> - `git` — clone the repository
+> - `binutils`, `build-essential` — C++ compiler toolchain (for building native modules)
+> - `python` — required by `node-gyp` (used by `better-sqlite3` and `sharp`)
+> - `libvips` — image processing library (required by `sharp`)
+> - `imagemagick` — additional image format support (required by `libvips`)
+
+3. Apply the gyp fix (prevents native module build errors):
+
+```bash
+mkdir -p ~/.gyp && echo "{ 'variables': { 'android_ndk_path': '' } }" > ~/.gyp/include.gypi
+```
+
+4. Clone the repository:
+
+```bash
+git clone https://github.com/dmitryplyaskin/SillyInnkeeper.git
+cd SillyInnkeeper
+```
+
+5. Install server dependencies:
+
+```bash
+cd server
+npm install
+```
+
+6. Install client dependencies:
+
+```bash
+cd ../client
+npm install
+```
+
+7. Build the client:
+
+```bash
+cd ../client
+npm run build
+```
+
+8. Start the server:
+
+```bash
+cd ../server
+npm start
+```
+
+9. Open your browser and navigate to:
+
+```
+http://127.0.0.1:48912
+```
+
+> ⚠️ **Note on Android limitations**:
+> - The folder picker icon is hidden — type the full path manually (e.g., `/storage/emulated/0/Download/characters`).
+> - The "Open in Explorer" button and context menu item in card details are also hidden.
+> - These features are disabled because system GUI dialogs are not available from a server/browser context on Android/Termux.
+
 ### Configuration (.env)
 
 You can configure **host/port** and SillyTavern integration via a root `.env` file.

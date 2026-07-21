@@ -86,6 +86,8 @@ const en = {
     pickFolderTooltip: "Pick folder",
     pickFolderDialogTitle: "Pick folder",
     pickFolderFailed: "Failed to open folder picker dialog",
+    androidPlaceholder:
+      '/storage/emulated/0/… enter the full path to your cards folder',
     sillyTavernPathLabel: "SillyTavern path",
     sillyTavernPathPlaceholder: "C:\\path\\to\\sillytavern (optional)",
   },

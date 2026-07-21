@@ -79,6 +79,7 @@ export function CardsImportModal() {
 
   const isMove = settings.importMode === "move";
   const canImport = Boolean(settings.sourceFolderPath?.trim());
+  const isAndroid = /android/i.test(navigator.userAgent);
   const setImportMode = (v: string) => {
     if (v === "copy" || v === "move") onChangeImportMode(v);
   };
@@ -108,28 +109,34 @@ export function CardsImportModal() {
 
         <TextInput
           label={t("cardsImport.sourceFolderLabel")}
-          placeholder={t("cardsImport.sourceFolderPlaceholder")}
+          placeholder={
+            isAndroid
+              ? t("settingsForm.androidPlaceholder")
+              : t("cardsImport.sourceFolderPlaceholder")
+          }
           value={settings.sourceFolderPath ?? ""}
           onChange={(e) => onChangePath(e.currentTarget.value)}
-          rightSectionWidth={42}
+          rightSectionWidth={isAndroid ? 0 : 42}
           rightSection={
-            <Tooltip
-              label={t("cardsImport.pickFolderTooltip")}
-              withArrow
-              position="top"
-            >
-              <ActionIcon
-                variant="subtle"
-                onClick={() => {
-                  if (isLoading) return;
-                  onPick();
-                }}
-                disabled={isLoading}
-                aria-label={t("cardsImport.pickFolderAria")}
+            isAndroid ? null : (
+              <Tooltip
+                label={t("cardsImport.pickFolderTooltip")}
+                withArrow
+                position="top"
               >
-                {isPickingFolder ? <Loader size={16} /> : <FolderIcon />}
-              </ActionIcon>
-            </Tooltip>
+                <ActionIcon
+                  variant="subtle"
+                  onClick={() => {
+                    if (isLoading) return;
+                    onPick();
+                  }}
+                  disabled={isLoading}
+                  aria-label={t("cardsImport.pickFolderAria")}
+                >
+                  {isPickingFolder ? <Loader size={16} /> : <FolderIcon />}
+                </ActionIcon>
+              </Tooltip>
+            )
           }
         />
 

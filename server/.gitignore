@@ -66,3 +66,4 @@ dist
 
 # environment variables
 .env
+build/
