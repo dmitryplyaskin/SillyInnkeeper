@@ -195,6 +195,66 @@ npm start
 http://127.0.0.1:48912
 ```
 
+### Method 3: Android/Termux Installation
+
+1. Install Termux from [F-Droid](https://f-droid.org/packages/com.termux/) (Google Play version is outdated).
+
+2. Install the required packages:
+
+```bash
+pkg update && pkg upgrade
+pkg install nodejs-lts git
+```
+
+3. Apply the gyp fix (prevents native module build errors):
+
+```bash
+mkdir -p ~/.gyp && echo "{ 'variables': { 'android_ndk_path': '' } }" > ~/.gyp/include.gypi
+```
+
+4. Clone the repository:
+
+```bash
+git clone https://github.com/dmitryplyaskin/SillyInnkeeper.git
+cd SillyInnkeeper
+```
+
+5. Install server dependencies:
+
+```bash
+cd server
+npm install
+```
+
+6. Install client dependencies:
+
+```bash
+cd ../client
+npm install
+```
+
+7. Build the client:
+
+```bash
+cd ../client
+npm run build
+```
+
+8. Start the server:
+
+```bash
+cd ../server
+npm start
+```
+
+9. Open your browser and navigate to:
+
+```
+http://127.0.0.1:48912
+```
+
+> ⚠️ **Note**: The folder picker icon is hidden on Android because system dialog commands are not available from a browser/server context. Type the full path manually (e.g., `/storage/emulated/0/Download/characters`).
+
 ### Configuration (.env)
 
 You can configure **host/port** and SillyTavern integration via a root `.env` file.
