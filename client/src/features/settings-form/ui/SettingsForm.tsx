@@ -68,44 +68,6 @@ export function SettingsForm({
 
   const isAndroid = /android/i.test(navigator.userAgent);
 
-  const handleFolderClick = async (
-    setPicking: (v: boolean) => void,
-    setField: (path: string) => void,
-    validate: (() => void) | undefined
-  ) => {
-    if (isLoading) return;
-    setPicking(true);
-    try {
-      const res = await pickFolder(t("settingsForm.pickFolderDialogTitle"));
-      if (res.path) {
-        setField(res.path);
-        validate?.();
-        return;
-      }
-      if (!res.cancelled) {
-        // Dialog not available (no Termux:API app). User can type path manually.
-        notifications.show({
-          title: t("settingsForm.cardsFolderPathLabel"),
-          message: t("settingsForm.pickFolderFailed"),
-          color: "orange",
-        });
-      }
-      // cancelled=true: user cancelled or timed out — silently do nothing
-    } catch (e) {
-      const msg =
-        e instanceof Error && e.message.trim()
-          ? e.message
-          : t("settingsForm.pickFolderFailed");
-      notifications.show({
-        title: t("settingsForm.cardsFolderPathLabel"),
-        message: msg,
-        color: "red",
-      });
-    } finally {
-      setPicking(false);
-    }
-  };
-
   const FolderIcon = ({ size = 16 }: { size?: number }) => (
     <svg
       width={size}
@@ -225,16 +187,28 @@ export function SettingsForm({
               >
                 <ActionIcon
                   variant="subtle"
-                  onClick={() =>
-                    handleFolderClick(
-                      setIsPickingFolder,
-                      (p) => {
-                        form.setFieldValue("cardsFolderPath", p);
+                  onClick={() => {
+                    if (isLoading || isPickingFolder) return;
+                    setIsPickingFolder(true);
+                    void pickFolder(t("settingsForm.pickFolderDialogTitle"))
+                      .then((res) => {
+                        if (res.cancelled || !res.path) return;
+                        form.setFieldValue("cardsFolderPath", res.path);
                         form.validateField("cardsFolderPath");
-                      },
-                      () => form.validateField("cardsFolderPath")
-                    )
-                  }
+                      })
+                      .catch((e) => {
+                        const msg =
+                          e instanceof Error && e.message.trim()
+                            ? e.message
+                            : t("settingsForm.pickFolderFailed");
+                        notifications.show({
+                          title: t("settingsForm.cardsFolderPathLabel"),
+                          message: msg,
+                          color: "red",
+                        });
+                      })
+                      .finally(() => setIsPickingFolder(false));
+                  }}
                   disabled={isLoading || isPickingFolder}
                   aria-label={t("settingsForm.pickFolderAria")}
                 >
@@ -248,11 +222,7 @@ export function SettingsForm({
 
         <TextInput
           label={t("settingsForm.sillyTavernPathLabel")}
-          placeholder={
-            isAndroid
-              ? t("settingsForm.androidPlaceholder")
-              : t("settingsForm.sillyTavernPathPlaceholder")
-          }
+          placeholder={t("settingsForm.sillyTavernPathPlaceholder")}
           rightSectionWidth={isAndroid ? 0 : 42}
           rightSection={
             isAndroid ? null : (
@@ -263,13 +233,27 @@ export function SettingsForm({
               >
                 <ActionIcon
                   variant="subtle"
-                  onClick={() =>
-                    handleFolderClick(
-                      setIsPickingSillyTavernFolder,
-                      (p) => form.setFieldValue("sillytavenrPath", p),
-                      undefined
-                    )
-                  }
+                  onClick={() => {
+                    if (isLoading || isPickingSillyTavernFolder) return;
+                    setIsPickingSillyTavernFolder(true);
+                    void pickFolder(t("settingsForm.pickFolderDialogTitle"))
+                      .then((res) => {
+                        if (res.cancelled || !res.path) return;
+                        form.setFieldValue("sillytavenrPath", res.path);
+                      })
+                      .catch((e) => {
+                        const msg =
+                          e instanceof Error && e.message.trim()
+                            ? e.message
+                            : t("settingsForm.pickFolderFailed");
+                        notifications.show({
+                          title: t("settingsForm.sillyTavernPathLabel"),
+                          message: msg,
+                          color: "red",
+                        });
+                      })
+                      .finally(() => setIsPickingSillyTavernFolder(false));
+                  }}
                   disabled={isLoading || isPickingSillyTavernFolder}
                   aria-label={t("settingsForm.pickFolderAria")}
                 >
