@@ -261,7 +261,10 @@ npm start
 http://127.0.0.1:48912
 ```
 
-> ⚠️ **Note**: The folder picker icon is hidden on Android because system dialog commands are not available from a browser/server context. Type the full path manually (e.g., `/storage/emulated/0/Download/characters`).
+> ⚠️ **Note on Android limitations**:
+> - The folder picker icon is hidden — type the full path manually (e.g., `/storage/emulated/0/Download/characters`).
+> - The "Open in Explorer" button and context menu item in card details are also hidden.
+> - These features are disabled because system GUI dialogs are not available from a server/browser context on Android/Termux.
 
 ### Configuration (.env)
 
