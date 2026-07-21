@@ -203,8 +203,16 @@ http://127.0.0.1:48912
 
 ```bash
 pkg update && pkg upgrade
-pkg install nodejs-lts git
+pkg install nodejs-lts git binutils build-essential python libvips imagemagick
 ```
+
+> **What these packages are for:**
+> - `nodejs-lts` — Node.js runtime
+> - `git` — clone the repository
+> - `binutils`, `build-essential` — C++ compiler toolchain (for building native modules)
+> - `python` — required by `node-gyp` (used by `better-sqlite3` and `sharp`)
+> - `libvips` — image processing library (required by `sharp`)
+> - `imagemagick` — additional image format support (required by `libvips`)
 
 3. Apply the gyp fix (prevents native module build errors):
 

@@ -201,8 +201,16 @@ http://127.0.0.1:48912
 
 ```bash
 pkg update && pkg upgrade
-pkg install nodejs-lts git
+pkg install nodejs-lts git binutils build-essential python libvips imagemagick
 ```
+
+> **Для чего нужны эти пакеты:**
+> - `nodejs-lts` — среда выполнения Node.js
+> - `git` — клонирование репозитория
+> - `binutils`, `build-essential` — компилятор C++ (для сборки нативных модулей)
+> - `python` — требуется для `node-gyp` (используется `better-sqlite3` и `sharp`)
+> - `libvips` — библиотека обработки изображений (требуется `sharp`)
+> - `imagemagick` — поддержка дополнительных форматов изображений (требуется `libvips`)
 
 3. Примените gyp fix (предотвращает ошибки сборки нативных модулей):
 
