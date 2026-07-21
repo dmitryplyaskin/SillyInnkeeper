@@ -10,6 +10,7 @@ export function CardDuplicatesSection({
   onMakeMain,
   onOpenInExplorer,
   onRequestDelete,
+  isAndroid = false,
 }: {
   duplicates: string[];
   isSettingMainFile: boolean;
@@ -17,6 +18,7 @@ export function CardDuplicatesSection({
   onMakeMain: (filePath: string) => void;
   onOpenInExplorer: (filePath: string) => void;
   onRequestDelete: (filePath: string) => void;
+  isAndroid?: boolean;
 }) {
   if (!duplicates || duplicates.length === 0) return null;
 
@@ -50,16 +52,18 @@ export function CardDuplicatesSection({
                   </ActionIcon>
                 </Tooltip>
 
-                <Tooltip label={i18n.t("cardDetails.showInExplorer")} withArrow>
-                  <ActionIcon
-                    variant="light"
-                    onClick={() => onOpenInExplorer(p)}
-                    loading={openingDuplicatePath === p}
-                    aria-label={i18n.t("cardDetails.showInExplorer")}
-                  >
-                    <IconFolder size={18} />
-                  </ActionIcon>
-                </Tooltip>
+                {!isAndroid && (
+                  <Tooltip label={i18n.t("cardDetails.showInExplorer")} withArrow>
+                    <ActionIcon
+                      variant="light"
+                      onClick={() => onOpenInExplorer(p)}
+                      loading={openingDuplicatePath === p}
+                      aria-label={i18n.t("cardDetails.showInExplorer")}
+                    >
+                      <IconFolder size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
 
                 <Tooltip label={i18n.t("cardDetails.deleteDuplicate")} withArrow>
                   <ActionIcon

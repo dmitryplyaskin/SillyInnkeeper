@@ -59,6 +59,7 @@ export function CardActionsMenu({
 
   const exportPngUrl = `/api/cards/${encodeURIComponent(cardId)}/export.png?download=1`;
   const canUseFile = Boolean(filePath?.trim());
+  const isAndroid = /android/i.test(navigator.userAgent);
 
   return (
     <Menu withinPortal position="bottom-end" shadow="md">
@@ -122,19 +123,21 @@ export function CardActionsMenu({
 
         <Menu.Divider />
 
-        <Menu.Item
-          leftSection={
-            isOpeningInExplorer ? <Loader size={16} /> : <IconFolder size={16} />
-          }
-          disabled={!canUseFile || isOpeningInExplorer}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!filePath) return;
-            onOpenInExplorer({ filePath });
-          }}
-        >
-          {t("cardDetails.openInExplorer")}
-        </Menu.Item>
+        {!isAndroid && (
+          <Menu.Item
+            leftSection={
+              isOpeningInExplorer ? <Loader size={16} /> : <IconFolder size={16} />
+            }
+            disabled={!canUseFile || isOpeningInExplorer}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!filePath) return;
+              onOpenInExplorer({ filePath });
+            }}
+          >
+            {t("cardDetails.openInExplorer")}
+          </Menu.Item>
+        )}
 
         <Menu.Item
           leftSection={<IconPencil size={16} />}

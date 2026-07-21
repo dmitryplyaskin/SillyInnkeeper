@@ -99,6 +99,8 @@ export function CardDetailsActionsPanel({
     $settings,
   ]);
 
+  const isAndroid = /android/i.test(navigator.userAgent);
+
   function canonicalizeForCompare(value: unknown): unknown {
     if (value === null || value === undefined) return null;
     if (Array.isArray(value)) return value.map(canonicalizeForCompare);
@@ -281,6 +283,7 @@ export function CardDetailsActionsPanel({
     const fp = (p ?? "").trim();
     if (!fp) return;
     if (openingDuplicatePath) return;
+    if (isAndroid) return;
     setOpeningDuplicatePath(fp);
     try {
       await showFile(fp);
@@ -419,20 +422,22 @@ export function CardDetailsActionsPanel({
             {i18n.t("cardDetails.download")}
           </Button>
 
-          <Button
-            fullWidth
-            variant="subtle"
-            color="gray"
-            onClick={() => {
-              const p = (details?.file_path ?? "").trim();
-              if (!p) return;
-              onOpenInExplorer({ filePath: p });
-            }}
-            disabled={!details?.file_path}
-            loading={isOpeningInExplorer}
-          >
-            {i18n.t("cardDetails.openInExplorer")}
-          </Button>
+          {!isAndroid && (
+            <Button
+              fullWidth
+              variant="subtle"
+              color="gray"
+              onClick={() => {
+                const p = (details?.file_path ?? "").trim();
+                if (!p) return;
+                onOpenInExplorer({ filePath: p });
+              }}
+              disabled={!details?.file_path}
+              loading={isOpeningInExplorer}
+            >
+              {i18n.t("cardDetails.openInExplorer")}
+            </Button>
+          )}
           <Button
             fullWidth
             variant="subtle"
@@ -549,6 +554,7 @@ export function CardDetailsActionsPanel({
                   setSelectedDuplicatePath(p);
                   setConfirmDeleteDuplicateOpened(true);
                 }}
+                isAndroid={isAndroid}
               />
             </>
           )}
